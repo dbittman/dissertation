@@ -1,5 +1,5 @@
 
-all:
+all: book/genfig/*.pdf
 	@mkdir -p build
 	@mkdir -p build/FrontBackmatter
 	@mkdir -p build/Chapters
@@ -9,7 +9,12 @@ FLAGS=-xelatex -outdir=../build -use-make -halt-on-error #-quiet
 
 SOURCES=book/dbittman-dissertation.tex
 
+book/genfig/%.pdf: book/scripts/%.py
+	mkdir -p book/genfig
+	python $< $@
+
 -include build/DEPS.mk
 
 clean:
-	rm -r build
+	-rm -r build book/genfig
+
