@@ -314,7 +314,18 @@
 
 \newcommand{\unedit}[1]{{\leavevmode\color{red}#1}}
 
+%%%%%%
+% TODO: get rid of these
+\newcommand{\observe}[2]{{\leavevmode\color{red}#2}}
+\newcommand{\observation}[1]{{\leavevmode\color{red}#1}}
+\newcommand{\observations}[1]{{\leavevmode\color{red}#1}}
+\makeatletter
+\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{\ref{#1}}\@footnotemark}
+\makeatother
+%%%%%%
+
 \newcommand{\libcore}{\texttt{libtwz}\xspace}
 
 \usepackage{siunitx}
 \usepackage{amsmath}
+\usepackage{rotating}

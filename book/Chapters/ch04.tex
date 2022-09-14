@@ -108,6 +108,96 @@
 }
 
 
+\unedit{
+
+    While considering a single machine as a distributed system\footnote{While the system is
+        distributed, and contains communicating entities, it is not \emph{truly} a traditional
+        distributed system, since a single machine does not include partial-failure semantics (and the
+        cases where it does are rare enough that they may be largely ignored); often a partial failure
+        of a component is instantly upgrade to total failure. However, the messaging semantics of
+        distributed systems are present.} has been examined from the
+    perspective of OS design~\cite{baumann:sosp09}, the extent to which we are proposing has not been.
+    \emph{Each} device, including CPU sockets, acts like a component containing a local memory with
+    \emph{direct} access to a pool of shared, persistent storage.
+
+    Such a model has two significant implications:
+    \begin{enumerate}
+        \item Protection of data within this system is of utmost importance, considering how each of
+              these devices
+              could run an entire operating system with application suites. The green lines in
+              Figure~\ref{fig:sys_arch} represent control paths, showing how memory access is administrated. Note
+              that the CPU, while similar in some respects to other devices, is distinguished in that it sets
+              security policies for the system\footnote{Only in supervisor mode; user-space applications can only
+                  administrate devices that have been mapped into their address spaces.}. The \emph{enforcement}
+              of those policies is handled by the MMU and the IOMMU, both of which apply a mapping of virtual
+              addresses to physical addresses along with access restrictions.
+        \item The addresses emitted by such devices are typically physical addresses that DMA engines
+              operate on. However, similar to \observation~\ref{hetero-mem} above, emitting physical
+              addresses has significant complications in our model, necessitating the need for hardware to
+              abstract physical memory into an object-space as well. Current systems can implement this
+              (along with protection) through the IOMMU for hardware devices and MMU for the CPU.
+    \end{enumerate}
+
+    These implications combined with \observation~\ref{hetero-mem} leads to another point:
+
+    \observe{sls}{The CPU and devices must agree on a single, global abstracted view of
+        shared physical memory, leading to a system-wide single-level store interface (shown in
+        Figure~\ref{fig:log_sys_arch}). Protection is
+        enforced by hardware devices such as the IOMMU, and devices can operate on data objects as
+        opposed to physical memory directly.}
+
+    In the case of specialized hardware running programs, this grants hardware better access to global
+    memory because it does not need to coordinate and the system can trust it more (since the IOMMU can
+    enforce security). For simple I/O controllers, like an NVMe device, it allows programming of such
+    devices in a more efficient and simpler way---instead of translating object pages into physical
+    addresses, it can issue DMA requests directly to object pages instead.
+
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{fig/log_sys_arch}
+        \caption{Logical view of the system architecture. Mapping hardware such as the IOMMU would allow
+            \emph{all} devices to see a single-level store instead of raw physical memory.}
+        \label{fig:log_sys_arch}
+    \end{figure}
+
+
+    An example of this would be if a NIC is processing data it received in a packet, and that data
+    references data in another data object. If there were no abstraction layer, the NIC would need to
+    either interrupt the CPU to ask where the data is, or it would need to keep a map of objects in
+    physical memory itself. The latter adds to management costs of maintaining such maps for all
+    hardware devices in the system when data placement changes, and the former results in performance
+    degradation (due to interrupting the CPU) and requires additional management code to assist in
+    making data transfers on behalf of the hardware devices\footnote{Many current devices today will
+        still need this. However, we are planning for a system model in which it is less necessary. Many
+        devices today fit this model, including some GPUs and special off-chip processing
+        accelerators.}. This also leads to another \observation about data movement, since data
+    processing decisions will need be made by devices autonomously:
+
+    \observe{mem-to-mem}{Operating systems will need to provide a way for applications to specify data
+        movement in a system declaratively, so that data movement decisions can be made largely without user
+        involvement.}
+
+    %A natural consequence of such a distributed system is heterogeneous computing, where we have
+    %different types of processors accessing memory simultaneously. This could be as simple as an x86
+    %processor and an ARM processor both operating on shared memory, where the system offloads
+    %computationally nonintensive tasks to the ARM chip, but also encompasses our system design above.
+    %For example, ARM GPUs can (and do) access global memory with cache coherence with the CPU (CITE).
+    %The jury is still out on scaling-up cache coherence in this way, and systems will need to support
+    %both devices that operate on only local memory and devices which operate on shared memory.
+
+
+
+    The system design shown in
+    Figure~\ref{fig:sys_arch} is not necessarily the end evolution of treating a single machine as a
+    distributed system of components. We could imagine treating the CPU like any other component which
+    accesses shared memory through a controller that itself enforces memory protections and mappings.
+    However, such a model is easier to reach and program for as an evolution of our proposed system
+    design presented here. Furthermore, Figure~\ref{fig:sys_arch} shows a system design that can be
+    realized \emph{now}, allowing us to construct a real system to explore our goals.
+
+
+}
 
 
 \subsection{Hardware Versus Software}
@@ -128,6 +218,57 @@
 }
 
 
+\unedit {
+    There are several design principles that we believe a successful system must adhere to:
+    \begin{enumerate}
+        \item \textbf{Get the OS out of the way}
+              Addressing \observation~\ref{os-out-of-the-way} requires removing kernel invocations from the
+              common path of persistent data access. Instead, we provide applications with methods for
+              accessing persistent data directly as in-memory data structures, thereby removing the
+              overhead of kernel boundary crossings. Note that this necessarily implies a shared-memory
+              style interprocess communication. When shared memory is not possible, however, the system
+              must support some form of message passing.
+
+              Such a model also addresses \observations~\ref{data-movement} and~\ref{mem-to-mem}, since
+              by removing the kernel from the path of persistent, shared data access, hardware can more
+              autonomously operate on data objects.
+
+        \item \textbf{Orthogonal persistence} The emergence of BNVM will make persistence the norm
+              rather than the exception, and so the programming model should have both \emph{persistence
+                  by default} and \emph{transparent, implicit} persistence. However, in accordance with
+              \observation~\ref{consistency}, applications will need to play a significant role in
+              consistency of persistent data.
+
+        \item \textbf{Single address space} We will provide a single address space of data objects to
+              applications \emph{and hardware} called the \emph{object-space}. This addresses
+              \observations~\ref{hetero-mem} and~\ref{sls} by abstracting
+              different types of physical memory and allowing DMA transfers to refer to data within
+              objects instead of physical addresses. Applications running on the CPU will, too, see this
+              same address space, allowing references to more easily pass around the system. Additional
+              benefits include:
+              \begin{enumerate}
+                  \item Allows devices to refer to object data without needing to be aware of where the
+                        object is physically located. This is advantageous in a heterogeneous memory
+                        hierarchy, since data may move often.
+                  \item Simplified security policy: security policy can be defined for objects instead of
+                        physical address.
+                  \item More autonomous operation of devices: if the system can rely on security
+                        enforcement via the IOMMU, these devices can securely access data in main-memory on
+                        their own without needing to be reprogrammed often.
+                  \item Simplified system programming: the unified data access model of Twizzler allows
+                        programmers to write programs that operate on data
+                        that can then run on any device, from the CPU to a NIC, without needing to
+                        specialize their application.
+              \end{enumerate}
+              Of course, if a device (CPU or otherwise) wishes to provide additional layers of abstraction
+              (such as segmentation or virtual address spaces) atop this single address space to ease
+              programming, they may do so (to assist in addressing \observation~\ref{sasos}). Internally, however, the object-space allows hardware devices
+              to agree on a way to reference that data within the system, regardless of where it may be
+              physically located.
+        \item \textbf{Data movement and security} should be handled declaratively, so as to not require invoking
+              the CPU whenever such a decision needs to be made (\observation~\ref{mem-to-mem}).
+    \end{enumerate}
+}
 
 \unedit{
 
@@ -352,6 +493,242 @@
 
 }
 
+\unedit{
+    % TODO this and the previous block need to be merged
+
+    Broadly speaking, operating systems can be classified several ways---how they handle and abstract
+    persistence, how they handle inter-process communication, how the access data objects, and how they
+    protect data and processes. Table~\ref{tbl:systems} shows a summary of different representative
+    relevant operating systems to our research, and how we are classifying them. We will be looking
+    primarily at single-level stores, since such an interface is a natural fit for
+    BNVM~\cite{bailey:hotos11} (meeting \observation~\ref{sls}).
+
+    \subsubsection{Single Level Stores and Single Address Space Operating Systems}
+    \label{sec:sasos}
+
+    BNVM allows the implementation of a \textit{true}
+    single-level store, as has been suggested before~\cite{bailey:hotos11}.
+    Classic single-level store systems, such as AS/400, Cricket~\cite{shekita:uwtr956},
+    Grasshopper~\cite{dearli:cs94}, and
+    EROS~\cite{shapiro:usenix02}, hide the traditional two-level storage hierarchy of DRAM and disk
+    behind the illusion that all data is in memory. They have been known for some time, though
+    ``relatively little has appeared about them in the public literature''~\cite{shapiro:usenix02} even
+    in the time since the EROS paper. Since these systems present merely the illusion of persistence
+    through memory, they can be broken up into how they provide that illusion. AS/400, while presenting
+    a single-level store interface for data access and manipulation, requires explicit OS calls to
+    ensure persistence of data, while the others provide implicit persistence~\cite{dearli:cs94}.
+    \observation~\ref{os-out-of-the-way} indicates that explicit OS calls to persist data is unacceptable
+    due to their latency. The other systems follow different strategies for implementing implicit
+    persistence, including checkpoints to disk in EROS and completely invisible persistence in
+    Grasshopper. Both of these approaches are inappropriate for BNVM, since consistency must be more
+    fine-grained than checkpoints, and require \emph{some} application involvement
+    (\observation~\ref{consistency}).
+
+    Single address space operating systems (SASOSs) and single-level stores are fundamentally entwined,
+    where single-level stores are made easier to implement in a SASOS style, and SASOSs typically
+    present a single-level store interface. Opal~\cite{chase:sosp01}, Mungi~\cite{heiser:scse9314}, and
+    Sombrero~\cite{miller:osr00} are built for large virtual address spaces, and tie persistent objects
+    to virtual addresses for the duration of their lifetimes. This approach has merit for implementing
+    persistent pointers (\observation~\ref{pointers}), but falls short in some respects. Firstly, modern
+    CPU address spaces are not large enough to address all of the data as object storage grows and
+    scales beyond a single machine without increasing pointer size and page-table depth, both of which
+    we would like to avoid. Secondly, the management cost of persisting the virtual mappings
+    outweigh the benefits; since pointers are stored directly, changing the address space (and
+    therefore updating all pointers associated with deleted or moved objects) becomes intractable.
+
+    However, as discussed above in \observations~\ref{hetero-mem} and~\ref{sls}, providing hardware with
+    a single address space of data objects in fixed locations is vital, it is just not the right fit for
+    \textit{programming} and data structure storage, as discussed above. In accordance with
+    \observation~\ref{pointers}, programs should operate on persistent pointers, but the underlying
+    \textit{hardware} should interact using an object-space:
+
+    \observe{sasos}{While a single-address-space approach is the right way for \emph{hardware} to
+        operate on shared data objects (\observation~\ref{sls}), fixed virtual addresses are not a viable
+        means of storing persistent data references, and thus indicates that it falls short as a
+        \emph{programming} abstraction. This necessitates another layer of abstraction for references atop the
+        single-address-space that hardware operates on, storing not fixed virtual addresses but true
+        \texttt{object:offset} style references, such that programmers can operate on persistent
+        references without the need for complex management of an address space.}
+
+    Opal, in addition, still required a filesystem, which is a needless layer of abstraction handled
+    within the operating system (and slow, see \observation~\ref{os-out-of-the-way}). Other
+    SASOSs~\cite{roscoe:osr94,heiser:scse9314,miller:osr00} also do not take into account BNVM, and so
+    do not address the issues described above.
+
+    Multics~\cite{bensoussan:sosp69} was one of the first systems to provide a segmented memory access
+    model and relocation. It used segments to support location independence, but still stored data
+    objects in a filesystem, requiring manual linkage and hindering performance.
+    HYDRA~\cite{wulf:cacm74} also provides similar location independent pointer references, but these
+    were used primarily for procedures referencing data, not references to persistent data, and required
+    heavy kernel involvement.
+
+    \begin{sidewaystable}
+        \centering
+        \begin{minipage}{\textwidth}
+            \centering
+            \caption{Summary of relevant systems. In persistence and references, Twizzler differs from each
+                system for the reasons discussed above. For other features, we take inspiration from a
+                combination of systems in this table. Note that is table is not exhaustive, but merely attempts
+                to provide an overview of relevant systems; there are many more that are similar in most respects to
+                at least one system shown here.}
+            \label{tbl:systems}
+            \begin{tabular}{c c c c c c c}
+                \textbf{System}                                         & \textbf{Year}                             & \textbf{Persistence}                      & \textbf{Inter-process} &
+                \textbf{References}                                     & \textbf{Security}                         & \textbf{Built for}                                                                                                                                                                                                                                                    \\
+                                                                        &                                           &                                           & \textbf{communication}                                                                                                                                                                                                    \\
+                \midrule
+                AS/400~\cite{soltis:96}                                 & 1988                                      & Explicit                                  & Message                & Fixed Virtual                                                                 & Mix\footnoteref{lbl:mix} & Providing
+                single-level                                                                                                                                                                                                                                                                                                                                                                \\
+                                                                        &                                           & (OS call)~\cite{shapiro:usenix02}         &                        & (16-byte pointers)                                                            &                          & store illusion\footnote{Using
+                large virtual memory, and large pointers.}                                                                                                                                                                                                                                                                                                                                  \\
+                \midrule
+                HYDRA~\cite{wulf:cacm74}                                & 1974                                      & Not Addressed                             & Message                & Procedure-to-data                                                             & Capabilities             &
+                Abstraction through                                                                                                                                                                                                                                                                                                                                                         \\
+                                                                        &                                           &                                           &                        & named references\footnote{data-to-data references were not ``cross-object''.} &                          & object orientation                                                                    \\
+                \midrule
+                Grasshopper~\cite{dearli:cs94}                          & 1994                                      & Implicit                                  & Procedure call         & Per-region virtual                                                            & Capabilities
+                                                                        & Providing persistent                                                                                                                                                                                                                                                                                              \\
+                                                                        &                                           & (invisible)                               &                        &                                                                               &                          & programming support                                                                   \\
+                \midrule
+                EROS~\cite{shapiro:usenix02}                            & 1996                                      & Implicit                                  & Message                & Virtual                                                                       & Capabilities             & Providing
+                single-level                                                                                                                                                                                                                                                                                                                                                                \\
+                                                                        &                                           & (checkpoints)                             &                        &                                                                               &                          & store illusion\footnote{Taking into account disks specifically.}                      \\
+                \midrule
+                % capabilities and protection domains were arbitrated; also they required kernel to know them
+                Opal~\cite{chase:tocs94}                                & 1992                                      & Implicit                                  & Procedure call         & Fixed Virtual                                                                 & Capabilities \&          &
+                Large virtual memory                                                                                                                                                                                                                                                                                                                                                        \\
+                                                                        &                                           & (explicit commit)                         &                        &                                                                               & protection domains       &                                                                                       \\
+                \midrule
+                Barrelfish~\cite{baumann:sosp09}                        & 2009                                      & Not addressed~\footnoteref{lbl:fn:choice}
+                                                                        & Message                                   & Not addressed                             & Not addressed          & Many-core                                                                                                                                                                                        \\
+                \midrule
+                Multics~\cite{corbato_introduction_1965}                & 1969                                      & Implicit                                  & Procedure call         & object:offset\footnote{Including a
+                per-process segmentation translation.}                  & Mix\footnoteref{lbl:mix}                  & Virtualized access to                                                                                                                                                                                                                                                 \\
+                                                                        &                                           &                                           &                        &                                                                               &                          & persistent objects                                                                    \\
+                \midrule
+                Unix~\cite{thompson:bstj78}                             & 1973                                      & Explicit                                  & Message                & Virtual                                                                       &
+                Mix~\footnote{\label{lbl:mix}Used ACLs to
+                create capability-like objects (\eg file descriptors).} & Two-level                                                                                                                                                                                                                                                                                                         \\
+                                                                        &                                           & (OS call)                                 &                        &                                                                               &                          & storage\footnote{This abstraction is made explicit in the system calls
+                available.}                                                                                                                                                                                                                                                                                                                                                                 \\
+                \midrule
+                Exokernel~\cite{engler:sosp95}                          & 1995                                      & Not addressed
+                ~\footnote{\label{lbl:fn:choice}Up to implementation. User-space servers
+                    or libos's could choose to manage persistence any way they wished.}
+                                                                        & Either                                    & Not specified                             & Capabilities           & Physical resource                                                                                                                                                                                \\
+                                                                        &                                           &                                           &                        &                                                                               &                          & abstraction                                                                           \\
+                \midrule
+                Mach~\cite{accetta:usenix86s}                           & 1985                                      & Not addressed~\footnoteref{lbl:fn:choice} & Message                & Virtual
+                                                                        & Capabilities                              & Virtual Memory                                                                                                                                                                                                                                                        \\
+                                                                        &                                           &                                           &                        &                                                                               &                          & multi-core (UMA)\footnote{Thus allowing OS services to be implemented at user-level.} \\
+                \midrule
+                Mungi~\cite{heiser:scse9314,heiser:spe98}               & 1998                                      & Orthogonal                                & Procedure call         & Fixed
+                Virtual                                                 & Password Capabilities~\cite{pose:acsac01} & Large virtual memory                                                                                                                                                                                                                                                  \\
+                %\midrule
+                %Sombrero~\cite{miller:osr00}        & 2000 & & & & & Large virtual memory\\
+                \midrule
+                \textbf{Twizzler}                                       &                                           & Orthogonal                                & Shared-memory          & object:offset                                                                 & Capabilities \&          & Heterogeneous                                                                         \\
+                                                                        &                                           & (user-managed consistency)                & (message fallback)     & (indirected)                                                                  & protection domains       & memory
+                environments\footnote{The \emph{directly attached} memory is heterogeneous horizontally in the
+                memory hierarchy, not just vertically.}                                                                                                                                                                                                                                                                                                                                     \\
+            \end{tabular}
+        \end{minipage}
+    \end{sidewaystable}
+
+
+
+
+    \subsubsection{Micro, Exo, Multi, oh my!}
+
+    Fundamental research into kernel design plays a large role in our design decisions. The three kernel
+    design philosophies we will discuss are Microkernel~\cite{accetta:usenix86s},
+    Exokernel~\cite{engler:sosp95}, and Multikernel~\cite{baumann:sosp09}:
+    \begin{itemize}
+        \item The \emph{Microkernel} approach limits the responsibilities of the kernel to providing
+              thread scheduling, process separation, and message passing primitives. It allows userspace
+              servers to implement most of the OS functionality applications require. While this is
+              advantageous in moving kernel functionality into userspace, it often does so by
+              message-passing. With BNVM, we have the ability to do IPC on persistent objects through
+              shared memory, so our systems should rely on this approach instead. Additionally, message
+              passing in microkernels typically involves numerous kernel invocations, which hamper
+              persistent data access (see \observation~\ref{os-out-of-the-way}).
+
+        \item \emph{Exokernels} avoid as much operating system abstraction as possible, choosing instead
+              only handle the bare minimum responsibilities needed for securely multiplexing in-kernel.
+              Exokernels typically involve a user-space \textit{library operating system} (libos) that
+              provide other functionality. Unlike the microkernel approach, these often involve
+              procedure-based IPC~\cite{lauer:osr79,engler:sosp95} and present raw \emph{physical}
+              resources to userspace instead of virtualized ones. While the reduced level of message
+              passing is advantageous in our expected architecture, the direct presentation of physical resources
+              to applications presents an unnecessary complexity for persistent data access, and the lack
+              of abstraction for hardware is similarly costly for security and ease of system programming
+              (\observations~\ref{hetero-mem} and~\ref{sls}).
+
+        \item The \emph{Multikernel} approach considers each NUMA domain or each individual core as a
+              separate system running a full kernel, with little shared state between instances. While
+              this approach has merit for the distributed nature of a single machine, it does not consider
+              how shared-memory access to persistent memory could improve application and system design
+              and performance. We plan to take this approach into consideration in our design.
+              Furthermore, our above \observations suggest that the multikernel approach does not go far
+              enough---\emph{every} programmable device in this system needs to be treated as a separate
+              system instance. Finally, multikernels do not address making hardware see a uniform
+              object space, nor do they address the problem of persistent pointers.
+    \end{itemize}
+
+    Based on these evaluations:
+
+    \observe{kernel}{Each approach to kernel design has its merits for BNVM and heterogeneous computing,
+        however the \textbf{multikernel} approach most closely addresses the \observations above, though
+        it fails to address key concerns of data persistence and more complex hardware interaction. We
+        can take lessons from Exokernels (library operating systems), and microkernels as well.}
+
+
+    \subsubsection{Access Control and Capability Systems}
+    The above \observations do not fully address the issue of \emph{data protection}, which, in a world
+    where hardware devices are free to act on shared global memory with the autonomy that we predict
+    here, is a significant issue from the perspective of operating system design. So far, the hardware
+    solutions available to us for implementing the object-space (\observation~\ref{sls}) enable
+    protection as well though the IOMMU, whose original design was to both protect memory from hardware
+    and enable full device virtualization~\cite{markuze2016true}. We can leverage this hardware to apply
+    security enforcement as well as an object-space mapping. Questions arise from this plan, such as how
+    often do the security policies change, and how should the OS handle ``page-faults'' from these devices properly.
+
+    While the enforcement is done through hardware, not the operating system (a necessary consequence of
+    \observation~\ref{os-out-of-the-way}), we can separate mechanism and policy as is standard. The users
+    and system make the policy, while the operating system interprets the policy, verifies it against a
+    set of requirements and properties, and then programs the hardware to enforce the guarantees. This
+    means the kernel must have a way of verifying access control to an object during a fault. We look to
+    capability systems for solutions due to their common use in single-level stores and SASOSs, and
+    because they provide better least-access properties~\cite{capmyth}, which is important when hardware devices and
+    applications can cause irreparable damage to persistent data with normal memory accesses.
+
+    A \textit{capability} is, at its core, an unforgeable token which
+    grants a particular set of rights on an object~\cite{Lampson1973,Landwehr1981,Gong:sigops89}. A
+    given capability must be protected from tampering, accessible only to a process which is authorized
+    to have it, and obtainable only through some secure mechanism. Many of the systems discussed above
+    use capabilities, albeit in different forms. Some are secure because they are stored in-kernel and
+    accessed via indirection (\unix file descriptors), while some are password-based, granting access
+    when the kernel matches the provided password against an ACL. In most cases, however, these systems
+    require secure capability information to be stored, protected, in kernel-only memory. This limits
+    the power of these systems and requires significant kernel involvement whenever a security decision
+    is made.  Instead, \emph{signed} capabilities can be used~\cite{tanenbaum:osr81}, which allow the
+    kernel to verify the contents of a capability without needing to call out to a secure service or
+    trust that it has not been modified:
+
+    \observe{caps}{In accordance with \observations~\ref{sls} and~\ref{mem-to-mem}, a signed-capability-based
+        system would provide a way for the kernel to verify access control where the policy is set
+        declaratively, such that access control is specified on objects, not other ephemeral resources.
+        Signing lets the kernel can handle security for objects without needing to
+        maintain capabilities internally (which would be insecure across power-cycles).}
+
+
+    This approach has obvious benefits for distributed systems and for systems with long-life persistent
+    data, but has not seen significant research as an operating systems security concept over the past
+    few decades.
+
+
+
+}
 
 \subsection{Single Level Stores}
 

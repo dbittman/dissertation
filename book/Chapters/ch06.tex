@@ -105,6 +105,58 @@
 
 }
 
+\unedit {
+    \paragraph{Pointer Translation API}
+
+    \Twizzler applications use pointer translation helper functions to handle the
+    translations discussed above. These functions, which can be written manually,
+    can also be emitted automatically by proper compiler support.
+    %In our current implementation, applications
+    %must call them explicitly, though the compiler could be modified to emit
+    %implicit calls when necessary.
+    When a pointer must be
+    translated, the program calls \texttt{ptr\_lea} to convert the pointer into a
+    virtual address, and \texttt{ptr\_store} to convert a virtual address into a
+    cross-object pointer. The results can be cached to reduce translation calls.
+    These functions efficiently detect if a pointer needs no translation,
+    allowing the compiler to emit calls to these functions for pointers whose
+    origin it does not know.
+
+    Given an object ($o$), and a structure in
+    the object (\texttt{hdr}) containing a pointer to data, we cannot
+    dereference the pointer directly since it is in cross-object form. We use
+    \texttt{ptr\_lea} to convert it into a current virtual address: \\
+    \indent\hspace{5mm}\texttt{void *ptr = ptr\_lea(o, hdr->ptr);}\\
+    this call returns a virtual address that points to the requested
+    data whether \texttt{hdr->ptr} is an internal or cross-object pointer.
+    A similar operation on \unix would require calls to \texttt{open}, manually
+    written code to store a path to the target object (whether or not it is
+    different from $o$), and additional calls to \texttt{read} or \texttt{mmap} to
+    get the data---effectively reimplementing \Twizzler's pointer
+    framework with more complexity.
+
+    Writing a cross-object pointer is simple as well:
+    \\\indent\hspace{5mm}\texttt{hdr->ptr = ptr\_store(o, ptr);}\\
+    If \texttt{ptr} is a cross-object pointer, an FOT entry will be added to $o$ if
+    needed, and the returned address of \texttt{ptr\_store} will be a cross-object
+    pointer to the object pointed to by \texttt{ptr} for storage in $o$. Doing a
+    similar operation on \unix would require manual pointer serialization.
+    Optimizations like those discussed above can
+    turn these into no-ops in many cases. The resulting simplicity of programs and
+    enhanced object sharing is
+    discussed later, along with an analysis of performance.
+
+    Although some existing persistent memory programming
+    techniques~\cite{libpmem,Chen:micro17,wang:micro17} support similar
+    APIs, they do not support per-object indirection, they lack system-wide support,
+    some increase pointer size and do not always provide
+    type-safe translation functions, and they do not enable transparent use of pointer
+    types in the language. Implementing translations manually involves writing code
+    like
+    \texttt{(void *)((uintptr\_t)foo + vbase)}, resulting in brittle code that
+    cannot be easily expanded to include cross-object references.
+
+}
 
 \section{Evaluation}
 
