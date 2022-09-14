@@ -147,9 +147,9 @@
     Figure~\ref{fig:twz_sys_overview} shows an overview of the system
     organization and how different parts of the system operate on data objects.
 
-    \begin{figure}[b]
+    \begin{SCfigure}[b]
         \centering
-        \includegraphics[width=4in]{fig/sys_diag}
+        \includegraphics[width=\textwidth]{fig/sys_diag}
         \caption{\Twizzler system overview. Applications link to \texttt{musl} (a C library),
             \texttt{twix} (our Linux syscall emulation library), and \texttt{libtwz} (our standard
             library). Through \texttt{musl}, they may act on persistent data with POSIX interfaces,
@@ -160,7 +160,7 @@
         %address space and kernel interaction. The kernel manages objects, schedules threads, and
         %enforces security by programming MMU hardware.}
         \label{fig:twz_sys_overview}
-    \end{figure}
+    \end{SCfigure}
 
 
     \Twizzler's kernel acts much like an

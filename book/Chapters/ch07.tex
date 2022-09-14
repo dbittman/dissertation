@@ -80,13 +80,13 @@
     Since view objects are normal \Twizzler objects, they can be persisted, allowing
     us to recover application state after power cycles.
 
-    \begin{figure}
+    \begin{SCfigure}
         \centering
         \includegraphics[width=4in]{fig/view2}
         \caption{View objects in \Twizzler. Views manage ephemeral constructs and state, giving threads
             the necessary context to execute and access persistent data.}
         \label{fig:view2}
-    \end{figure}
+    \end{SCfigure}
 
 
     By coalescing this ephemeral state
@@ -137,13 +137,13 @@
     protection bits to further protect objects atop access control mechanisms (similar to
     \texttt{PROT\_*} in \texttt{mmap}).
 
-    \begin{figure}
+    \begin{SCfigure}
         \centering
         \includegraphics[width=3.5in]{fig/view}
         \caption{Layout of a view object. The kernel consults the view object's mapping on page-fault,
             and maps in the requested objects at the appropriate location in the virtual address space.}
         \label{fig:view}
-    \end{figure}
+    \end{SCfigure}
 
     %When a fault occurs, the kernel checks if the faulting thread is a \Twizzler thread, and if so,
     %diverts it to a different fault handler.  The new
@@ -295,7 +295,7 @@
     restore all registers.
 
 
-    \begin{table}[b]
+    \begin{SCtable}[b]
         \centering
         \caption{Latency of selected \texttt{twix} system calls compared to Linux system calls.}
         \begin{minipage}{\linewidth}
@@ -312,7 +312,7 @@
             \end{tabular}
         \end{minipage}
         \label{tbl:twix}
-    \end{table}
+    \end{SCtable}
 
     Table~\ref{tbl:twix} shows the latency of some selected system calls on both Linux and \Twizzler
     (implemented via \texttt{twix}). As expected, \texttt{getpid}'s overhead is small on both systems,

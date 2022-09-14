@@ -31,14 +31,14 @@
     The object may have a region setup for allocation so that a future application using this
     object can easily allocate and free memory when manipulating the object. Finally, the FOT and
     metadata regions start at the top of the object and grow downwards.
-    \begin{figure}
+    \begin{SCfigure}
         \centering
         \includegraphics[width=4in]{fig/typobj}
         \caption{A typical object layout. The header, contiguous region, and allocation region are all
             optional, however most objects will have a header. This object contains a number of internal
             pointers between regions. The metadata region (which includes the FOT) grows downward.}
         \label{fig:typobj}
-    \end{figure}
+    \end{SCfigure}
 }
 
 \section{Memory Safety and Lifetimes}

@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 
-pylab.figure(num=None, figsize=(4, 1.3), facecolor='w', edgecolor='k')
+pylab.figure(num=None, figsize=(4, 2), facecolor='w', edgecolor='k')
 
 twz = [761.6, 526.4, 792.6, 583.5]
 twz_err = [2.8, .9, 2.6, 0.9]
@@ -37,15 +37,16 @@ pb_linux = plt.bar(xs, linux, width=w, yerr=linux_err)
 pb_twz = plt.bar(xs+w, twz, width=w, yerr=twz_err)
 plt.xticks(xs+w/2, names)
 plt.ylabel('Nanoseconds')
-plt.yticks(np.arange(0, 750+1, 250))
+plt.yticks(np.arange(0, 1000+1, 250))
 #plt.ylim(0, 2.2)
 #plt.xlabel('YCSB Workload Specification')
 
 ax = plt.gca()
 #plt.legend(bbox_to_anchor=(0.75, .5), bbox_transform=ax.transAxes)
-plt.legend([pb_linux, pb_twz], ['unixkv', 'twzkv'], bbox_to_anchor=(0.52, .7),
-           bbox_transform=ax.transAxes,
-           ncol=2, handletextpad=0.1, handlelength=.4, borderpad=.2)
+plt.legend([pb_linux, pb_twz], ['unixkv', 'twzkv'])
+# , bbox_to_anchor=(0.52, .7),
+#           bbox_transform=ax.transAxes,
+#           ncol=1, handletextpad=0.1, handlelength=.4, borderpad=.2)
 # plt.legend([pb_native, pb_mdb, pb_twz], ['SQL-Native', 'SQL-LMDB', 'SQL-NVOS'],
 #       ncol=3,handletextpad=0.1)
 plt.tight_layout()

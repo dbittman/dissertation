@@ -8,7 +8,7 @@ import matplotlib as mpl
 import pylab
 
 mpl.use("Agg")
-pylab.figure(num=None, figsize=(4.33333, 3), facecolor='w', edgecolor='k')
+pylab.figure(num=None, figsize=(4, 3), facecolor='w', edgecolor='k')
 # mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=["r", "k", "c", "m", "g"])
 
 path = sys.argv[2]
@@ -48,7 +48,7 @@ def get_fot(df):
 
 
 def get_fot_std(df):
-    return np.std(df['FOT_ENTRIES'].values)
+    return np.std(df['FOT_ENTRIES'].values) * 1.96
 
 
 def get_total(df):

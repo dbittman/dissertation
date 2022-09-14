@@ -9,7 +9,7 @@ all: $(GENPDFS)
 	@mkdir -p build/Chapters
 	@latexmk -cd $(FLAGS) $(SOURCES) -deps-out=build/DEPS.mk
 
-FLAGS=-xelatex -outdir=../build #-halt-on-error #-quiet
+FLAGS=-xelatex -outdir=../build -halt-on-error -quiet
 
 SOURCES=book/dbittman-dissertation.tex
 

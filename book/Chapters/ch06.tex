@@ -71,15 +71,15 @@
     %Additionally, the flags can contain other information, such as
     %reference counts, which can be updated atomically for all pointers using that FOT entry.
 
-    \begin{figure}[tb]
-        \includegraphics[width=3.5in]{fig/ptrfot}
+    \begin{SCfigure}[tb]
+        \includegraphics[width=\linewidth]{fig/ptrfot}
         \caption{Pointer translation via the FOT\@.
             The pointer and the FOT
             are both contained in the same object (not shown). An FOT entry of $0$ indicates an ``internal''
             pointer.
         }
         \label{fig:fottran}
-    \end{figure}
+    \end{SCfigure}
 
     Instead of \emph{requiring} programmers to refer to objects via IDs only, we allow
     names in FOT entries. These entries may contain a pointer to an
@@ -162,16 +162,16 @@
     resulted in a small implementation that was nonetheless a
     usable KVS.
 
-    \begin{figure}
+    \begin{SCfigure}
         \centering
-        \includegraphics[width=3.5in]{fig/twzkv}
+        \includegraphics[width=\linewidth]{fig/twzkv}
         \caption{Cross-object pointers in \nvkv. The index object contains pointers to keys and values,
             which can reside in any data object. We also support multiple indexes to enable additional
             indexing strategies and access control on discovery. Because \Twizzler provides native support
             for cross-object pointers, this kind of construction is no more complex than keeping all keys
             and data within a single object.}
         \label{fig:twzkv}
-    \end{figure}
+    \end{SCfigure}
 
 
 
@@ -439,7 +439,7 @@
     %eluciating.}
     %, and the additional work is dwarfed by transfer latencies from memory.
 
-    \begin{table}
+    \begin{SCtable}
         \centering
         \caption{Latency of common \Twizzler operations, including pointer loading and storing, and object
             mapping.
@@ -461,7 +461,7 @@
             \end{tabular}
         \end{minipage}
         \label{tbl:res}
-    \end{table}
+    \end{SCtable}
 
     The pointer store operations shown in Table~\ref{tbl:res} measure the latency of the
     \texttt{ptr\_store} operation that is used to construct persistent data references in \Twizzler.
@@ -537,13 +537,13 @@
     case we get an additional benefit of operating on data structures directly while LMDB has an
     abstraction cost.
 
-    \begin{figure}[t]
+    \begin{SCfigure}[t]
         \centering
-        \includegraphics[width=4in]{genfig/ycsb}
+        \includegraphics{genfig/ycsb}
         \caption{YCSB throughput, normalized (higher is better). \Twizzler outperforms all other
             variants in all tests.}
         \label{fig:ycsb}
-    \end{figure}
+    \end{SCfigure}
 
     Figure~\ref{fig:qlat} shows the latency of queries on a one million row table.
     This is common data processing---loading and then
@@ -567,16 +567,16 @@
     %every test. The building-index test did not see a dramatic performance improvement, but this largely
     %involved building a volatile in-memory data structure, and thus largely avoided touching persistent memory.
 
-    \begin{figure}[t]
+    \begin{SCfigure}[t]
         \centering
-        \includegraphics[width=4in]{genfig/qlat}
+        \includegraphics{genfig/qlat}
         \caption{Query latency, normalized (lower is better). \Twizzler maintains a similar level of
             performance with the native and LMDB variants, despite comparing \Twizzler's simplistic
             red-black tree index
             implementation with highly optimized B-trees. \Twizzler also significantly outperforms PMDK
             despite sharing a similar implementation for the index structures.}
         \label{fig:qlat}
-    \end{figure}
+    \end{SCfigure}
 
 
     \subsection{Key Value Store}
@@ -632,14 +632,14 @@
     %control checks, instead all access control is handled by the OS
     %during mapping, followed by being handled by the memory system.
 
-    \begin{figure}[t]
+    \begin{SCfigure}[t]
         \centering
-        \includegraphics[width=4in]{genfig/kvs}
+        \includegraphics{genfig/kvs}
         \caption{Latency of insert and lookup in \nvkv and \unixkv.
             An ``(m)'' indicates
             support for multiple data objects. Both \unixkv and \nvkv have similar latencies.}
         \label{fig:kvlat}
-    \end{figure}
+    \end{SCfigure}
 
 
 

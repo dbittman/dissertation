@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 
-pylab.figure(num=None, figsize=(4, 2), facecolor='w', edgecolor='k')
+pylab.figure(num=None, figsize=(4, 2.5), facecolor='w', edgecolor='k')
 
 names = ('A', 'B', 'C', 'D', 'E', 'F')
 #twz_ruc = (45.1, 57.9, 61.2, 56.4, 3, 33.65)
@@ -58,7 +58,7 @@ pb_mdb = plt.bar(xs+w, mdb, width=w, yerr=mdb_err)
 pb_pmdk = plt.bar(xs+w*2, pmdk, width=w, yerr=pmdk_err)
 pb_twz = plt.bar(xs+w*3, twz, width=w, yerr=twz_err)
 plt.xticks(xs+w*1.5, names)
-plt.ylabel('Transaction Rate\n(normalized)')
+plt.ylabel('Transaction Rate (normalized)')
 plt.ylim(0, 2.2)
 plt.xlabel('YCSB Workload Specification')
 

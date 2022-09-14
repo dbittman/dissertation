@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib
 
 matplotlib.use("Agg")
-pylab.figure(num=None, figsize=(4, 2), facecolor='w', edgecolor='k')
+pylab.figure(num=None, figsize=(4, 2.5), facecolor='w', edgecolor='k')
 
 
 names = ['Sort', 'Mean', 'Median', 'Index', 'Find', 'Probe']
@@ -73,7 +73,7 @@ pb_twz = plt.bar(xs+w*3, twz, width=w, yerr=twz_err)
 plt.xticks(xs+w*1.5, names, rotation=0)
 #plt.gcf().subplots_adjust(left=0.15, bottom=0.21)
 
-plt.ylabel('Query Latency\n(normalized)')
+plt.ylabel('Query Latency (normalized)')
 #plt.xlabel('Query Name')
 plt.ylim(0, 5)
 #plt.text(.15, 1.8, str(round(native[0], 2)))
