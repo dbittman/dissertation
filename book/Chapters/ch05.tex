@@ -3,4 +3,41 @@
 
 \section{Memory Objects}
 
+
+\unedit{
+
+    \Twizzler organizes data into \emph{objects}, which may be persistent. Each object is
+    identified by a unique 128~bit object ID (though larger IDs would be possible).
+    %Organizing memory is a principal role of the OS.
+    %\NVM
+    %is broken up into pages, like DRAM. For coalescing related data, we define persistent
+    %\emph{objects}, each of which is identified by a unique 128~bit object ID (though larger IDs would
+    %be possible).
+    Objects provide contiguous regions of memory that organize
+    semantically related data with similar lifetime and permissions.
+    Applications access objects via
+    mapping services (discussed in the next section) by mapping each object into a contiguous range
+    in the address space, though the address space itself may be densely or sparsely mapped.
+    Objects can be anywhere from 4~KiB (the size of a page) to 1~GiB; the upper bound on object size is
+    a prototype implementation choice, and not fundamental to the design.
+
+    %TODO maybe move this elsewhere
+    \Twizzler uses objects as the unit of access control, building off a
+    read/write/execute permissions model which mirrors that of memory management units in modern
+    processors. This is a direct consequence of avoiding the kernel for
+    persistent data access---it can set policy by programming the MMU, but must leave enforcement up to
+    the hardware which, in-turn, defines what protections are possible.
+
+    %(it arises because of our persistent
+    %pointer design, discussed later).
+    An object, from the programmer's perspective, is flexible in its
+    contents---for example, it could contain anywhere from a single B-tree node to the entire B-tree.
+    Often, an object would contain the entire tree, since the entire tree is typically subject to
+    the same access semantics by programs, and there are overheads associated with objects that can be
+    amortized over larger spaces. Data and data structures that are too large for one object or require
+    different access permissions can span multiple objects with references between them. We demonstrate
+    the benefits of this flexibility in Section~\ref{sec:eval}.
+}
+
+
 \section{Object IDs}

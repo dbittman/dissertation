@@ -2,6 +2,25 @@
 
 \section{Persistence and Distibution}
 
+
+\unedit{
+    The first key characteristic of \NVM is
+    low latency: only $1.5$--$8\times$ the
+    latency of DRAM in most cases~\cite{ucsd_bnvm}. Thus the cost of a system call to
+    access \NVM
+    %($0.5$--\SI{1}{\micro\second})
+    dominates the
+    latency of the access itself. The second key characteristic is that the processor can directly
+    access persistent storage using load and store instructions.
+    Direct, low latency access to \NVM means that explicit
+    serialization is a poor fit---it adds complexity, as programmers must maintain different
+    data formats and the transformations between them, and the overhead is intolerable due to \NVM's
+    low latency. Hence, we should design the semantics of the programming model around
+    \emph{in-memory} persistent data structures, giving programs direct access to them without
+    explicit persistence calls or serialization methods.
+}
+
+
 \section{Memory Capacity}
 
 \section{Interconnect Technologies}

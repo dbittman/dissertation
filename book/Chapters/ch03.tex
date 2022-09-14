@@ -3,6 +3,62 @@
 
 \section{The Old Ways}
 
+
+
+\unedit{
+    %will need to fix the R1 and R2 here, and this might involve moving around stuff in this block
+    Current OS techniques do not meet requirements R1 and R2 as we set out above---file
+    \texttt{read} and \texttt{write} interfaces,
+    designed for sequential media and later expanded for block-based media,
+    require significant kernel involvement and serialization, violating both requirements.
+    %, and serialization that requires
+    %the programmer to add complexity and overhead through multiple data representations and transformations.
+    While support for these interfaces can be useful for legacy applications, as we will demonstrate,
+    providing the programmer with abstractions designed \emph{for} \NVM both reduces complexity and
+    improves performance.
+
+    The \texttt{mmap} system call attempts to hide storage behind a memory interface through hidden
+    data copies. But, with \NVM, these copies are wasteful, and \texttt{mmap} still has significant kernel
+    involvement and the need for explicit \texttt{msync} calls. ``Direct Access'' (DAX)
+    tries to retrofit \texttt{mmap} for \NVM by removing the redundant copy, but this \emph{still}
+    fails to address requirement R2! Operating on persistent data through \texttt{mmap} requires the programmer to
+    use either fixed virtual addresses, which presents an infeasible coordination problem
+    as we scale across machines, or virtual addresses directly, which are ephemeral and require the
+    context of the process that created them.
+
+
+
+    Attempting to shoehorn \NVM programming atop POSIX interfaces (including \texttt{mmap}) results in
+    complexity that arises from combining multiple partial solutions. Given some feature desired by an
+    application, the \NVM framework can provide an integrated solution that meshes
+    well with the existing support for persistent data structure manipulation and access, or it can
+    fall-back to POSIX resulting in the programmer needing to understand two different ``feature
+    namespaces'' and their interactions. An example of this is naming, where a programmer may need
+    to turn to the filesystem to manage names in a completely orthogonal way to how the \NVM frameworks handles
+    data references. For example, PMDK, a \NVM programming library, relies on a filesystem for naming and initial access to
+    persistent memory objects, resulting in different kinds of references, feature sets from filesystems
+    being applied (like security) while others are not (data access), and the complexity of
+    understanding how the PMDK abstractions interact with the POSIX ones. Instead, our model prefers to
+    build legacy support atop new abstractions (\S~\ref{sec:fbsdimpl}), and avoid falling back to legacy
+    models for persistent data access. We will discuss another example,
+    security, in our case study (\S~\ref{sec:eval}).
+
+
+    Additionally, models that layer \NVM programming atop existing interfaces often fail to facilitate effective persistent data sharing and
+    protection.  PMDK, for example, makes design choices that limit
+    scalability, since its
+    data objects are not self-contained and do not have a large enough ID space, resulting
+    in the need to coordinate object IDs across machines~\cite{bittman:plos19}. For the same reason,
+    although single-address space OSes~\cite{chase:tocs94} somewhat address requirement R1, they do
+    not consider both requirements at once, nor do they provide an effective and scalable solution to
+    long-term data references due to that same coordination complexity~\cite{bittman:hotstorage19}.
+
+
+}
+
+
+
+
 \section{Serialization}
 
 \section{Remote Procedure Calls}

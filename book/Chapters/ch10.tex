@@ -5,4 +5,85 @@
 
 \section{To Look Ahead}
 
+
+\unedit{
+    \paragraph{Compiler and Hardware Support.}
+    \Twizzler's clean-slate \NVM abstraction reopens the possibility of coevolving OSes, compilers and
+    languages, and hardware.
+    Standardized OS support for cross-object pointers provides a stationary target for both
+    compilers and hardware to design towards, whereas application-specific solutions do not.
+    \Twizzler's pointer translation functions are simple enough to be emitted by a compiler. We plan
+    to explore adding basic compiler support for C and C++ to automatically interoperate with
+    \Twizzler so that persistent pointers are even more transparent to the compiler. Better still,
+    we would like to study additional language-level support for persistent pointers, including type
+    and lifetime annotations (such as the ones supported in Rust~\cite{rust}) for additional semantics the
+    compiler can make use of when emitting code that operates directly on persistent data
+    structures.
+
+    Hardware support, too, can be helpful in improving the performance of our pointer translations.
+    With \Twizzler providing a common framework, we can clearly state our needs to hardware. For
+    example, hardware accelerated FOT access would improve the performance in pointer-heavy data
+    structures. Segmentation support, allowing us to assign page-tables for each object and load
+    them in as needed, would dramatically speedup memory mapping (and move memory management closer
+    to the semantics of our programming model). Finally, first-class support for abstracting
+    physical memory---a necessary feature for efficiently moving data around in a heterogeneous
+    memory hierarchy in the face of numerous devices---would simplify the design of the kernel
+    because we would not need to invoke the entirety of the virtualization hardware. We are
+    interested in exploring modifications to RISC-V to better support \Twizzler.
+
+
+    \paragraph{Security.} Although we discussed the \Twizzler security model briefly,
+    there is still much to do. The current model provides access control, a basic ability to
+    define and assign roles based on security contexts, and simple sub-process fault isolation through
+    the ability to switch security contexts. We are exploring a \emph{flexible} security model
+    that allows programmers to easily trade-off between security, transparency, and performance using
+    capability-based verification. For
+    example, we are implementing a call-gating mechanism that will allow us to
+    restrict control-flow transfers between application components, improving the security against
+    malicious components and reducing the possibility of memory-corrupting bugs.
+
+
+
+    \paragraph{Networking and Distributed \Twizzler.}
+
+    One of the key principles of \Twizzler is to focus the programming model on data and away from
+    ephemeral actors such as processes and nodes. This is enabled by our identity-based pointers that
+    decouple location from references,
+    and by ensuring all the context
+    necessary to understand these relationships is stored with the data. Because our data relationships
+    are independent of the context of a particular machine, applications can more easily share data.
+    This easy sharing, combined with a large ID address space, motivates a \emph{truly} global object ID
+    space.
+
+    We are building a networking stack and support for a distributed object space into \Twizzler. Our
+    networking stack is based around extensive use of hardware virtualization in modern NICs. This
+    design, which is in use in existing kernel-bypass strategies, will works well with our core OS design
+    of reducing kernel interposition. At a higher level, we are
+    considering how distributed applications change in our model. For example, an increase in data
+    mobility facilitated by our location-independent data references and identities
+    means that we can manifest both data and code where they are needed without complex marshalling, turning
+    distributed computation into a rendezvous problem. We plan to build distributed applications atop
+    \Twizzler to demonstrate this approach.
+
+    Of course, for compatibility we will provide a traditional sockets-based networking stack. However,
+    we can use existing userspace libraries that, \eg, implement TCP in userspace.
+    Because we implemented our POSIX compatibility library in userspace, applications can gain many
+    benefits afforded by kernel-bypass networking frameworks while still using traditional socket
+    interfaces.
+
+
+    \paragraph{Alternative Block Storage Technologies.}
+
+    Our work meshes well with key-value SSDs, which extend the NVMe
+    specification to include \texttt{put} and \texttt{get} operations. This would allow us to store and
+    retrieve parts of objects based on their names rather than block addresses, thus greatly
+    simplifying the storage system of the OS because it removes the need for a filesystem. \Twizzler
+    uses a userspace pager design for moving data between memory and indirectly-accessible storage;
+    providing a more ``native'' interface for object-based storage will greatly improve the performance
+    of this system. We have prototype KVSSDs, and are in the process of implementing support for them in
+    \Twizzler.
+
+}
+
+
 \section{Final Remarks}
