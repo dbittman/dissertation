@@ -3,6 +3,22 @@
 
 \section{An Opportunity Arises}
 
+\unedit{
+
+    Our core vision is to combine the code mobility of RPC with the flexibility offered by
+    DSM-like models in a global address space with global references as a first-class abstraction. By
+    imbuing data with fundamental identity and pushing an understanding of data references into the OS
+    and the network, we can leverage aspects of content-based networks to reduce the coordination
+    typically required in a shared, distributed address space. The programmer is then free to express
+    their computation through references to code to run on some \emph{references} to data, instead
+    of needing to serialize and copy \emph{values} for arguments.
+    Today, developers are often forced to implement functionality such as caching, prefetching, and
+    manual data movement in preparation for some operation.
+    With data references as a common
+    language between the OS, the network, and applications, we can move this infrastructure-level functionality
+    out of the application and back \emph{into the infrastructure} where it belongs.
+}
+
 \section{A Common Language}
 
 
@@ -52,6 +68,74 @@
     interfaces. While it is important that we provide support for legacy applications,
     it is these applications that should be relegated to support libraries; new applications built for
     the programming model should get first-class OS support.
+}
+
+\unedit{
+    \subsection{Computation and References}
+
+    First-class support for call-by-reference instead of by-value allows an invoker to refer to data that \emph{they
+        do not have locally}. This allows greater freedom in the interface design between decoupled components.
+    Figure~\ref{fig:rpccopy} shows possible solutions to a problem like the
+    example in Section~\ref{sec:example}, wherein an operation is scheduled to run on Carol using data
+    currently located on Bob. Part (1) shows the na\"ive approach where the invoker copies the data
+    locally (step i) before forwarding it to Carol (step ii) and eventually invoking the intended computation
+    (step iii).  In an attempt to alleviate an unnecessary copy, we could implement an additional
+    RPC on Carol that allows it to copy data over from Bob itself (steps i and ii in part (2)) before we
+    finally invoke our computation. Both (1) and (2) require additional logic on Alice
+    to work---the programmer had to perform the infrastructure level task of data
+    movement.  Fundamentally, these issues arise because the system's core abstraction is
+    location-based---the programmer is forced to manually orchestrate machines or resort to
+    costly copying.
+
+    Figure~\ref{fig:rpccopy} part (3) is closer to our vision. The first step is for
+    the computation to move to Carol instead of first moving data in preparation.  This may seem like a
+    minor point, but it is not---by specifying \emph{up-front} the computation we want to perform, we
+    open the door for lower-level optimization to examine our requests before we go around manually
+    moving data.  In fact, in our model the programmer would not be directly asking Carol to perform the
+    computation; instead the placement decision would be made by the system. Once the code starts
+    executing, we can then move data on demand instead of having to move the entire
+    object.  Of course, the implementation is significant---without a global address space like
+    the one we are proposing, implementing (3) would require brittle code that either tightly couples
+    Carol and Bob or forces Alice to participate in the data movement by asking it to provide a
+    location-based reference to the data on Bob\footnote{Aside from the complexity, this also
+        opens up TOCTTOU errors.}.
+
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.9\columnwidth]{fig/copy}
+        \vspace*{-5mm}
+        \caption{Rendezvous of data and compute. Solid red arrows are additional
+            infrastructure-level tasks that are not fundamental to the requested computation.}
+        \label{fig:rpccopy}
+        \vspace*{-4mm}
+    \end{figure}
+
+    As discussed previously, the ``good'' use case of RPC is one where code and data
+    co-location has already been preordained by initial decoupling (after which it is rigid) and
+    data transfer is minimal---often manifesting as something like a fronted key-value store service. This restricts
+    code mobility (as it accounts for no change to decoupling later), and requires a myriad of RPC calls
+    to implement all the ways a programmer might wish to view data (one need only look at the many S3
+    APIs available as an example).
+    If we limit ourselves to traditional RPC, any situation (such as the one discussed in
+    Section~\ref{sec:example}) that does not fit this pattern either results in expensive data movement
+    and complex application logic, or it must be dismissed altogether and the application redesigned.
+    By allowing applications to pass data references instead of just values, and by making data
+    references a first-class abstraction in the OS and the network, applications become much simpler to
+    express efficiently, even for what would be considered pathological cases for RPC.
+
+    \paragraph*{Serialization.}
+    %
+    In traditional host- and process-centric systems, virtual memory spaces are private to a
+    program instance and thus addresses are too. As a result, we serialize any data that passes between
+    hosts (and sometimes even processes) because memory addresses on one host do not translate to any
+    other host. However, in our model, pointers refer to data within the \emph{global} address space,
+    and thus a data structure containing pointers can be copied from one host to another with merely a
+    byte-level copy, alleviating 100\% of the loading overhead discussed in Section~\ref{sec:example}
+    and leaving only data transfer costs, which are fundamental. These transfer costs, however, can now
+    be included in cost-models when making placement decisions more easily, as they do not need to take
+    the additional loading time into account.
+
 }
 
 
@@ -201,6 +285,109 @@
 
 
 \subsection{Hardware Versus Software}
+
+\unedit{
+    The challenges introduced by BNVM in mapping virtual addresses to physical
+    addresses are the different lifetimes of data with respect to
+    the references to that data and the heterogeneity of physical memory. Software and hardware have
+    different requirements for this mapping, in the following respects:
+
+    \begin{enumerate}
+        \item[Latency.] Prior persistent data access schemes relied on system calls to
+            operate on persistent storage. BNVM's low-latency can no longer tolerate the cost of those
+            system calls. Instead, programs must have direct access to
+            persistent data via load/store instructions. Similarly, hardware must be able to
+            transfer data to and from BNVM using DMA.
+        \item[In-memory data structures.] Direct access to persistent memory removes the loading and
+            unloading cost, but we must \emph{also} remove the cost of data serialization: since
+            persistent data is located in-memory, programs can operate on data as in-memory data
+            structures using standard programming techniques. This change
+            is not an issue for hardware, which treats data as a ``bag of bits''.
+        \item[Data lifetime.] If persistent data is stored as in-memory data structures, then
+            applications need a way to refer to data such that references have the same lifetime
+            as the referenced data, a requirement that fundamentally arises from the need for
+            to construct references that encode the relationships between data. Applications can store
+            \emph{persistent pointers} that encode a more persistent name for data than an ephemeral
+            virtual address.
+            Again, hardware has no such requirement, since it neither constructs
+            nor interprets relationships between data. Devices that need to consider data
+            relationships do so in software running atop the hardware.
+        \item[Mappings.] Both software and hardware must have a way of translating a
+            %$\langle \mathit{object}, \mathit{offset} \rangle$ reference
+            persistent pointer into a physical address.
+            This mapping may change frequently as the OS changes allocation of physical
+            pages to data (\eg, to persist a piece of data).
+            %to objects, potentially moving objects in and out of BNVM (\eg, to persist an object).
+            Hardware need only know
+            %the mappings for a short time, and need not even know the ``canonical''
+            %name for the object---
+            %it simply needs to know
+            how to access data in memory
+            for a single operation. In contrast, software must have longer-term mappings, and must
+            be able to support data shared between threads, potentially mapped into the threads
+            in different places.
+        \item[Memory heterogeneity.] Hardware and the operating system must know about different
+            types of memory, \eg DRAM and BNVM.
+            Software need only know how to allocate
+            from the different types, and should not deal with other differences. Hardware, however,
+            will need to know when data is moved between memory types if it wishes to correctly emit loads and stores
+            requested by software.
+    \end{enumerate}
+
+    Our design must support appropriate abstractions for both software and hardware, facilitating the
+    use of \emph{persistent pointers} to long-lived data for applications while providing hardware and
+    the OS with the ability to move data in, out of, and around physical memory, preferably only using
+    existing hardware functionality. We first abstract memory into \emph{objects},
+    where related data with similar access semantics (\eg, an entire B-tree, where all nodes are subject
+    to the same access control, \emph{etc}.) are placed in a single object and identified by
+    a \emph{globally} unique ID. IDs are formed via hashing, partitioned allocation, or other methods that prevent collisions
+    of IDs across machines with high probability.
+    %A programmer could, for example, place an entire B-tree within an object (as the
+    %tree itself has similar access control, etc.).
+    %, or create a tree that spans multiple objects with
+    %pointers between them.
+
+    We propose two abstractions to provide effective access to objects for both hardware and software:
+    a \emph{global object space}, which facilitates persistent pointers (discussed below), and a
+    \emph{logical object space}, which allows hardware to address data without needing knowledge of the
+    data's physical location. We split these abstractions and consider them different because of the
+    different requirements discussed above; software must worry about reference lifetime, whereas
+    hardware's access to objects is disconnected from persistence. On the other hand, today's hardware
+    must worry about physical location of data, which (with BNVM) is now more
+    likely to change over time.
+}
+
+\unedit {
+    \paragraph{Hardware and Memory}
+
+    The interface presented to hardware must enable interaction with a
+    \textit{heterogeneous memory system} and support the abstraction of an object space rather than a
+    collection of flat memory spaces. Unlike applications, hardware has no need for
+    creating long-lived pointers to locations within objects. Rather, hardware must
+    have the ability to transfer large chunks of objects to, from, and around memory, and must be able to
+    manage different \emph{types} of memory, preferably in a way that is largely transparent to
+    applications.
+
+    Requiring hardware to access a global object space through a $\langle \mathit{object},
+        \mathit{offset} \rangle$ tuple is unnecessary overhead and complexity---hardware need only ever
+    access the ``working set'' of objects currently undergoing computation. Thus, our design abstracts
+    the view from hardware of physical memory into a \emph{logical object space}, an address space that
+    maps contiguous objects within it to physical memory pages, managed by the
+    operating system. This solves the heterogeneity problem by allowing hardware to refer to data within
+    objects instead of physical addresses, whose lifetimes are much smaller than the objects, and
+    doesn't require hardware to emit (likely large) addresses for the global address space.
+
+    While SASOSes are not a viable solution to the problem of persistent pointers, they are
+    \emph{a} solution to implementing the logical object space.  Hardware, and the CPU, are
+    directly connected, reducing the cost of invalidation and coordination of an address space.
+    Additionally, this address space is \emph{intermediate} and hidden from programs---a virtual
+    address is translated to the logical object space, after which the address is translated to a
+    physical location (shown in Figure~\ref{fig:twolevel}). This translation for
+    applications (after the virtual address translation) and that of hardware is the same, reducing the
+    management complexity for the OS, discussed in Section~\ref{sec:os:addrspace}.
+
+}
+
 
 \subsection{Twizzler: A Point in This Space}
 

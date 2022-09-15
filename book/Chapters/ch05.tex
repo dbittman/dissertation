@@ -41,3 +41,12 @@
 
 
 \section{Object IDs}
+
+\unedit{
+    %% should this go in section 4.1/4.2?
+    The advantage of a large object ID space is reduced coordination. A space of 128~bits does not
+    require a centralized arbiter to hand out new IDs when creating objects. Instead, programs can
+    allocate new objects through numerous methods. Currently, Twizzler allocates
+    object IDs in a flat namespace using secure random numbers, which meets our needs in that the chance
+    of collision is vanishingly small.
+}
