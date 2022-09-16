@@ -97,7 +97,7 @@
     may be rarely used, or only used in a specific circumstance---but at least a translucent view of
     what objects may be accessed from a particular object can be useful to the system as a whole.
 
-    \begin{figure}[t]
+    \begin{SCfigure}[t]
         \centering
         \digraph[width=\linewidth]{abc}{
             rankdir=LR;
@@ -109,7 +109,7 @@
         }
         \caption{Example object graph.}
         \label{fig:ograph}
-    \end{figure}
+    \end{SCfigure}
 
     An immediate consequence is that prefetching can be done based not on some proxy for identity,
     but instead on that identity itself. The system may not know for certain that object $A$ will
@@ -243,7 +243,7 @@
 
     \paragraph*{Uniformity Between Code and Data.}
     %
-    Recently, Wang et al.~\cite{wang} proposed an extension to RPC
+    Recently, Wang et al.~\cite{wang:hotos21} proposed an extension to RPC
     that passes first class immutable references as well
     as values in procedure calls and returns.  The goal is to preserve the
     functional semantics of RPC while permitting the underlying system to

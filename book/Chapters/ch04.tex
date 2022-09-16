@@ -101,13 +101,13 @@
         opens up TOCTTOU errors.}.
 
 
-    \begin{figure}
+    \begin{SCfigure}
         \centering
         \includegraphics[width=\linewidth]{fig/copy}
         \caption{Rendezvous of data and compute. Solid red arrows are additional
             infrastructure-level tasks that are not fundamental to the requested computation.}
         \label{fig:rpccopy}
-    \end{figure}
+    \end{SCfigure}
 
     As discussed previously, the ``good'' use case of RPC is one where code and data
     co-location has already been preordained by initial decoupling (after which it is rigid) and
@@ -235,13 +235,13 @@
     addresses, it can issue DMA requests directly to object pages instead.
 
 
-    \begin{figure}
+    \begin{SCfigure}
         \centering
         \includegraphics[width=\linewidth]{fig/log_sys_arch}
         \caption{Logical view of the system architecture. Mapping hardware such as the IOMMU would allow
             \emph{all} devices to see a single-level store instead of raw physical memory.}
         \label{fig:log_sys_arch}
-    \end{figure}
+    \end{SCfigure}
 
 
     An example of this would be if a NIC is processing data it received in a packet, and that data
