@@ -1,6 +1,12 @@
 \chapter{Far Out Memory Hierarchies}\label{ch:farout}
 
-\section{Persistence and Distibution}
+Memory is getting both closer and further away (bear with me!).
+
+\section{Persistence}
+
+%% This section will discuss the trends of moving persistence closer to computation, or moving
+%computation closer to persistence. Key points: memory lifetime, and removing the kernel from data
+%path (more broadly, facilitating direct access to persistent data and reducing the lengths of code paths).
 
 
 \unedit{
@@ -20,10 +26,23 @@
     explicit persistence calls or serialization methods.
 }
 
+\section{Memory Distribution}
+
+% This section will cover how memory semantics are spreading out, with things like RDMA and CXL. Key
+% points: memory semantics spreading out, but having to keep tabs on latency. From another
+% perspective, this is disaggregated computing. Want to avoid costs that increase code path length.
 
 \section{Memory Capacity}
 
+% This section will discuss the increasing size of memory (both from DRAM and NVM). Key points:
+% memory cost and power, larger memory means more in-memory sharing.
+
 \section{Increasing Hardware Complexity and Performance}
+
+% This section argues that controllers are increasing in complexity and offload capabilities. Thus
+% we are getting closer and closer to treating a single node as a distributed system. Additionally,
+% increasing interconnect speeds make memory distribution easier, and things like
+% paxos-in-the-switch can improve coordination at-scale.
 
 \unedit{
     \begin{figure}
@@ -64,3 +83,5 @@
 \subsection{Interconnect Technologies}
 
 \section{Why Now?}
+
+\todo[inline]{This will take some strong arumentation.}

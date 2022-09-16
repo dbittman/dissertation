@@ -98,9 +98,8 @@
     what objects may be accessed from a particular object can be useful to the system as a whole.
 
     \begin{figure}[t]
-        \vspace{-5mm}
         \centering
-        \digraph[width=.99\columnwidth]{abc}{
+        \digraph[width=\linewidth]{abc}{
             rankdir=LR;
             root -> a -> b;
             a -> M0 [label="merge-with"];
@@ -108,10 +107,8 @@
             a [label="index"];
             b [label="data"];
         }
-        \vspace{-14mm}
         \caption{Example object graph.}
         \label{fig:ograph}
-        \vspace{-4mm}
     \end{figure}
 
     An immediate consequence is that prefetching can be done based not on some proxy for identity,

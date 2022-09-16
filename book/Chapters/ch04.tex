@@ -103,12 +103,10 @@
 
     \begin{figure}
         \centering
-        \includegraphics[width=0.9\columnwidth]{fig/copy}
-        \vspace*{-5mm}
+        \includegraphics[width=\linewidth]{fig/copy}
         \caption{Rendezvous of data and compute. Solid red arrows are additional
             infrastructure-level tasks that are not fundamental to the requested computation.}
         \label{fig:rpccopy}
-        \vspace*{-4mm}
     \end{figure}
 
     As discussed previously, the ``good'' use case of RPC is one where code and data
@@ -239,7 +237,7 @@
 
     \begin{figure}
         \centering
-        \includegraphics[width=0.7\textwidth]{fig/log_sys_arch}
+        \includegraphics[width=\linewidth]{fig/log_sys_arch}
         \caption{Logical view of the system architecture. Mapping hardware such as the IOMMU would allow
             \emph{all} devices to see a single-level store instead of raw physical memory.}
         \label{fig:log_sys_arch}
@@ -477,7 +475,7 @@
 
     \begin{SCfigure}[b]
         \centering
-        \includegraphics[width=\textwidth]{fig/sys_diag}
+        \includegraphics[width=\linewidth]{fig/sys_diag}
         \caption{\Twizzler system overview. Applications link to \texttt{musl} (a C library),
             \texttt{twix} (our Linux syscall emulation library), and \texttt{libtwz} (our standard
             library). Through \texttt{musl}, they may act on persistent data with POSIX interfaces,
