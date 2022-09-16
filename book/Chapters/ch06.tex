@@ -160,25 +160,23 @@
 
 \section{Evaluation}
 
-\unedit{
-    %rewrite
-    We approached these goals two ways: porting existing software (SQLite) and writing new
-    software for \Twizzler. The first demonstrates both the generality of the programming environment
-    (legacy software can be easily ported) and the potential performance gains to be had even for legacy
-    software. The second demonstrates the true power of \Twizzler's programming model and allows us
-    to explore the consequences of our design choices fully without being constrained by legacy designs.
+In evaluating Twizzler's invariant pointer design, we investigate both the
+usability of the invariant pointer model and the more measurable elements such as performance impact
+% TODO cite sqlite
+and storage overhead. These evaluation goals are approached in two ways---porting existing software
+(SQLite) and writing new software for Twizzler. The latter demonstrates the true power of
+Twizzler's invariant pointer model and allows us to explore better the consequences of our design
+choices without being constrained by legacy designs. Porting existing software, however, has the
+advantage of demonstrating the flexibility and generality of the model and environment.
 
-    We built three pieces of new software: a hash-table based key-value store (KVS), a red-black tree
-    data structure, and a logging daemon. Each had different characteristics and goals, and together
-    they demonstrate the flexibility that \Twizzler offers in allowing simple implementation,
-    nearly-free access control, and the ability to directly express complex relationships between
-    objects.  Using our KVS and red-black tree code, we ported SQLite (a widely used
-    SQL implementation) to \Twizzler along with a YCSB~\cite{ycsb,ycsbc} driver (a common benchmark),
-    allowing us to explore \Twizzler's model in a larger, existing program that
-    would let us study the performance of \Twizzler in a complex system that stores \emph{and
-        processes} data. We present the performance of SQLite and our new software, along with microbenchmarks,
-    in Section~\ref{sec:res}.
-}
+We consider two pieces of new software built for Twizzler: a hash-table based key-value store (KVS) and a red-black tree
+data structure.  Each has different characteristics and goals, and together they demonstrate the flexibility that
+\Twizzler offers in allowing simple implementation, nearly-free access control, and the ability to directly express
+complex relationships between objects.  For porting existing software, we consider a port of SQLite to Twizzler that
+uses our KVS and red-black tree code and evaluate it using a YCSB~\cite{ycsb,ycsbc} driver, thus exploring Twizzler's
+model in a larger, existing program. These new software, along with our SQLite port and
+microbenchmarks, are evaluated for performance in Section~\ref{sec:perf}.
+
 
 \subsection{Case Studies}
 
@@ -415,13 +413,58 @@
 
 \subsection{Storage Overhead}
 
+One important consequence of replacing virtual address pointers with invariant pointers is storage
+overhead. While our design choice to indirect the pointer resolution through a per-object table
+means we can avoid increasing pointer size\sidenote{As we will see, this choice is meaningful for
+    performance overhead.}, we must still consider the size ot that table when
+considering the impact of invariant pointers. Of course, a direct comparison to virtual address
+pointers is somewhat inappropriate, as virtual addresses are not invariant and thus do not have the
+same semantics and power, we can use them as a baseline for comparing the increased overhead
+\emph{factor} of Twizzler versus a ``fat pointer'' style persistent pointer.
+
+Such a style of pointer is present in PMDK~\cite{pmdk-pointers}, which includes an address space of
+objects with 64~bit IDs, indexed into with a 64~bit offset. Thus a pointer in PMDK is 128~bits
+total, and the overhead relative to virtual addresses is exactly $2$. However, PMDK's ID space is much
+smaller than Twizzler's (64~bits versus 128~bits). As we discussed in Chapter~\ref{ch:global}, the
+large ID space is vital for our needs and provides useful semantics that a smaller space misses.
+Adjusting PMDK's pointer model by increasing the ID size brings it to 192~bits per pointer, with a
+relative overhead of $3$.
+
+In Twizzler, the overhead relative to virtual addresses is entirely dependent not on the number of
+pointers, but the number of FOT entries. Each FOT entry is 256~bits in size, so the relative
+overhead is:
+
+\begin{equation*}
+    \eqnmarkbox[Green]{factor}{F_T}
+    = \frac{64
+        N_p
+        + 256
+        N_f
+    }{64
+        N_p
+    }
+    = 1 + \frac{4
+        \eqnmarkbox[Orange]{fot}{N_f}
+    }{
+        \eqnmarkbox[NavyBlue]{total1}{N_p}
+    }
+\end{equation*}
+\annotate[yshift=-0.2em]{below}{total1}{Total \# of pointers}
+\annotate[yshift=0.5em]{above}{fot}{Total \# of FOT entries}
+\annotate[yshift=-0.5em]{below}{factor}{Overhead factor}
+\vspace*{0.5em}
+
+
+where $N_p$ is the number of pointers
+
 
 \begin{SCfigure}[t]
     \centering
     \includegraphics{genfig/fotoverhead}
-    \caption{TODO}
+    \caption{Storage overhead of Twizzler compared with PMDK at different object ID sizes. Note that Twizzler's object ID size is 128~bits, thus the closest comparison is not baseline PMDK, but instead PMDK~128. In most cases, Twizzler has a better overall storage overhead, except in the pessimistic case where many FOT entries are needed.}
     \label{fig:fotoverhead}
 \end{SCfigure}
+
 
 
 
