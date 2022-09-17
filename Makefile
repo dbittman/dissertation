@@ -8,8 +8,9 @@ all: $(GENPDFS)
 	@mkdir -p build/FrontBackmatter
 	@mkdir -p build/Chapters
 	@latexmk -cd $(FLAGS) $(SOURCES) -deps-out=build/DEPS.mk
+	@pplatex -i build/dbittman-dissertation.log -b
 
-FLAGS=-xelatex -shell-escape -latexoption="-shell-escape" -outdir=../build #-halt-on-error -quiet
+FLAGS=-lualatex -shell-escape -latexoption="-shell-escape" -outdir=../build -halt-on-error -quiet
 
 SOURCES=book/dbittman-dissertation.tex
 
@@ -22,7 +23,7 @@ book/genfig/%.pdf: book/scripts/%.py matplotlibrc
 
 book/genfig/%.pdf: book/scripts/%.dot
 	mkdir -p book/genfig
-	dot -v -Tpdf -o $@ $<
+	dot -Tpdf -o $@ $<
 
 -include build/DEPS.mk
 

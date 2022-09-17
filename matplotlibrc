@@ -4,4 +4,5 @@ savefig.dpi: 600
 text.usetex: True
 pgf.preamble: \usepackage[utf8]{inputenc}\usepackage[T1]{fontenc}\usepackage{fontspec}\setmainfont{Minion Pro}
 pgf.rcfonts: False
+pgf.texsystem: lualatex
 font.size: 9
