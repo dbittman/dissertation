@@ -22,7 +22,7 @@ book/genfig/%.pdf: book/scripts/%.py matplotlibrc
 
 book/genfig/%.pdf: book/scripts/%.dot
 	mkdir -p book/genfig
-	dot -Tpdf -o $@ $<
+	dot -v -Tpdf -o $@ $<
 
 -include build/DEPS.mk
 

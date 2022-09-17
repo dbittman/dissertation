@@ -1,13 +1,16 @@
 
 digraph {
-    fontname="Libertinus";
+    fontname="Minion Pro";
     fontsize="10";
-     size="4,2!";
- margin=0;
-            rankdir=LR;
-            root -> a -> b;
-            a -> M0 [label="merge-with"];
-            b -> M0 [label="merge-with"];
-            a [label="index"];
-            b [label="data"];
+    size="4,2!";
+    margin=0;
+    rankdir=LR;
+    graph [fontname="Minion Pro", fontsize="12", size="4,2!"];
+    node [fontname="Minion Pro", fontsize="12"];
+    edge [fontname="Minion Pro", fontsize="12"];
+    root -> a -> b;
+    a -> M0 [label="merge-with"];
+    b -> M0 [label="merge-with"];
+    a [label="index"];
+    b [label="data"];
 }
