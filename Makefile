@@ -1,6 +1,6 @@
 
 SCRIPTS := $(shell find book/scripts -name '*.py')
-GENPDFS := $(addprefix book/genfig/,$(notdir $(SCRIPTS:.py=.pdf)))
+GENPDFS := $(addprefix book/genfig/,$(notdir $(SCRIPTS:.py=.pdf))) book/genfig/obj_graph.pdf
 
 
 all: $(GENPDFS)
@@ -9,7 +9,7 @@ all: $(GENPDFS)
 	@mkdir -p build/Chapters
 	@latexmk -cd $(FLAGS) $(SOURCES) -deps-out=build/DEPS.mk
 
-FLAGS=-xelatex -outdir=../build #-halt-on-error -quiet
+FLAGS=-xelatex -shell-escape -latexoption="-shell-escape" -outdir=../build #-halt-on-error -quiet
 
 SOURCES=book/dbittman-dissertation.tex
 
@@ -19,6 +19,10 @@ book/genfig/fotoverhead.pdf: book/scripts/fotoverhead.py gendata/fotoverhead-out
 book/genfig/%.pdf: book/scripts/%.py matplotlibrc
 	mkdir -p book/genfig
 	python $< $@
+
+book/genfig/%.pdf: book/scripts/%.dot
+	mkdir -p book/genfig
+	dot -Tpdf -o $@ $<
 
 -include build/DEPS.mk
 

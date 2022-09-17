@@ -428,7 +428,8 @@ total, and the overhead relative to virtual addresses is exactly $2$. However, P
 smaller than Twizzler's (64~bits versus 128~bits). As we discussed in Chapter~\ref{ch:global}, the
 large ID space is vital for our needs and provides useful semantics that a smaller space misses.
 Adjusting PMDK's pointer model by increasing the ID size brings it to 192~bits per pointer, with a
-relative overhead of $3$.
+relative overhead\sidenote{Here $F_{f128}$ means ``the overhead factor of a fat-pointer design with
+    an ID space of 128~bits''.} of $F_{f128} = 3$.
 
 In Twizzler, the overhead relative to virtual addresses is entirely dependent not on the number of
 pointers, but the number of FOT entries. Each FOT entry is 256~bits in size, so the relative
@@ -451,17 +452,41 @@ overhead is:
 \end{equation*}
 \annotate[yshift=-0.2em]{below}{total1}{Total \# of pointers}
 \annotate[yshift=0.5em]{above}{fot}{Total \# of FOT entries}
-\annotate[yshift=-0.5em]{below}{factor}{Overhead factor}
+\annotate[yshift=-0.5em]{below}{factor}{Twizzler's overhead factor}
 \vspace*{0.5em}
 
 
-where $N_p$ is the number of pointers
+While the above relationship is useful for determining what the overhead factor is, the ratio
+between the number of pointers and the number of FOT entries is application dependent. Some
+applications will have a large number of references within a small number of objects or will have a
+lot of intra-object references, and thus will have a small overhead factor, while another
+application may have a large number of outgoing references per object. Anecdotally, the former has
+been far more common, which makes sense---objects are an projection of logical locality into an ID
+space, and thus an application with a large overhead factor is, inherently, structuring its data
+without significant locality.
+
+However, we can model some real data structures to better understand how their overhead factors are
+influenced by different elements of data structure organization. Figure~\ref{fig:fotoverhead} shows
+the overhead factors of Twizzler and PMDK (or, more broadly, fat-pointer designs) with different
+choices for object ID sizes and with different characteristics for data organization. We generated
+random graphs using a stochastic process that selected edges randomly with a bias towards edges that
+were between nodes that were close in an ID space. Once the graphs were generated, the nodes were
+assigned to object IDs in batches. The bias was present to model organizing a graph with locality
+in-mind.
+
+The generated graphs could be either dense (many edges per node) or sparse (few edges per node), and
+the objects could be either numerous and hold few objects, or there could be few objects that held
+many nodes. Figure~\ref{fig:fotoverhead} shows that Twizzler's per-FOT overhead is better than the
+fat-pointer style in most cases, with the exception of having few nodes per object and a spare
+graph. This result correlates with the above equation. Some simple rearranging shows that to beat
+the overhead factor of $F_{f128} = 3$ one needs two pointers per FOT entry. When an object has many
+outgoing references to few objects, this threshold is quickly surpassed.
 
 
 \begin{SCfigure}[t]
     \centering
     \includegraphics{genfig/fotoverhead}
-    \caption{Storage overhead of Twizzler compared with PMDK at different object ID sizes. Note that Twizzler's object ID size is 128~bits, thus the closest comparison is not baseline PMDK, but instead PMDK~128. In most cases, Twizzler has a better overall storage overhead, except in the pessimistic case where many FOT entries are needed.}
+    \caption{Storage overhead of Twizzler compared with PMDK at different object ID sizes. PMDK, or fat-pointer style references have a constant overhead per pointer. Note that Twizzler's object ID size is 128~bits, thus the closest comparison is not baseline PMDK, but instead PMDK~128. In most cases, Twizzler has a better overall storage overhead, except in the pessimistic case where many FOT entries are needed.}
     \label{fig:fotoverhead}
 \end{SCfigure}
 

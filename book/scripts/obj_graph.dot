@@ -1,0 +1,13 @@
+
+digraph {
+    fontname="Libertinus";
+    fontsize="10";
+     size="4,2!";
+ margin=0;
+            rankdir=LR;
+            root -> a -> b;
+            a -> M0 [label="merge-with"];
+            b -> M0 [label="merge-with"];
+            a [label="index"];
+            b [label="data"];
+}

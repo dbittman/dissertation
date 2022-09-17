@@ -1,8 +1,7 @@
-font.family : serif
-font.sans-serif : Linux Biolinum
-font.serif : Linux Libertine
-savefig.dpi : 600
-text.usetex : True
-text.latex.preamble : \usepackage[utf8]{inputenc}\usepackage[T1]{fontenc}\usepackage{libertine}\usepackage[small]{eulervm}
-font.size : 9
-pdf.compression : 3
+font.family: serif
+#font.serif : MinionPro-Regular
+savefig.dpi: 600
+text.usetex: True
+pgf.preamble: \usepackage[utf8]{inputenc}\usepackage[T1]{fontenc}\usepackage{fontspec}\setmainfont{Minion Pro}
+pgf.rcfonts: False
+font.size: 9

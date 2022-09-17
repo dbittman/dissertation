@@ -50,3 +50,39 @@
     object IDs in a flat namespace using secure random numbers, which meets our needs in that the chance
     of collision is vanishingly small.
 }
+
+To ensure object ID uniqueness, we employ a probabilistic argument for avoiding collisions in the
+object ID space. Since object IDs are generated randomly, we can model object IDs as an occupancy
+problem in a space of $N = 2^{128}$ bins. Thus the probability of collision
+is~\cite{motwani95}:
+
+% TODO center equations
+\begin{gather*}
+    1 - e^{-
+            \eqnmarkbox[NavyBlue]{m1}{m}
+            (
+            \eqnmarkbox[NavyBlue]{m2}{m}
+            -1) / 2
+            \eqnmarkbox[Orange]{n}{N}
+        }
+\end{gather*}
+\annotatetwo[yshift=0.5em]{above}{m1}{m2}{\# of objects}
+\annotate[yshift=-0.2em]{below}{n}{\# of object IDs}
+
+If a system were to create millions of objects per second over the course of hundreds of years, the
+probability of ID space collision is approximately 1 in $10^{-7}$. However, such a system is all but
+guaranteed to suffer hardware errors that flip bits\sidenote{Take DRAM bit error from cosmic rays,
+    for example.} in that time frame, and so an ID space collision is dramatically more likely to be
+sourced from a hardware malfunction\sidenote{This is a common comparison when considering
+    probability of a randomized computer process~\cite{hollingsworth:ssr97}.}. Further, the ID space
+could be expanded to 256~bits, which would dramatically reduce the collision chances.
+
+The reliance on randomized ID allocation is the primary reason we chose to make our object ID space
+so much larger than some previous approaches~\cite{pmdk,pmdk-pointers}. Consider that if $N = 2^{64}$
+bins, the probability of collision with just one billion objects is around 2\%. Increasing $m$ to
+one object per person brings the collision probability up to nearly 75\%. Of course such an ID space
+is usable if the ID are allocated via coordination with a centralized allocator, but if
+we wish to allow object ID creation at scale, avoiding coordination is vital\sidenote{As we will
+    discuss in the next chapter, some of these previous approches chose to put up with coordination and
+    centralization because of the way they encoded their references. Twizzler uses a different method
+    that allows ID space to be much larger.}.

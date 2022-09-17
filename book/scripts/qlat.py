@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib
 
-matplotlib.use("Agg")
+matplotlib.use("pgf")
 pylab.figure(num=None, figsize=(4, 2.5), facecolor='w', edgecolor='k')
 
 

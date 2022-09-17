@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib as mpl
 import pylab
 
-mpl.use("Agg")
+mpl.use("pgf")
 pylab.figure(num=None, figsize=(4, 3), facecolor='w', edgecolor='k')
 # mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=["r", "k", "c", "m", "g"])
 
