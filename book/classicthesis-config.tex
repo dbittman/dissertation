@@ -356,7 +356,7 @@
 \newcommand{\etal}{\emph{et~al.}\xspace}
 \newcommand{\unix}{\textsc{Unix}\xspace}
 \newcommand{\Twizzler}{Twizzler\xspace}
-\newcommand{\NVM}{NVM\xspace}
+\newcommand{\NVM}{\ac{nvm}\xspace}
 
 \newcommand{\unixkv}{\texttt{unixkv}\xspace}
 \newcommand{\nvkv}{\texttt{twzkv}\xspace}
@@ -391,3 +391,31 @@
 
 \usepackage{setspace}
 \setstretch{1.125}
+
+
+%% TODO try different options for acronyms
+\makeatletter
+\AtBeginDocument{%
+  \renewcommand*{\AC@hyperlink}[2]{%
+    \begingroup
+    \hypersetup{hidelinks}%
+    \hyperlink{#1}{#2}%
+    \endgroup
+  }%
+}
+\makeatother
+\renewcommand*{\acsfont}[1]{{#1}}
+
+\newenvironment{chabstract}{\rightskip1in\itshape\paragraph{Synopsis}}{}
+
+\usepackage{tikz}
+\newcommand{\chendsep}
+{%
+  \begin{center}\begin{tikzpicture}[thick]
+      \draw (-1,0) -- (1,0);
+      \fill[rotate=45] (-0.075,-0.075) rectangle (0.075,0.075);
+    \end{tikzpicture}\end{center}
+}
+
+
+\newenvironment{chconc}{\chendsep\rightskip1in\itshape\paragraph{Conclusion}}{}

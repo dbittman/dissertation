@@ -130,7 +130,7 @@
         commonly used to enable automatic cleanup. For example, in \unix, programs often create and
         immediately unlink files to ensure the system deletes them on exit. Similarly, a lot of ephemeral
         resources that applications typically use (\eg the stack, the heap) are formalized as objects in
-        \Twizzler\footnote{Formalizing these resources as objects both simplifies the programming
+        \Twizzler\sidenote{Formalizing these resources as objects both simplifies the programming
             environment model and allows them to be optionally persisted, allowing applications to resume their
             state after crashes.}.
     \fi
@@ -164,7 +164,7 @@
     objects already have an ``assumed lifetime'' that is longer than a volatile object). Tying a
     volatile object to a persistent object, however, may seem somewhat nonsensical. However, \Twizzler
     does still allow this because it has useful semantics: if an application creates a data structure
-    with some volatile component\footnote{Since \Twizzler's kernel is not involved in reference
+    with some volatile component\sidenote{Since \Twizzler's kernel is not involved in reference
         creation, it cannot prevent such a reference from being created. We expect language support for
         persistent data structures to impose restrictions on applications in this regard, and the OS should
         not prematurely restrict how applications use volatile and persistent objects. Access to a volatile
