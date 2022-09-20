@@ -129,96 +129,99 @@ and have perhaps undue faith in the IOMMU). As the trends we observe continue, t
 allowing devices to operate more independently with more ability to share memory without waiting for permission from the
 CPU and the reduced lengths of code paths in processing data points strongly to a model like the one we describe here.
 
-\section{So, What Does This Mean?}
+\begin{chconc}[So, What Does This All Mean?]
 
-The trends above imply several basic requirements for a set of operating system interfaces:
+    The trends above imply several basic requirements for a set of operating system interfaces:
 
-\paragraph{Remove the kernel from the data access path} The cost of system calls is too large relative to device
-access to justify their use in the data path. We must provide lightweight, direct, memory-style access for
-programs to operate on data.
-%% TODO expand this
+    \paragraph{Remove the kernel from the data access path} The cost of system calls is too large relative to device
+    access to justify their use in the data path. We must provide lightweight, direct, memory-style access for
+    programs to operate on data.
+    %% TODO expand this
 
-\paragraph{Assume data lifetime is disconnected from ephemera} Memory can now be pooled in units outside the
-purview of the CPU. This can happen either in time---data can be persisted, where the CPU loses control over that
-data when power is cycled---or in space---where data can traverse a network or an interconnect, or be accessed by
-multiple devices on an interconnect. While these forms of temporal and spacial sharing have always existed, they
-have either been relegated to ``experts'' in cordoned off low-level areas of the system (drivers and DMA) or have
-been explicitly designed around by, for example, building OS abstractions around an assumed bifurcation of data into
-``volatile'' and ``persistent'' domains, and asking programmers to explicitly move data between
-them\sidenote{We will explore this more fully in the next chapter.}.
+    \paragraph{Assume data lifetime is disconnected from ephemera} Memory can now be pooled in units outside the
+    purview of the CPU. This can happen either in time---data can be persisted, where the CPU loses control over that
+    data when power is cycled---or in space---where data can traverse a network or an interconnect, or be accessed by
+    multiple devices on an interconnect. While these forms of temporal and spacial sharing have always existed, they
+    have either been relegated to ``experts'' in cordoned off low-level areas of the system (drivers and DMA) or have
+    been explicitly designed around by, for example, building OS abstractions around an assumed bifurcation of data into
+    ``volatile'' and ``persistent'' domains, and asking programmers to explicitly move data between
+    them\sidenote{We will explore this more fully in the next chapter.}.
 
-However, when the previously outcast
-domains of persistence and network become closer to compute as we saw above, either via faster access or pushing compute power
-further out, we must \textbf{design for in-memory data structures}. Long-lived data structures can directly reference
-persistent data, so references must have the same lifetime as the data they point to. Virtual memory mappings are, by
-contrast, ephemeral, and so cannot effectively name persistent or distributed data. But perhaps more importantly,
-in-memory data structures are \emph{what we compute on}, and it's \emph{computation} that matters most. If we can reduce
-or even remove extraneous processing paths that waste time, we should take that opportunity.
-
-
-\paragraph{Towards a Data-Centric Operating System}
-We call an operating system that meets both of the above requirements
-\emph{data-centric}, as opposed to current OSes, which are \emph{process-centric}.
-Facilitating
-operations by applications on in-memory data structures is the primary functions of a data-centric OS,
-which tries to avoid interposing on such operations, preferring instead to intervene only when
-necessary to ensure properties such as security and isolation. To meet both of these requirements
-a data-centric OS must provide effective abstractions for identifying data independent
-of data location, constructing persistent and distributed data relationships that do not depend on ephemeral
-context, and facilitating sharing and protection.
+    However, when the previously outcast
+    domains of persistence and network become closer to compute as we saw above, either via faster access or pushing compute power
+    further out, we must \textbf{design for in-memory data structures}. Long-lived data structures can directly reference
+    persistent data, so references must have the same lifetime as the data they point to. Virtual memory mappings are, by
+    contrast, ephemeral, and so cannot effectively name persistent or distributed data. But perhaps more importantly,
+    in-memory data structures are \emph{what we compute on}, and it's \emph{computation} that matters most. If we can reduce
+    or even remove extraneous processing paths that waste time, we should take that opportunity.
 
 
-
-%% This section will discuss the trends of moving persistence closer to computation, or moving
-%computation closer to persistence. Key points: memory lifetime, and removing the kernel from data
-%path (more broadly, facilitating direct access to persistent data and reducing the lengths of code paths).
+    \paragraph{Towards a Data-Centric Operating System}
+    We call an operating system that meets both of the above requirements
+    \emph{data-centric}, as opposed to current OSes, which are \emph{process-centric}.
+    Facilitating
+    operations by applications on in-memory data structures is the primary functions of a data-centric OS,
+    which tries to avoid interposing on such operations, preferring instead to intervene only when
+    necessary to ensure properties such as security and isolation. To meet both of these requirements
+    a data-centric OS must provide effective abstractions for identifying data independent
+    of data location, constructing persistent and distributed data relationships that do not depend on ephemeral
+    context, and facilitating sharing and protection.
 
 
 
-%\section{Memory Distribution}
-
-% This section will cover how memory semantics are spreading out, with things like RDMA and CXL. Key
-% points: memory semantics spreading out, but having to keep tabs on latency. From another
-% perspective, this is disaggregated computing. Want to avoid costs that increase code path length.
-
-%\section{Memory Capacity}
-
-% This section will discuss the increasing size of memory (both from DRAM and NVM). Key points:
-% memory cost and power, larger memory means more in-memory sharing.
-
-%\section{Increasing Hardware Complexity and Performance}
-
-% This section argues that controllers are increasing in complexity and offload capabilities. Thus
-% we are getting closer and closer to treating a single node as a distributed system. Additionally,
-% increasing interconnect speeds make memory distribution easier, and things like
-% paxos-in-the-switch can improve coordination at-scale.
-
-\paragraph{Why Now?}
-
-%\todo[inline]{This will take some strong arumentation.}
-
-%It is natural at this point to wonder, ``why now? The memory hierarchy has \emph{always} been changing.'' This is true,
-%dear reader---indeed, where \emph{was} Gondor when the Westfold fell? And where \emph{is} Gandalf, for I \emph{much}
-%desire to speak with him.
-
-It is natural at this point to wonder, ``why now? The memory hierarchy has \emph{always} been changing.'' This is true,
-but there are a few unique elements to the recent changes we are seeing. First, the placement of NVM directly on the
-memory bus is a fundamental dramatic shift in how we view persistence and opens the door to \emph{true} single-level
-stores. Second, the increasing distribution of both memory and CPU requires that we rethink how computation is delegated
-throughout the system and how those separate memories and devices can organize, access, and reference data.
-But, more fundamentally, this thesis argues that our data-centric model was \emph{always} the correct model. We just
-have an opportunity to realize it, and modern hardware has the ability to make it efficient and scalable. The memory
-hierarchy has always been changing, but our interfaces have not kept pace. It is time for a revolution, designed for
-upcoming hardware and, as we'll see in the next chapter, informed by software.
-
-%% TODO add: it's a good time, lots of renewed interest, OS research is popping off
+    %% This section will discuss the trends of moving persistence closer to computation, or moving
+    %computation closer to persistence. Key points: memory lifetime, and removing the kernel from data
+    %path (more broadly, facilitating direct access to persistent data and reducing the lengths of code paths).
 
 
-\begin{chconc}
-    This chapter covered the core hardware trends we are concerned with: faster persistent memory, faster and more flexible
-    interconnects, larger memories, and more interest in distributed memory and compute. These trends point to a
-    fundamental shift towards a \emph{data-centric} model, in which the data's the thing, and enabling efficient
-    computation is the central goal. To this end, the OS has to get out of the way and we need to minimize code paths
-    surrounding the computation that just waste time. The next chapter will put these ideas into context for what
-    software is demanding from hardware and from interfaces.
+
+    %\section{Memory Distribution}
+
+    % This section will cover how memory semantics are spreading out, with things like RDMA and CXL. Key
+    % points: memory semantics spreading out, but having to keep tabs on latency. From another
+    % perspective, this is disaggregated computing. Want to avoid costs that increase code path length.
+
+    %\section{Memory Capacity}
+
+    % This section will discuss the increasing size of memory (both from DRAM and NVM). Key points:
+    % memory cost and power, larger memory means more in-memory sharing.
+
+    %\section{Increasing Hardware Complexity and Performance}
+
+    % This section argues that controllers are increasing in complexity and offload capabilities. Thus
+    % we are getting closer and closer to treating a single node as a distributed system. Additionally,
+    % increasing interconnect speeds make memory distribution easier, and things like
+    % paxos-in-the-switch can improve coordination at-scale.
+
+    \paragraph{Why Now?}
+
+    %\todo[inline]{This will take some strong arumentation.}
+
+    %It is natural at this point to wonder, ``why now? The memory hierarchy has \emph{always} been changing.'' This is true,
+    %dear reader---indeed, where \emph{was} Gondor when the Westfold fell? And where \emph{is} Gandalf, for I \emph{much}
+    %desire to speak with him.
+
+    It is natural at this point to wonder, ``why now? The memory hierarchy has \emph{always} been changing.'' This is true,
+    but there are a few unique elements to the recent changes we are seeing. First, the placement of NVM directly on the
+    memory bus is a fundamental dramatic shift in how we view persistence and opens the door to \emph{true} single-level
+    stores. Second, the increasing distribution of both memory and CPU requires that we rethink how computation is delegated
+    throughout the system and how those separate memories and devices can organize, access, and reference data.
+    But, more fundamentally, this thesis argues that our data-centric model was \emph{always} the correct model. We just
+    have an opportunity to realize it, and modern hardware has the ability to make it efficient and scalable. The memory
+    hierarchy has always been changing, but our interfaces have not kept pace. It is time for a revolution, designed for
+    upcoming hardware and, as we'll see in the next chapter, informed by software.
+
+    %% TODO add: it's a good time, lots of renewed interest, OS research is popping off
+
 \end{chconc}
+
+\iffalse
+    \begin{chconc}
+        This chapter covered the core hardware trends we are concerned with: faster persistent memory, faster and more flexible
+        interconnects, larger memories, and more interest in distributed memory and compute. These trends point to a
+        fundamental shift towards a \emph{data-centric} model, in which the data's the thing, and enabling efficient
+        computation is the central goal. To this end, the OS has to get out of the way and we need to minimize code paths
+        surrounding the computation that just waste time. The next chapter will put these ideas into context for what
+        software is demanding from hardware and from interfaces.
+    \end{chconc}
+\fi
