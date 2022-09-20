@@ -1,211 +1,329 @@
 
 \chapter{The Demands of Software}\label{ch:softwaredemands}
 
-\section{The Old Ways}
+\begin{chabstract}
+    This chapter will focus on software, the needs of software we must address, and the perspective of systems
+    programming, putting the hardware trends we spoke of last chapter into context. We will discuss the problem of
+    ephemeral context and discuss how persistence and RPC have shared characteristics and concerns.
+\end{chabstract}
 
+At their core, applications perform computation on in-memory data. Yet much application complexity is tied up in the
+infrastructure surrounding that computation, for example, in managing persistent state and in performing serialization.
+Additional work done by the program (or by the operating system on behalf of the program) that is merely in service of
+setting up the computation and not the computation itself is considered \emph{overhead}. It is the goal of this work to
+reduce that overhead in two ways: improving performance and reducing complexity. To do this, we need to understand where
+overhead comes from, which elements are fundamental, and which are not.
 
+\section{The Old Ways and ``Systems Programming''}
 
-\unedit{
-    %will need to fix the R1 and R2 here, and this might involve moving around stuff in this block
-    Current OS techniques do not meet requirements R1 and R2 as we set out above---file
-    \texttt{read} and \texttt{write} interfaces,
-    designed for sequential media and later expanded for block-based media,
-    require significant kernel involvement and serialization, violating both requirements.
-    %, and serialization that requires
-    %the programmer to add complexity and overhead through multiple data representations and transformations.
-    While support for these interfaces can be useful for legacy applications, as we will demonstrate,
-    providing the programmer with abstractions designed \emph{for} \NVM both reduces complexity and
-    improves performance.
+Current operating system interfaces are a poor fit for the trends and hardware requirements we discussed last chapter.
+File \texttt{read} and \texttt{write} interfaces, originally designed for sequential media and later expanded for
+block-based media, require significant kernel involvement and serialization, violating both the requirement to reduce
+kernel involvement, and the need to reduce code paths around accessing data. Figure~\ref{fig:cycle} shows a fairly
+common data path for an application that operates on (and perhaps mutates) some persistent data. First the data is
+loaded explicitly into memory, either in a streaming fashion or as a whole file, followed by the application manually
+deserializing it into an in-memory form. Once this is done, the program may commence its actual purpose---to perform
+computation, hooray---after which the results are serialized and placed back onto disk with an explicit store operation.
 
-    The \texttt{mmap} system call attempts to hide storage behind a memory interface through hidden
-    data copies. But, with \NVM, these copies are wasteful, and \texttt{mmap} still has significant kernel
-    involvement and the need for explicit \texttt{msync} calls. ``Direct Access'' (DAX)
-    tries to retrofit \texttt{mmap} for \NVM by removing the redundant copy, but this \emph{still}
-    fails to address requirement R2! Operating on persistent data through \texttt{mmap} requires the programmer to
-    use either fixed virtual addresses, which presents an infeasible coordination problem
-    as we scale across machines, or virtual addresses directly, which are ephemeral and require the
-    context of the process that created them.
+\begin{SCfigure}
+    \centering
+    \includegraphics[width=\linewidth]{fig/cycle.pdf}
+    \caption{The ``standard cycle'' of systems programming. We start with some persisted data, explicitly load it from disk into memory, deserialize it, compute on it, reserialize it, and explicitly store it back to disk. Note that the vast majority of this diagram depicts stuff other than the actual computation. The thick red lines depict persistence boundaries, across which data exists in different contexts and assumed lifetimes.}
+    \label{fig:cycle}
+\end{SCfigure}
 
+Let's consider the case of from Chapter~\ref{ch:farout} of faster, closer persistence.
+In the past, the time spent in manually loading and unloading
+data, in transforming it between an on-disk form was an acceptable overhead, since the cost to access the disk was slow,
+and those explicit load and store disk operations were going to be issued anyway. But when these operations overshadow
+%% TODO cite more examples
+device access time, the overhead quickly becomes unacceptable. As devices become faster and as applications process more
+and more data, we find that more and more of our processing time is spent here. Applications can spend as much as 70\% of the processing
+time~\cite{trims} deserializing and loading data into main memory at request time. Reducing this overhead would save
+both in program time but also in \emph{programmer} time. Simplifying applications by removing the need for serialization
+helps programmers by removing the need to maintain multiple data formats and the transformation code to move data
+between those formats.
 
+\subsection{The Context Problem}
 
-    Attempting to shoehorn \NVM programming atop POSIX interfaces (including \texttt{mmap}) results in
-    complexity that arises from combining multiple partial solutions. Given some feature desired by an
-    application, the \NVM framework can provide an integrated solution that meshes
-    well with the existing support for persistent data structure manipulation and access, or it can
-    fall-back to POSIX resulting in the programmer needing to understand two different ``feature
-    namespaces'' and their interactions. An example of this is naming, where a programmer may need
-    to turn to the filesystem to manage names in a completely orthogonal way to how the \NVM frameworks handles
-    data references. For example, PMDK, a \NVM programming library, relies on a filesystem for naming and initial access to
-    persistent memory objects, resulting in different kinds of references, feature sets from filesystems
-    being applied (like security) while others are not (data access), and the complexity of
-    understanding how the PMDK abstractions interact with the POSIX ones. Instead, our model prefers to
-    build legacy support atop new abstractions (\S~\ref{sec:fbsdimpl}), and avoid falling back to legacy
-    models for persistent data access. We will discuss another example,
-    security, in our case study (\S~\ref{sec:eval}).
+If we look closely, the cycle in Figure~\ref{fig:cycle} can represent more than just processing files. It works
+equally well for receiving data from a network and sending back a response (microservices and servers in general), for
+applications in a traditional \texttt{pipe}line, \etc\sidenote{Those who sit high atop their \unix throne claim that text is a universal communication language. Yet anyone
+    who has actually had the misfortune of parsing the output of even a moderatly complex \unix tool can realize that
+    systems programming here involves just as much serialization and processing work as anywhere else---or else involves
+    doing computation directly on C strings, a fate I would not wish upon my worst enemy.
+}. But why do we spend so much time and effort with serialization and explicit I/O? Because the POSIX abstractions
+fundamentally bifurcate our programming model in two:
 
+\begin{enumerate}
+    \item \textbf{Local Context} contains data that is limited to a single domain, for example in-memory data accessed
+          via virtual addresses by a single process, or the domain of file descriptors. Data in a local context is typically
+          operated on ``directly'' since it's usually in memory. Most importantly, though, the data isn't \emph{shared} with
+          other domains, and it is ephemeral---its lifetime is tied to the context it is in.
+    \item \textbf{Global Context} contains data that is shared across all the domains. Typically this covers data stored
+          on disk or other stable storage. Data in a global context is usually stored in some serialized format and can
+          be accessed by multiple domains simultaneously. The lifetime of data herein is, in the limit,
+          infinite\sidenote{Even in the global context, we traditionally separate local storage and network storage.
+              That separation can be eroded depending on the programming model, however, as we will discuss later.}.
+\end{enumerate}
 
-    Additionally, models that layer \NVM programming atop existing interfaces often fail to facilitate effective persistent data sharing and
-    protection.  PMDK, for example, makes design choices that limit
-    scalability, since its
-    data objects are not self-contained and do not have a large enough ID space, resulting
-    in the need to coordinate object IDs across machines~\cite{bittman:plos19}. For the same reason,
-    although single-address space OSes~\cite{chase:tocs94} somewhat address requirement R1, they do
-    not consider both requirements at once, nor do they provide an effective and scalable solution to
-    long-term data references due to that same coordination complexity~\cite{bittman:hotstorage19}.
+These separate contexts give rise to the need to transform data between them and to be explicit about marshalling data
+across the boundary. The primary reason for the need for transformation has to do with \emph{data references} and
+\emph{naming data}. For example, when applications operate on in-memory data, references take the form of virtual
+addresses---pointers refer to specific locations within the virtual address space. The virtual address space is
+ephemeral---it's tied to a specific process. But \emph{persistent} data is \emph{not} ephemeral! By definition it is
+accessed by multiple processes, either over time (different invocations of the same process), or across space (shared
+between multiple processes), or both. In either of these cases, virtual addresses cannot be used, since those addresses
+may not agree across different contexts. So when sharing memory, any references to local context data must be
+transformed into something that can be interpreted within the global context.
 
+More generally, we often lock data access behind context that is tied to a shorter-lifetime actor, leading to
+unnecessary indirections and extraneous work that the program must perform.
+This is illustrated in how data relationships are typically handled, either:
+\begin{enumerate}
+    \item \textbf{Explicit, context-sensitive.} As we saw with virtual address pointers,
+          references between data are encoded explicitly but rely on context provided by
+          the ephemeral process abstraction. These references cannot be reliably shared between
+          applications and across nodes which do not have the context necessary to interpret them.
+    \item \textbf{Implicit.} Many data relationships are implicit in applications.
+          Although there is a relationship between \texttt{/etc/shadow} and \texttt{/etc/passwd},
+          it is not explicit. This limits interoperability between programs, prevents
+          relationship discovery, and results in a brittle environment if these files are
+          moved or replaced.
+    \item \textbf{Explicit, via mediators.} Relationships can be encoded explicitly without
+          ephemera if we use a global name resolution service. For example, an HTML
+          file can refer to a style sheet by name. However, this presupposes the existence (and
+          availability) of a global mediator and restricts programs from agreeing on the identity
+          of data behind a reference without complex inter-networking and expensive global coordination.
+\end{enumerate}
 
-}
+In our view, the complexity of these mechanisms is a symptom of a more fundamental problem: access to long-lived data
+is unnecessarily mediated via ephemeral actors.
+We advocate a violent break from this actor-centric model of data access, in favor of a model that elevates \emph{data}
+as the systems' first-class citizen.  Doing so will require \emph{explicit
+    context-free} references via globally unique identifiers (GUIDs) that name data objects. These
+references are independent of context (\eg process) that operates on them, and require that all context necessary to interpret references
+be stored within the data itself. Of course, we still need some understanding of
+context-sensitive relationships, for example late-binding of names. We do this via a
+``two-level'' naming system in which GUIDs are \emph{authoritative} names to which we can bind
+additional names for purposes like local references, changing data identification, and discovery
+(see Sections \ref{sec:implementation} and \ref{sec:latebinding}).
 
+Viewing the past through the lens of the present, it was \emph{always} a mistake to entangle the context required to access
+and manipulate data with ephemeral actors.  However, in the days of slow networks, spinning disks and small memories,
+it was possible to hide these complexities and inefficiencies.  For one thing, disk-based I/O led to a model of sharing in
+which long-lived data and computable data were stored in different \emph{kinds} of memory, in different formats (due to serialization),
+with different reference formats (e.g., file names vs. virtual memory pointers).
+The filesystem was a natural location to place the various hacks that were required to paper over the reality
+that interacting with long-lived data required figuring out how to name the short-lived processes that were the primary
+citizens of the operating system.
 
-\unedit{
-    The lifetime of data is, in general, longer than that of individual actors that access
-    or manipulate it.
-    On a single node, persistent data by definition outlives processes that operate on it.
-    Similarly, in distributed systems, data outlives nodes that access or store it.
-    Like processes, nodes may come and go in a distributed system.
+Needless to say, a disaggregated system model---one in which a particular data reference may
+ultimately point to data on a different node from the one observing the reference---exacerbates all of these problems!
+Two different nodes that observe the same data reference should agree on what data is
+being referred to, and by the same token, an individual node observing two different data references
+should be able to determine if they point to the same data. This asks the question of \emph{how}
+to encode these explicit context-free data references while remaining efficient and avoiding global
+coordination. We will discuss and answer these questions in detail in Chapters~\ref{ch:global} and \ref{ch:invariant}.
 
-    However, data access is often locked behind context that is tied to these shorter-lifetime actors, leading to unnecessary indirections.
-    This is illustrated in how data references are typically handled, either:
-    %and stored in one of three
-    %ways:
-    \begin{enumerate}
-        \item \textbf{Explicit, context-sensitive.} In virtual address pointers,
-              references between data are encoded explicitly but rely on context provided by
-              the ephemeral process abstraction. These references cannot be reliably shared between
-              applications and across nodes which do not have the context necessary to interpret them.
-        \item \textbf{Implicit.} Many data relationships are implicit in applications.
-              Although there is a relationship between \texttt{/etc/shadow} and \texttt{/etc/passwd},
-              it is not explicit. This limits interoperability between programs, prevents
-              relationship discovery, and results in a brittle environment if these files are
-              moved or replaced.
-        \item \textbf{Explicit, via mediators.} Relationships can be encoded explicitly without
-              ephemera if we use a global name resolution service. For example, an HTML
-              file can refer to a style sheet by name. However, this presupposes the existence (and
-              availability) of a global mediator and restricts programs from agreeing on the identity
-              of data behind a reference without complex inter-networking and expensive global coordination.
-    \end{enumerate}
-
-    In our view, the complexity of these mechanisms is a symptom of a more fundamental problem: access to long-lived data
-    is unnecessarily mediated via ephemeral actors.
-    We advocate a violent break from this actor-centric model of data access, in favor of a model that elevates \emph{data}
-    as the systems' first-class citizen.  Doing so will require \emph{explicit
-        context-free} references via globally unique identifiers (GUIDs) that name data objects. These
-    references are independent of context (\eg process) that operates on them, and require that all context necessary to interpret references
-    be stored within the data itself. Of course, we still need some understanding of
-    context-sensitive relationships, for example late-binding of names. We do this via a
-    ``two-level'' naming system in which GUIDs are \emph{authoritative} names to which we can bind
-    additional names for purposes like local references, changing data identification, and discovery
-    (see Sections \ref{sec:implementation} and \ref{sec:latebinding}).
-
-    %\footnote{Note that, while our model is based on these references,
-    %	there is room for context-sensitive data relationships in the form of late-binding, which we
-    %	will discuss further in Section~\ref{sec:latebinding}.}
-    %Such references require that all context necessary to interpret the data must
-    %be stored within the data itself. 
-
-    Viewing the past through the lens of the present, it was \emph{always} a mistake to entangle the context required to access
-    and manipulate data with ephemeral actors.  However, in the days of slow networks, spinning disks and small memories,
-    it was possible to hide these complexities and inefficiencies.  For one thing, disk-based I/O led to a model of sharing in
-    which long-lived data and computable data were stored in different \emph{kinds} of memory, in different formats (due to serialization),
-    with different reference formats (e.g., file names vs. virtual memory pointers).
-    %% TODO: the following is candidate for removal if necessary
-    The filesystem was a natural location to place the various hacks that were required to paper over the reality
-    that interacting with long-lived data required figuring out how to name the short-lived processes that were the primary
-    citizens of the operating system.
-
-    Needless to say, a disaggregated system model---one in which a particular data reference may
-    ultimately point to data on a different node from the one observing the reference---exacerbates all of these problems!
-    Two different nodes that observe the same data reference should agree on what data is
-    being referred to, and by the same token, an individual node observing two different data references
-    should be able to determine if they point to the same data. This asks the question of \emph{how}
-    to encode these explicit context-free data references while remaining efficient and avoiding global
-    coordination.
-
-}
-
-
-\section{Serialization}
 
 \section{Remote Procedure Calls}
 
-
-\unedit{
-    \subsection{Motivating Example}
-    \label{sec:example}
-
-    To illustrate the poor fit of RPC as a decoupling mechanism for some classes of applications,
-    consider an example from the distributed inference problem for edge devices. Here,
-    sensors in mobile devices with modest processing and storage resources (\eg mobile phones
-    or autonomous vehicles) are the source of observations used both for training and inference.
-    Recent work has focused on decoupling and distributing machine learning training across edge
-    and cloud resources to minimize client-perceived latency, provide privacy guarantees, and
-    maximize server-side throughput~\cite{federatedml,singh2019detailed}.
-
-    In this example, we focus on the inference problem that arises in response to device input.
-    Ideally, small models trained in the
-    cloud (via a methodology such as federated learning) are periodically shipped in their entirety to
-    edge devices, which perform local inference.  Several trends are upsetting this model. The first
-    is the aggressive growth---roughly 10$\times$/year---of models, in particular language models.
-    In 2018, the largest machine translation models at Google were 8.3 billion
-    parameters~\cite{megatron}; a mere two years later, the largest models exceeded 800 billion parameters!
-    Inference on sparse giant models which far exceed device resources must be performed server
-    side, where model serving presents a substantial throughput bottleneck. This is further
-    compounded by last-mile model customization for end users, in which inference tasks
-    for different devices \emph{must} be performed on slightly different models.  As much as 70\%
-    of the processing time~\cite{trims} for these model-serving applications is spent deserializing
-    and loading the sparse personalized models into main memory at request time. Finally, users prefer
-    local models remain local due to confidentiality concerns.
-
-    Consider a concrete example that is bedeviled by all of these complexities at once. A mobile device,
-    Alice, in possession of a locally-trained model and an activation, wishes to perform a
-    classification task that requires a partition of a sparse global model, located on cloud resource
-    Bob. Further, imagine that Alice cannot perform the inference locally, either because the global
-    model fragment is too large or because she has inadequate local compute. Finally, imagine that Bob
-    is overloaded, while a separate cloud resource, Carol, is mostly idle.
-    Figure~\ref{fig:rpccopy}, also discussed in Section~\ref{sec:design}, shows this.
-
-    An ideal solution will minimize the latency Alice perceives and maximize the throughput offered
-    by both Bob and Carol, all while satisfying capacity constraints of each. It is easy to see
-    that while this application requires decoupling, RPC is the wrong abstraction in terms of performance,
-    expressivity, and flexibility.  Data movement---whether from storage to DRAM on Bob or from Bob
-    to Carol---requires costly serialization. If moving the data to Carol and performing
-    inference there is the optimal solution, the application logic on Alice must orchestrate this
-    infrastructure-level concern, either by pushing the data through Alice (Figure~\ref{fig:rpccopy}.1)
-    or having the RPC executed
-    on Carol address Bob directly and pull (Figure~\ref{fig:rpccopy}.2), adding complexity. Further,
-    heterogeneity among end devices makes the ``hard-coded'' data movement strategy
-    brittle:
-    a subsequent classification request from client device Dave will be forced to run inference
-    on the server side even if it is equipped with the resources to do the work locally.
-
-    A mechanism like RPC, in which movement of computation is explicit and movement of data implicit and
-    limited, is a poor fit for any such use case, which we will generalize in Section~\ref{sec:design}.
-    We need a flexible mechanism in which both code and data are mobile, but in which the
-    application programmer need not make the movement of \emph{either} explicit.
+One major aspect of systems programming, particularly in distributed systems, that isn't covered by the diagram in
+Figure~\ref{fig:cycle} is RPC. We typically use RPC as a mechanism for decomposition in distributed systems, allowing us
+to break design problems down into smaller, re-usable parts that hide implementation details and are more easily debugged.
+Decoupling components with RPCs allows them to scale
+independently---in principle, developers need only agree
+on a common interface and message format to leverage the
+benefits of software decoupling. Yet, in reality,
+RPCs enforce strict interface constraints and often
+trade adaptability (narrow interfaces are harder to evolve) for
+simplicity (narrow interfaces limit cross-component interactions),
+ultimately hampering the goal of scalability.
 
 
-
-    \paragraph*{Patterns of RPC.}
-    %
-    While RPC is a poor fit here, there are applications for which RPC provides adequate decoupling.
-    RPC shines in situations where decoupling in the application meshes well with having little data
-    movement, where an RPC endpoint either fronts large data, large compute relative to the invoker, or
-    some combination, with \emph{small} arguments and return \emph{values}.
-    But call-by-small-value is a significant constraint, and there are many
-    classes of applications that do not fit.
-    We cannot paper over this problem, either.
-    Because
-    RPC is disconnected from a global notion of data identity, we either \emph{cannot} do
-    call-by-reference (because references must cross machine boundaries) or we must shoehorn this
-    functionality into the application logic and the RPC's APIs, resulting in brittle, repetitive,
-    complex code to deal with the coordination, caching, and prefetching that
-    comes from distributed data and global references when data moves.
+The chief problem with RPCs is that they are fundamentally location-
+and compute-centric: RPCs force a
+programmer to decouple an application by explicitly separating the
+computational endpoint or \emph{location} where a function is invoked
+from the location where the function executes.  As a consequence, they are
+well-suited to a relatively narrow set of use cases in which
+function arguments (which flow from invoker to executor) and
+returns (which flow back) must be serialized and sent in their
+entirety, and hence are small, and in which reference data must be
+located on the executor.
 
 
+Many scenarios would benefit from decoupling but are simply not feasible using existing RPC
+mechanisms. For example, the invoking endpoint may have abundant data but limited
+compute, the invoker may wish to traverse a remote data structure, or the invoker may wish to
+refer to data that they lack privileges to read. Rapidly growing model sizes, privacy concerns, and the proliferation of last-mile
+model customizations all exacerbate the issue.
+To mitigate the problem of location-centric RPCs, data center
+operators often deploy discovery services, load balancers, or other
+forms of middleware~\cite{eisenbud16,katran,tibco,kreps11,mq}. These
+extra indirection layers make the execution endpoint abstract, but at
+the cost of increased latency and added system complexity. Moreover,
+we argue that such systems do not address the fundamental problem,
+which is \emph{we need a more general mechanism for module
+    composition in distributed systems}.
+
+\subsection*{Motivating Example}
+
+To illustrate the poor fit of RPC as a decoupling mechanism for some classes of applications,
+consider an example from the distributed inference problem for edge devices. Here,
+sensors in mobile devices with modest processing and storage resources (\eg mobile phones
+or autonomous vehicles) are the source of observations used both for training and inference.
+Recent work has focused on decoupling and distributing machine learning training across edge
+and cloud resources to minimize client-perceived latency, provide privacy guarantees, and
+maximize server-side throughput~\cite{federatedml,singh2019detailed}.
+
+In this example, we focus on the inference problem that arises in response to device input.
+Ideally, small models trained in the
+cloud (via a methodology such as federated learning) are periodically shipped in their entirety to
+edge devices, which perform local inference.  Several trends are upsetting this model. The first
+is the aggressive growth---roughly 10$\times$/year---of models, in particular language models.
+In 2018, the largest machine translation models at Google were 8.3 billion
+parameters~\cite{megatron}; a mere two years later, the largest models exceeded 800 billion parameters!
+Inference on sparse giant models which far exceed device resources must be performed server
+side, where model serving presents a substantial throughput bottleneck. This is further
+compounded by last-mile model customization for end users, in which inference tasks
+for different devices \emph{must} be performed on slightly different models.  As much as 70\%
+of the processing time~\cite{trims} for these model-serving applications is spent deserializing
+and loading the sparse personalized models into main memory at request time. Finally, users prefer
+local models remain local due to confidentiality concerns.
+
+Consider a concrete example (Figure~\ref{fig:rpccopy}) that is bedeviled by all of these complexities at once. A mobile device,
+Alice, in possession of a locally-trained model and an activation, wishes to perform a
+classification task that requires a partition of a sparse global model, located on cloud resource
+Bob. Further, imagine that Alice cannot perform the inference locally, either because the global
+model fragment is too large or because she has inadequate local compute. Finally, imagine that Bob
+is overloaded, while a separate cloud resource, Carol, is mostly idle.
+Figure~\ref{fig:rpccopy}, also discussed in Section~\ref{sec:design}, shows this.
+
+
+\begin{SCfigure}
+    \centering
+    \includegraphics[width=\linewidth]{fig/copy}
+    \caption{Rendezvous of data and compute. Solid red arrows are additional
+        infrastructure-level tasks that are not fundamental to the requested computation.}
+    \label{fig:rpccopy}
+\end{SCfigure}
+
+An ideal solution will minimize the latency Alice perceives and maximize the throughput offered
+by both Bob and Carol, all while satisfying capacity constraints of each. It is easy to see
+that while this application requires decoupling, RPC is the wrong abstraction in terms of performance,
+expressivity, and flexibility.  Data movement---whether from storage to DRAM on Bob or from Bob
+to Carol---requires costly serialization. If moving the data to Carol and performing
+inference there is the optimal solution, the application logic on Alice must orchestrate this
+infrastructure-level concern, either by pushing the data through Alice (Figure~\ref{fig:rpccopy}.1, a na\"ive solution)
+or having the RPC executed
+on Carol address Bob directly and pull (Figure~\ref{fig:rpccopy}.2).
+Both (1) and (2) require additional logic on Alice
+to work---the programmer had to perform the infrastructure level task of data
+movement.  Fundamentally, these issues arise because the system's core abstraction is
+location-based---the programmer is forced to manually orchestrate machines or resort to
+costly copying.
+Further,
+heterogeneity among end devices makes the ``hard-coded'' data movement strategy
+brittle:
+a subsequent classification request from client device Dave will be forced to run inference
+on the server side even if it is equipped with the resources to do the work locally.
+
+Figure~\ref{fig:rpccopy} part (3) is more ideal. The first step is for
+the computation to move to Carol instead of first moving data in preparation.  This may seem like a
+minor point, but it is not---by specifying \emph{up-front} the computation we want to perform, we
+open the door for lower-level optimization to examine our requests before we go around manually
+moving data.  In fact, the programmer may not be directly asking Carol to perform the
+computation; instead the placement decision would be made by the system. Once the code starts
+executing, we can then move data on demand instead of having to move the entire
+object.
+Note that this matches the same requirements we discussed above with respect to context---data references must
+be \emph{context-free} and global. With the ability to name data in a global context, we not only reduce the need for
+serialization, but we also gain the ability to pass by \emph{reference} instead of by value.
+
+
+\paragraph*{Patterns of RPC.}
+%
+While RPC is a poor fit here, there are applications for which RPC provides adequate decoupling.
+RPC shines in situations where decoupling in the application meshes well with having little data
+movement, where an RPC endpoint either fronts large data, large compute relative to the invoker, or
+some combination, with \emph{small} arguments and return \emph{values}.
+But call-by-small-value is a significant constraint, and there are many
+classes of applications that do not fit.
+We cannot paper over this problem, either.
+Because
+RPC is disconnected from a global notion of data identity, we either \emph{cannot} do
+call-by-reference (because references must cross machine boundaries) or we must shoehorn this
+functionality into the application logic and the RPC's APIs, resulting in brittle, repetitive,
+complex code to deal with the coordination, caching, and prefetching that
+comes from distributed data and global references when data moves.
 
 
 
 
+\section{So, What Does This Mean (part 2)?}
+
+Software is growing in complexity, software is becoming more and more distributed with higher and higher demand for
+concurrency as it is asked to process more and more data.
+As we saw both with accessing persistent data and in RPC, serialization takes a huge amount of processor time and a
+large chunk of an application's complexity budget. Relying on kernel crossings to perform I/O is costly, particularly if
+we reduce or remove the need for serialization. As we saw in Chapter~\ref{ch:farout}, designing for in-memory data
+structures is vital as it allows us to place data into a global context.
+
+confluence of hardware trends and software demands.
+
+less impedance
+
+impedance from existing interfaces
 
 
-}
+
+\paragraph{Global Context in a Global Address Space}
+
+
+\paragraph{First-class Global References}
+
+
+\paragraph{A Counter to a Defense of Serialization}
+
+Briefly, a common response at this point is to point out that serialization serves several other purposes.
+
+But there is nothing fundamentally tying these elements to the idea of global context and references.
+
+\section{Retrofitting?}
+
+The \texttt{mmap} system call attempts to hide storage behind a memory interface through hidden
+data copies. But, with \NVM, these copies are wasteful, and \texttt{mmap} still has significant kernel
+involvement and the need for explicit \texttt{msync} calls. ``Direct Access'' (DAX)
+tries to retrofit \texttt{mmap} for \NVM by removing the redundant copy, but this \emph{still}
+fails to address requirement R2! Operating on persistent data through \texttt{mmap} requires the programmer to
+use either fixed virtual addresses, which presents an infeasible coordination problem
+as we scale across machines, or virtual addresses directly, which are ephemeral and require the
+context of the process that created them.
+
+Attempting to shoehorn \NVM programming atop POSIX interfaces (including \texttt{mmap}) results in
+complexity that arises from combining multiple partial solutions. Given some feature desired by an
+application, the \NVM framework can provide an integrated solution that meshes
+well with the existing support for persistent data structure manipulation and access, or it can
+fall-back to POSIX resulting in the programmer needing to understand two different ``feature
+namespaces'' and their interactions. An example of this is naming, where a programmer may need
+to turn to the filesystem to manage names in a completely orthogonal way to how the \NVM frameworks handles
+data references. For example, PMDK, a \NVM programming library, relies on a filesystem for naming and initial access to
+persistent memory objects, resulting in different kinds of references, feature sets from filesystems
+being applied (like security) while others are not (data access), and the complexity of
+understanding how the PMDK abstractions interact with the POSIX ones. Instead, our model prefers to
+build legacy support atop new abstractions (\S~\ref{sec:fbsdimpl}), and avoid falling back to legacy
+models for persistent data access. We will discuss another example,
+security, in our case study (\S~\ref{sec:eval}).
+
+Additionally, models that layer \NVM programming atop existing interfaces often fail to facilitate effective persistent data sharing and
+protection.  PMDK, for example, makes design choices that limit
+scalability, since its
+data objects are not self-contained and do not have a large enough ID space, resulting
+in the need to coordinate object IDs across machines~\cite{bittman:plos19}. For the same reason,
+although single-address space OSes~\cite{chase:tocs94} somewhat address requirement R1, they do
+not consider both requirements at once, nor do they provide an effective and scalable solution to
+long-term data references due to that same coordination complexity~\cite{bittman:hotstorage19}.
+
+
