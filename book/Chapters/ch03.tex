@@ -127,6 +127,49 @@ to encode these explicit context-free data references while remaining efficient 
 coordination. We will discuss and answer these questions in detail in Chapters~\ref{ch:global} and \ref{ch:invariant}.
 
 
+\section{Retrofitting POSIX?}
+
+While I am arguing strongly that a clean-break reimagining is needed, it is worth considering what an incremental
+approach might look like. For example, the problem of direct access might be solved to some extent by \texttt{mmap}, the
+problem of global references could be solved by traditional pointer swizzling built atop \texttt{mmap}, \etc. We could
+even combine this with RDMA to gain a \ac{dsm} model.
+
+The \texttt{mmap} system call attempts to hide storage behind a memory interface through hidden
+data copies. But, with \NVM, these copies are wasteful, and \texttt{mmap} still has significant kernel
+involvement and the need for explicit \texttt{msync} calls. ``Direct Access'' (DAX)
+tries to retrofit \texttt{mmap} for \NVM DIMMs by removing the redundant copy, but this \emph{still}
+fails to address the problem of global context and in-memory data structures for persistent storage.
+Operating on persistent data through \texttt{mmap} requires the programmer to
+use either fixed virtual addresses, which presents an infeasible coordination problem
+as we scale across machines and is fundamentally unportable, or virtual addresses directly, which are ephemeral and require the
+context of the process that created them.
+
+Attempting to shoehorn \NVM programming atop POSIX interfaces (including \texttt{mmap}) results in
+complexity that arises from combining multiple partial solutions. Given some feature desired by an
+application, the \NVM framework can provide an integrated solution that meshes
+well with the existing support for persistent data structure manipulation and access, or it can
+fall-back to POSIX resulting in the programmer needing to understand two different ``feature
+namespaces'' and their interactions. An example of this is naming, where a programmer may need
+to turn to the filesystem to manage names in a completely orthogonal way to how the \NVM frameworks handles
+data references. For example, PMDK, a \NVM programming library, relies on a filesystem for naming and initial access to
+persistent memory objects, resulting in different kinds of references, feature sets from filesystems
+being applied (like security) while others are not (data access), and the complexity of
+understanding how the PMDK abstractions interact with the POSIX ones. Instead, our model prefers to
+build legacy support atop new abstractions (as we will see in Section~\ref{sec:legacy}), and avoid falling back to legacy
+models for persistent data access.
+
+Additionally, models that layer \NVM programming atop existing interfaces often fail to facilitate effective persistent data sharing and
+protection.  PMDK, for example, makes design choices that limit
+scalability, since its
+data objects are not self-contained and do not have a large enough ID space, resulting
+in the need to coordinate object IDs across machines, a problem we will explore in detail in Chapter~\ref{ch:global}. For the same reason,
+although single-address space OSes~\cite{chase:tocs94} somewhat address requirement R1, they do
+not consider both requirements at once, nor do they provide an effective and scalable solution to
+long-term data references due to that same coordination complexity (as we will discuss in Section~\ref{sec:historical}).
+
+
+
+
 \section{Remote Procedure Calls}
 
 One major aspect of systems programming, particularly in distributed systems, that isn't covered by the diagram in
@@ -199,7 +242,6 @@ classification task that requires a partition of a sparse global model, located 
 Bob. Further, imagine that Alice cannot perform the inference locally, either because the global
 model fragment is too large or because she has inadequate local compute. Finally, imagine that Bob
 is overloaded, while a separate cloud resource, Carol, is mostly idle.
-Figure~\ref{fig:rpccopy}, also discussed in Section~\ref{sec:design}, shows this.
 
 
 \begin{SCfigure}
@@ -216,9 +258,9 @@ that while this application requires decoupling, RPC is the wrong abstraction in
 expressivity, and flexibility.  Data movement---whether from storage to DRAM on Bob or from Bob
 to Carol---requires costly serialization. If moving the data to Carol and performing
 inference there is the optimal solution, the application logic on Alice must orchestrate this
-infrastructure-level concern, either by pushing the data through Alice (Figure~\ref{fig:rpccopy}.1, a na\"ive solution)
+infrastructure-level concern, either by pushing the data through Alice (Figure~\ref{fig:rpccopy} (1), a na\"ive solution)
 or having the RPC executed
-on Carol address Bob directly and pull (Figure~\ref{fig:rpccopy}.2).
+on Carol address Bob directly and pull (Figure~\ref{fig:rpccopy} (2)).
 Both (1) and (2) require additional logic on Alice
 to work---the programmer had to perform the infrastructure level task of data
 movement.  Fundamentally, these issues arise because the system's core abstraction is
@@ -230,7 +272,7 @@ brittle:
 a subsequent classification request from client device Dave will be forced to run inference
 on the server side even if it is equipped with the resources to do the work locally.
 
-Figure~\ref{fig:rpccopy} part (3) is more ideal. The first step is for
+Figure~\ref{fig:rpccopy} (3) is more ideal. The first step is for
 the computation to move to Carol instead of first moving data in preparation.  This may seem like a
 minor point, but it is not---by specifying \emph{up-front} the computation we want to perform, we
 open the door for lower-level optimization to examine our requests before we go around manually
@@ -259,71 +301,41 @@ functionality into the application logic and the RPC's APIs, resulting in brittl
 complex code to deal with the coordination, caching, and prefetching that
 comes from distributed data and global references when data moves.
 
-
-
-
-\section{So, What Does This Mean (part 2)?}
-
-Software is growing in complexity, software is becoming more and more distributed with higher and higher demand for
-concurrency as it is asked to process more and more data.
-As we saw both with accessing persistent data and in RPC, serialization takes a huge amount of processor time and a
-large chunk of an application's complexity budget. Relying on kernel crossings to perform I/O is costly, particularly if
-we reduce or remove the need for serialization. As we saw in Chapter~\ref{ch:farout}, designing for in-memory data
-structures is vital as it allows us to place data into a global context.
-
-confluence of hardware trends and software demands.
-
-less impedance
-
-impedance from existing interfaces
-
-
-
-\paragraph{Global Context in a Global Address Space}
-
-
-\paragraph{First-class Global References}
-
-
 \paragraph{A Counter to a Defense of Serialization}
 
-Briefly, a common response at this point is to point out that serialization serves several other purposes.
+A common response at this point is to point out that serialization serves several other purposes, such as ensuring
+portability between environments that use different definitions of (\eg) \texttt{int} in C, or different machine
+architectures that differ in endianess. I find these defenses weak. Firstly, for worrying about different ABI of types,
+this is already a problem when sharing memory, and is a solved one. Many languages offer support for fixed-width values
+and have explicit FFI functionality\sidenote{And continuing in the modern day with C's type system is a complete misstep
+    anyway.}. As for endianess, much of the modern world uses little endian, and places that use big endian (networks) don't
+really care about the data they are passing, they just worry about protocol headers. In any case, both of these issues
+are problems that we can (and regularly do) solve at the language level.
 
-But there is nothing fundamentally tying these elements to the idea of global context and references.
+And furthermore, there is nothing fundamentally tying these elements to the idea of global context and references, so
+even if they weren't concerns at all, we would still need to serialize data as it moves across contexts. Our approach
+is to solve the fundamental context problem that motivates serialization now, and solve the smaller problems that got
+mixed into serialization at a higher level.
 
-\section{Retrofitting?}
+\begin{chconc}[So, What Does This All Mean (part 2)?]
 
-The \texttt{mmap} system call attempts to hide storage behind a memory interface through hidden
-data copies. But, with \NVM, these copies are wasteful, and \texttt{mmap} still has significant kernel
-involvement and the need for explicit \texttt{msync} calls. ``Direct Access'' (DAX)
-tries to retrofit \texttt{mmap} for \NVM by removing the redundant copy, but this \emph{still}
-fails to address requirement R2! Operating on persistent data through \texttt{mmap} requires the programmer to
-use either fixed virtual addresses, which presents an infeasible coordination problem
-as we scale across machines, or virtual addresses directly, which are ephemeral and require the
-context of the process that created them.
+    Software is growing in complexity, software is becoming more and more distributed with higher and higher demand for
+    concurrency as it is asked to process more and more data.
+    As we saw both with accessing persistent data and in RPC, serialization takes a huge amount of processor time and a
+    large chunk of an application's complexity budget. Relying on kernel crossings to perform I/O is costly, particularly if
+    we reduce or remove the need for serialization. Having to resort to call-by-small-value when trying to effect
+    computation remotely severely limits the expressability of distributed applications, and can have a negative impact on
+    decoupling and modularity---the very thing that RPC is supposed to solve.
 
-Attempting to shoehorn \NVM programming atop POSIX interfaces (including \texttt{mmap}) results in
-complexity that arises from combining multiple partial solutions. Given some feature desired by an
-application, the \NVM framework can provide an integrated solution that meshes
-well with the existing support for persistent data structure manipulation and access, or it can
-fall-back to POSIX resulting in the programmer needing to understand two different ``feature
-namespaces'' and their interactions. An example of this is naming, where a programmer may need
-to turn to the filesystem to manage names in a completely orthogonal way to how the \NVM frameworks handles
-data references. For example, PMDK, a \NVM programming library, relies on a filesystem for naming and initial access to
-persistent memory objects, resulting in different kinds of references, feature sets from filesystems
-being applied (like security) while others are not (data access), and the complexity of
-understanding how the PMDK abstractions interact with the POSIX ones. Instead, our model prefers to
-build legacy support atop new abstractions (\S~\ref{sec:fbsdimpl}), and avoid falling back to legacy
-models for persistent data access. We will discuss another example,
-security, in our case study (\S~\ref{sec:eval}).
+    If we are to provide a solution by way of a new programming model and OS abstractions, it must be one that both solves
+    the problems that software has and provides abstractions that best take advantage of the new hardware. Mere incremental
+    change will not get us there. Fortunately, what we are seeing is a confluence of software demands and hardware trends.
+    The hardware is becoming better equipped to support high concurrency, distributed applications that can share memory
+    within a larger context. To take best advantage of hardware, we must reduce kernel involvement and move towards a global
+    address space of in-memory data---which is exactly the solution that cuts down the overhead of serialization and system calls
+    to zero. The remainder of this thesis will discuss how we can use this global address space, with first-class support
+    for references, to solve not only the problems of persistence and the systems programming cycle, but also that of
+    computation mobility, factoring out complexity, and providing simpler, higher performance applications. But to do
+    this, we will need an operating system built for that purpose.
 
-Additionally, models that layer \NVM programming atop existing interfaces often fail to facilitate effective persistent data sharing and
-protection.  PMDK, for example, makes design choices that limit
-scalability, since its
-data objects are not self-contained and do not have a large enough ID space, resulting
-in the need to coordinate object IDs across machines~\cite{bittman:plos19}. For the same reason,
-although single-address space OSes~\cite{chase:tocs94} somewhat address requirement R1, they do
-not consider both requirements at once, nor do they provide an effective and scalable solution to
-long-term data references due to that same coordination complexity~\cite{bittman:hotstorage19}.
-
-
+\end{chconc}
