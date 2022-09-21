@@ -5,6 +5,21 @@
     This chapter builds up the notion of data references within the global address space discussed in the previous chapter by way of introducing the key abstraction that underpins
     Twizzler---the invariant reference. We will discuss the design and implementation of invariant references along with several case studies and performance analyses.
 \end{chabstract}
+\unedit{
+    We cannot use virtual addresses, so we need a new way to name a word of
+    memory: an \emph{invariant pointer}. The invariant pointer encodes a more fundamental notion of data identity
+    instead of an ephemeral address,
+    allowing any thread or device to name the desired word of memory regardless of
+    address space or node.
+    This approach dramatically improves programmability, as programmers
+    need not worry about the complexity of referring to shared data with ephemeral constructs,
+    improving data sharing between programs and across runs of a program. \Twizzler still makes use of virtual
+    memory \emph{hardware} to provide isolation and translation, but persistent data
+    structures should not be written in terms of virtual addresses.
+}
+
+
+
 
 \section{Implementation}
 

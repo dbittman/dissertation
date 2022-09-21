@@ -40,498 +40,599 @@ new hardware, and we should support those applications with better fitting progr
 %things easier---while some of our work, as we will see, does alleviate some traditionally difficult aspects, those hard
 %things will still be hard.
 
-\paragraph{What is a ``Data-Centric'' OS?}
-
-
-
-If we are to provide a clean-break model built around current hardware and software demands, we will need to provide a
-compelling reason for developers to invest in switching over. But with this confluence of hardware and software trends,
-the impedance to adopt a new model is at an all time low.
-\unedit{
-
-    Our core vision is to combine the code mobility of RPC with the flexibility offered by
-    DSM-like models in a global address space with global references as a first-class abstraction. By
-    imbuing data with fundamental identity and pushing an understanding of data references into the OS
-    and the network, we can leverage aspects of content-based networks to reduce the coordination
-    typically required in a shared, distributed address space. The programmer is then free to express
-    their computation through references to code to run on some \emph{references} to data, instead
-    of needing to serialize and copy \emph{values} for arguments.
-    Today, developers are often forced to implement functionality such as caching, prefetching, and
-    manual data movement in preparation for some operation.
-    With data references as a common
-    language between the OS, the network, and applications, we can move this infrastructure-level functionality
-    out of the application and back \emph{into the infrastructure} where it belongs.
-}
-
-\section{A Common Language}
-
-
-
-\unedit{
-    We cannot store virtual addresses in persistent data, so we need a new way to name a word of
-    persistent memory: a \emph{persistent pointer}. The persistent pointer encodes a persistent
-    identification
-    of data (\S~\ref{sec:invariant_pointers}) instead of an ephemeral address,
-    allowing any thread to access the desired word of memory regardless of
-    address space.
-    This approach dramatically improves programmability, as programmers
-    need not worry about the complexity of referring to persistent data with ephemeral constructs,
-    improving data sharing between programs and across runs of a program. \Twizzler still makes use of virtual
-    memory \emph{hardware} to provide isolation and translation, but persistent data
-    structures should not be written in terms of virtual addresses.
-
-
-    \paragraph{The Death of the Process.}
-    Processes as a first class OS abstraction are, like virtual addresses, unnecessary; a traditional process couples
-    threads of control to a virtual address space, a security role, and kernel state.
-    %an environment for a set of threads to operate in.
-    However, with the kernel removed from
-    persistent data access, much of that kernel state (\eg file descriptors) is unnecessary,
-    leading to a decoupling of mechanisms:
-    nothing fundamentally connects a virtual address space
-    (a piece of ephemeral context used to access data) and a security context (\emph{what} data
-    threads may access).
-    Instead, a data-centric OS can keep the good parts of a process but \emph{separate} virtual address
-    translation and security roles, allowing threads to select one of each as needed.
-
-
-    %\footnote{Of course, we do not want to throw out \emph{good} parts of a process. Mechanisms like
-    %protection, shared memory, and (in some cases) hierarchical responsibility still have their uses,
-    %but do not need to be coalesced into a single, rigid abstraction. Their separation would have
-    %significant effects on the POSIX model, but our model, but our model, built from clean abstractions,
-    %can make use of gained flexibility (as we will see in \S~\ref{sec:eval}).}.
-
-
-    % maybe move this to 4.3?
-    The process abstraction is just one example. Persistent data access plays a key role in OS
-    abstraction design, and we need to avoid complexity arising from combining old and new interfaces.
-    Hence, we need to consider the
-    wide-reaching effects of changing the persistence model on \emph{all} aspects of the system, not
-    just I/O interfaces. \NVM gives us an opportunity to design an OS around the requirements
-    of the target programming model instead of trying to mold support libraries around existing
-    interfaces. While it is important that we provide support for legacy applications,
-    it is these applications that should be relegated to support libraries; new applications built for
-    the programming model should get first-class OS support.
-}
-
-\unedit{
-    \subsection{Computation and References}
-
-    First-class support for call-by-reference instead of by-value allows an invoker to refer to data that \emph{they
-        do not have locally}. This allows greater freedom in the interface design between decoupled components.
-    Figure~\ref{fig:rpccopy} shows possible solutions to a problem like the
-    example in Section~\ref{sec:example}, wherein an operation is scheduled to run on Carol using data
-    currently located on Bob. Part (1) shows the na\"ive approach where the invoker copies the data
-    locally (step i) before forwarding it to Carol (step ii) and eventually invoking the intended computation
-    (step iii).  In an attempt to alleviate an unnecessary copy, we could implement an additional
-    RPC on Carol that allows it to copy data over from Bob itself (steps i and ii in part (2)) before we
-    finally invoke our computation. Both (1) and (2) require additional logic on Alice
-    to work---the programmer had to perform the infrastructure level task of data
-    movement.  Fundamentally, these issues arise because the system's core abstraction is
-    location-based---the programmer is forced to manually orchestrate machines or resort to
-    costly copying.
-
-    Figure~\ref{fig:rpccopy} part (3) is closer to our vision. The first step is for
-    the computation to move to Carol instead of first moving data in preparation.  This may seem like a
-    minor point, but it is not---by specifying \emph{up-front} the computation we want to perform, we
-    open the door for lower-level optimization to examine our requests before we go around manually
-    moving data.  In fact, in our model the programmer would not be directly asking Carol to perform the
-    computation; instead the placement decision would be made by the system. Once the code starts
-    executing, we can then move data on demand instead of having to move the entire
-    object.  Of course, the implementation is significant---without a global address space like
-    the one we are proposing, implementing (3) would require brittle code that either tightly couples
-    Carol and Bob or forces Alice to participate in the data movement by asking it to provide a
-    location-based reference to the data on Bob\footnote{Aside from the complexity, this also
-        opens up TOCTTOU errors.}.
-
-
-
-    As discussed previously, the ``good'' use case of RPC is one where code and data
-    co-location has already been preordained by initial decoupling (after which it is rigid) and
-    data transfer is minimal---often manifesting as something like a fronted key-value store service. This restricts
-    code mobility (as it accounts for no change to decoupling later), and requires a myriad of RPC calls
-    to implement all the ways a programmer might wish to view data (one need only look at the many S3
-    APIs available as an example).
-    If we limit ourselves to traditional RPC, any situation (such as the one discussed in
-    Section~\ref{sec:example}) that does not fit this pattern either results in expensive data movement
-    and complex application logic, or it must be dismissed altogether and the application redesigned.
-    By allowing applications to pass data references instead of just values, and by making data
-    references a first-class abstraction in the OS and the network, applications become much simpler to
-    express efficiently, even for what would be considered pathological cases for RPC.
-
-    \paragraph*{Serialization.}
-    %
-    In traditional host- and process-centric systems, virtual memory spaces are private to a
-    program instance and thus addresses are too. As a result, we serialize any data that passes between
-    hosts (and sometimes even processes) because memory addresses on one host do not translate to any
-    other host. However, in our model, pointers refer to data within the \emph{global} address space,
-    and thus a data structure containing pointers can be copied from one host to another with merely a
-    byte-level copy, alleviating 100\% of the loading overhead discussed in Section~\ref{sec:example}
-    and leaving only data transfer costs, which are fundamental. These transfer costs, however, can now
-    be included in cost-models when making placement decisions more easily, as they do not need to take
-    the additional loading time into account.
-
-}
-
-
-\section{The Design Space}
-
-
-
-\unedit{
-    % maybe this goes in into or 4.1?
-    Operating systems provide abstractions for data access that reflect the hardware for which
-    they were designed. Current I/O interfaces and abstractions reflect the structure of mutually
-    exclusive volatile and persistent domains, the hallmarks of which are heavy kernel involvement for
-    persisting data, a
-    need for data serialization, and complexity in data sharing requiring the overhead of
-    pipes or the management cost of shared virtual memory. However, the introduction of low latency and directly
-    attached
-    \NVM into the memory hierarchy requires that we rethink key assumptions such as
-    the use of virtual addresses, the kernel's involvement in persistent I/O, and the way that
-    programs operate on and share persistent data~\cite{faraboschi:hotos15}.
-}
-
-
-\unedit{
-    %% we moved this into 2
-    These characteristics imply two basic requirements for OSes
-    to most effectively use \NVM:
-    \begin{enumerate}
-        \item[(R1)] \textbf{Remove the kernel from the persistence path.}
-            This addresses both
-            characteristics. System calls to persist data are costly; we must provide
-            lightweight, direct, memory-style access for programs to operate on persistent data.
-        \item[(R2)] \textbf{Design for pointers that last forever.}
-            %This is a direct
-            %consequence of applications using in-memory data structures in persistent memory.
-            Long-lived data structures can directly reference persistent data, so
-            pointers must have the same lifetime as the data they point to.
-            Virtual memory mappings are, by contrast,
-            ephemeral and so cannot effectively name persistent data.
-            Persistent data is, by definition, accessed by multiple actors, both
-            simultaneously and over time, and thus must be stored in a form that is conducive to sharing without
-            needing the ephemeral context associated with a particular actor.
-    \end{enumerate}
-}
-
-
-
-
-
-\unedit{
-
-    While considering a single machine as a distributed system\sidenote{While the system is
-        distributed, and contains communicating entities, it is not \emph{truly} a traditional
-        distributed system, since a single machine does not include partial-failure semantics (and the
-        cases where it does are rare enough that they may be largely ignored); often a partial failure
-        of a component is instantly upgrade to total failure. However, the messaging semantics of
-        distributed systems are present.} has been examined from the
-    perspective of OS design~\cite{baumann:sosp09}, the extent to which we are proposing has not been.
-    \emph{Each} device, including CPU sockets, acts like a component containing a local memory with
-    \emph{direct} access to a pool of shared, persistent storage.
-
-    Such a model has two significant implications:
-    \begin{enumerate}
-        \item Protection of data within this system is of utmost importance, considering how each of
-              these devices
-              could run an entire operating system with application suites. The green lines in
-              Figure~\ref{fig:sys_arch} represent control paths, showing how memory access is administrated. Note
-              that the CPU, while similar in some respects to other devices, is distinguished in that it sets
-              security policies for the system\footnote{Only in supervisor mode; user-space applications can only
-                  administrate devices that have been mapped into their address spaces.}. The \emph{enforcement}
-              of those policies is handled by the MMU and the IOMMU, both of which apply a mapping of virtual
-              addresses to physical addresses along with access restrictions.
-        \item The addresses emitted by such devices are typically physical addresses that DMA engines
-              operate on. However, similar to \observation~\ref{hetero-mem} above, emitting physical
-              addresses has significant complications in our model, necessitating the need for hardware to
-              abstract physical memory into an object-space as well. Current systems can implement this
-              (along with protection) through the IOMMU for hardware devices and MMU for the CPU.
-    \end{enumerate}
-
-    These implications combined with \observation~\ref{hetero-mem} leads to another point:
-
-    \observe{sls}{The CPU and devices must agree on a single, global abstracted view of
-        shared physical memory, leading to a system-wide single-level store interface (shown in
-        Figure~\ref{fig:log_sys_arch}). Protection is
-        enforced by hardware devices such as the IOMMU, and devices can operate on data objects as
-        opposed to physical memory directly.}
-
-    In the case of specialized hardware running programs, this grants hardware better access to global
-    memory because it does not need to coordinate and the system can trust it more (since the IOMMU can
-    enforce security). For simple I/O controllers, like an NVMe device, it allows programming of such
-    devices in a more efficient and simpler way---instead of translating object pages into physical
-    addresses, it can issue DMA requests directly to object pages instead.
-
-
-    \begin{SCfigure}
-        \centering
-        \includegraphics[width=\linewidth]{fig/log_sys_arch}
-        \caption{Logical view of the system architecture. Mapping hardware such as the IOMMU would allow
-            \emph{all} devices to see a single-level store instead of raw physical memory.}
-        \label{fig:log_sys_arch}
-    \end{SCfigure}
-
-
-    An example of this would be if a NIC is processing data it received in a packet, and that data
-    references data in another data object. If there were no abstraction layer, the NIC would need to
-    either interrupt the CPU to ask where the data is, or it would need to keep a map of objects in
-    physical memory itself. The latter adds to management costs of maintaining such maps for all
-    hardware devices in the system when data placement changes, and the former results in performance
-    degradation (due to interrupting the CPU) and requires additional management code to assist in
-    making data transfers on behalf of the hardware devices\footnote{Many current devices today will
-        still need this. However, we are planning for a system model in which it is less necessary. Many
-        devices today fit this model, including some GPUs and special off-chip processing
-        accelerators.}. This also leads to another \observation about data movement, since data
-    processing decisions will need be made by devices autonomously:
-
-    \observe{mem-to-mem}{Operating systems will need to provide a way for applications to specify data
-        movement in a system declaratively, so that data movement decisions can be made largely without user
-        involvement.}
-
-    %A natural consequence of such a distributed system is heterogeneous computing, where we have
-    %different types of processors accessing memory simultaneously. This could be as simple as an x86
-    %processor and an ARM processor both operating on shared memory, where the system offloads
-    %computationally nonintensive tasks to the ARM chip, but also encompasses our system design above.
-    %For example, ARM GPUs can (and do) access global memory with cache coherence with the CPU (CITE).
-    %The jury is still out on scaling-up cache coherence in this way, and systems will need to support
-    %both devices that operate on only local memory and devices which operate on shared memory.
-
-
-
-    The system design shown in
-    Figure~\ref{fig:sys_arch} is not necessarily the end evolution of treating a single machine as a
-    distributed system of components. We could imagine treating the CPU like any other component which
-    accesses shared memory through a controller that itself enforces memory protections and mappings.
-    However, such a model is easier to reach and program for as an evolution of our proposed system
-    design presented here. Furthermore, Figure~\ref{fig:sys_arch} shows a system design that can be
-    realized \emph{now}, allowing us to construct a real system to explore our goals.
-
-
-}
-
-
-\subsection{Hardware Versus Software}
-
-\unedit{
-    The challenges introduced by BNVM in mapping virtual addresses to physical
-    addresses are the different lifetimes of data with respect to
-    the references to that data and the heterogeneity of physical memory. Software and hardware have
-    different requirements for this mapping, in the following respects:
-
-    \begin{enumerate}
-        \item[Latency.] Prior persistent data access schemes relied on system calls to
-            operate on persistent storage. BNVM's low-latency can no longer tolerate the cost of those
-            system calls. Instead, programs must have direct access to
-            persistent data via load/store instructions. Similarly, hardware must be able to
-            transfer data to and from BNVM using DMA.
-        \item[In-memory data structures.] Direct access to persistent memory removes the loading and
-            unloading cost, but we must \emph{also} remove the cost of data serialization: since
-            persistent data is located in-memory, programs can operate on data as in-memory data
-            structures using standard programming techniques. This change
-            is not an issue for hardware, which treats data as a ``bag of bits''.
-        \item[Data lifetime.] If persistent data is stored as in-memory data structures, then
-            applications need a way to refer to data such that references have the same lifetime
-            as the referenced data, a requirement that fundamentally arises from the need for
-            to construct references that encode the relationships between data. Applications can store
-            \emph{persistent pointers} that encode a more persistent name for data than an ephemeral
-            virtual address.
-            Again, hardware has no such requirement, since it neither constructs
-            nor interprets relationships between data. Devices that need to consider data
-            relationships do so in software running atop the hardware.
-        \item[Mappings.] Both software and hardware must have a way of translating a
-            %$\langle \mathit{object}, \mathit{offset} \rangle$ reference
-            persistent pointer into a physical address.
-            This mapping may change frequently as the OS changes allocation of physical
-            pages to data (\eg, to persist a piece of data).
-            %to objects, potentially moving objects in and out of BNVM (\eg, to persist an object).
-            Hardware need only know
-            %the mappings for a short time, and need not even know the ``canonical''
-            %name for the object---
-            %it simply needs to know
-            how to access data in memory
-            for a single operation. In contrast, software must have longer-term mappings, and must
-            be able to support data shared between threads, potentially mapped into the threads
-            in different places.
-        \item[Memory heterogeneity.] Hardware and the operating system must know about different
-            types of memory, \eg DRAM and BNVM.
-            Software need only know how to allocate
-            from the different types, and should not deal with other differences. Hardware, however,
-            will need to know when data is moved between memory types if it wishes to correctly emit loads and stores
-            requested by software.
-    \end{enumerate}
-
-    Our design must support appropriate abstractions for both software and hardware, facilitating the
-    use of \emph{persistent pointers} to long-lived data for applications while providing hardware and
-    the OS with the ability to move data in, out of, and around physical memory, preferably only using
-    existing hardware functionality. We first abstract memory into \emph{objects},
-    where related data with similar access semantics (\eg, an entire B-tree, where all nodes are subject
-    to the same access control, \emph{etc}.) are placed in a single object and identified by
-    a \emph{globally} unique ID. IDs are formed via hashing, partitioned allocation, or other methods that prevent collisions
-    of IDs across machines with high probability.
-    %A programmer could, for example, place an entire B-tree within an object (as the
-    %tree itself has similar access control, etc.).
-    %, or create a tree that spans multiple objects with
-    %pointers between them.
-
-    We propose two abstractions to provide effective access to objects for both hardware and software:
-    a \emph{global object space}, which facilitates persistent pointers (discussed below), and a
-    \emph{logical object space}, which allows hardware to address data without needing knowledge of the
-    data's physical location. We split these abstractions and consider them different because of the
-    different requirements discussed above; software must worry about reference lifetime, whereas
-    hardware's access to objects is disconnected from persistence. On the other hand, today's hardware
-    must worry about physical location of data, which (with BNVM) is now more
-    likely to change over time.
-}
-
-\unedit {
-    \paragraph{Hardware and Memory}
-
-    The interface presented to hardware must enable interaction with a
-    \textit{heterogeneous memory system} and support the abstraction of an object space rather than a
-    collection of flat memory spaces. Unlike applications, hardware has no need for
-    creating long-lived pointers to locations within objects. Rather, hardware must
-    have the ability to transfer large chunks of objects to, from, and around memory, and must be able to
-    manage different \emph{types} of memory, preferably in a way that is largely transparent to
-    applications.
-
-    Requiring hardware to access a global object space through a $\langle \mathit{object},
-        \mathit{offset} \rangle$ tuple is unnecessary overhead and complexity---hardware need only ever
-    access the ``working set'' of objects currently undergoing computation. Thus, our design abstracts
-    the view from hardware of physical memory into a \emph{logical object space}, an address space that
-    maps contiguous objects within it to physical memory pages, managed by the
-    operating system. This solves the heterogeneity problem by allowing hardware to refer to data within
-    objects instead of physical addresses, whose lifetimes are much smaller than the objects, and
-    doesn't require hardware to emit (likely large) addresses for the global address space.
-
-    While SASOSes are not a viable solution to the problem of persistent pointers, they are
-    \emph{a} solution to implementing the logical object space.  Hardware, and the CPU, are
-    directly connected, reducing the cost of invalidation and coordination of an address space.
-    Additionally, this address space is \emph{intermediate} and hidden from programs---a virtual
-    address is translated to the logical object space, after which the address is translated to a
-    physical location (shown in Figure~\ref{fig:twolevel}). This translation for
-    applications (after the virtual address translation) and that of hardware is the same, reducing the
-    management complexity for the OS, discussed in Section~\ref{sec:os:addrspace}.
-
-}
-
-
-\subsection{Twizzler: A Point in This Space}
-
-
-\unedit{
-    The consequences of meeting the requirements of these hardware trends
-    %and the consequences of those requirements
-    define a bounded design space for data-centric OSes. We have
-    chosen a point in that space and built \Twizzler, our approach to providing
-    applications with efficient and effective access to \NVM. In the
-    following section we will discuss how our four primary abstractions---a low level persistent object
-    model, a persistent pointer design, an address space mechanism called \emph{views}, and a
-    security context mechanism---achieve these goals of removing the kernel from the persistent data
-    access path.
-}
-
-
-\unedit {
-    There are several design principles that we believe a successful system must adhere to:
-    \begin{enumerate}
-        \item \textbf{Get the OS out of the way}
-              Addressing \observation~\ref{os-out-of-the-way} requires removing kernel invocations from the
-              common path of persistent data access. Instead, we provide applications with methods for
-              accessing persistent data directly as in-memory data structures, thereby removing the
-              overhead of kernel boundary crossings. Note that this necessarily implies a shared-memory
-              style interprocess communication. When shared memory is not possible, however, the system
-              must support some form of message passing.
-
-              Such a model also addresses \observations~\ref{data-movement} and~\ref{mem-to-mem}, since
-              by removing the kernel from the path of persistent, shared data access, hardware can more
-              autonomously operate on data objects.
-
-        \item \textbf{Orthogonal persistence} The emergence of BNVM will make persistence the norm
-              rather than the exception, and so the programming model should have both \emph{persistence
-                  by default} and \emph{transparent, implicit} persistence. However, in accordance with
-              \observation~\ref{consistency}, applications will need to play a significant role in
-              consistency of persistent data.
-
-        \item \textbf{Single address space} We will provide a single address space of data objects to
-              applications \emph{and hardware} called the \emph{object-space}. This addresses
-              \observations~\ref{hetero-mem} and~\ref{sls} by abstracting
-              different types of physical memory and allowing DMA transfers to refer to data within
-              objects instead of physical addresses. Applications running on the CPU will, too, see this
-              same address space, allowing references to more easily pass around the system. Additional
-              benefits include:
-              \begin{enumerate}
-                  \item Allows devices to refer to object data without needing to be aware of where the
-                        object is physically located. This is advantageous in a heterogeneous memory
-                        hierarchy, since data may move often.
-                  \item Simplified security policy: security policy can be defined for objects instead of
-                        physical address.
-                  \item More autonomous operation of devices: if the system can rely on security
-                        enforcement via the IOMMU, these devices can securely access data in main-memory on
-                        their own without needing to be reprogrammed often.
-                  \item Simplified system programming: the unified data access model of Twizzler allows
-                        programmers to write programs that operate on data
-                        that can then run on any device, from the CPU to a NIC, without needing to
-                        specialize their application.
-              \end{enumerate}
-              Of course, if a device (CPU or otherwise) wishes to provide additional layers of abstraction
-              (such as segmentation or virtual address spaces) atop this single address space to ease
-              programming, they may do so (to assist in addressing \observation~\ref{sasos}). Internally, however, the object-space allows hardware devices
-              to agree on a way to reference that data within the system, regardless of where it may be
-              physically located.
-        \item \textbf{Data movement and security} should be handled declaratively, so as to not require invoking
-              the CPU whenever such a decision needs to be made (\observation~\ref{mem-to-mem}).
-    \end{enumerate}
-}
-
-\unedit{
-
-    \Twizzler is a stand-alone kernel and userspace runtime that provides execution support
-    for programs. It provides, as first-class abstractions, a notion of threads, address spaces,
-    persistent objects, and security contexts. A program
-    typically executes as a number of threads in a single address space (providing backwards
-    compatibility with existing programming models), into which persistent objects are mapped on-demand.
-    Instead of providing a process abstraction, \Twizzler provides \emph{views}
-    (\S~\ref{sec:view}) of the object space, which formalizes the notion of ephemeral context within our
-    model by allowing programs to map objects for access,
-    and \emph{security contexts} (\S~\ref{sec:sec}) which define a thread's access rights to objects in the system.
-    \Twizzler provides persistent pointers  (\S~\ref{sec:invariant_pointers}) for
-    programs, as well as primitives to ensure crash-consistency
-    (\S~\ref{sec:crash}). The thread abstraction is similar to modern OSes; the
-    kernel provides scheduling, synchronization, and management primitives.
-    Figure~\ref{fig:twz_sys_overview} shows an overview of the system
-    organization and how different parts of the system operate on data objects.
-
-    \begin{SCfigure}[b]
-        \centering
-        \includegraphics[width=\linewidth]{fig/sys_diag}
-        \caption{\Twizzler system overview. Applications link to \texttt{musl} (a C library),
-            \texttt{twix} (our Linux syscall emulation library), and \texttt{libtwz} (our standard
-            library). Through \texttt{musl}, they may act on persistent data with POSIX interfaces,
-            though we expect \Twizzler applications to operate directly on persistent data with
-            memory-style semantics.}
-        %They can directly access objects or they can use legacy POSIX methods.}
-        %The \texttt{libtwz} library provides library-OS functionality and manages the
-        %address space and kernel interaction. The kernel manages objects, schedules threads, and
-        %enforces security by programming MMU hardware.}
-        \label{fig:twz_sys_overview}
-    \end{SCfigure}
-
-
-    \Twizzler's kernel acts much like an
-    Exokernel~\cite{Kaashoek,engler:sosp95}, providing sufficient services for a
-    userspace library OS, called \emph{\libcore}, to provide an execution environment for applications.
-    The primary job of \libcore is to manage mappings of persistent objects into the address space (\S~\ref{sec:view})
-    and deal with persistent pointers (\S~\ref{sec:invariant_pointers}).
-    \Twizzler also exposes a standard library that
-    provides higher level interfaces beyond raw access to memory. For example, software that better fits
-    message-passing semantics can use library routines that implement message-passing atop shared
-    memory. \Twizzler's standard library provides additional
-    higher level interfaces, including streams, logging, event notification, and many
-    others. Applications use these to easily build composable tools and pipelines for
-    operating on in-memory data structures without the performance loss and complexity of explicit I/O\@.
-
-}
+%If we are to provide a clean-break model built around current hardware and software demands, we will need to provide a
+%compelling reason for developers to invest in switching over. But with this confluence of hardware and software trends,
+%the impedance to adopt a new model is at an all time low.
+
+
+\section{A Design Space}
+
+A data-centric operating system in which in-memory data is the primary citizen still leaves a large design space for how
+we might accomplish such a thing. Indeed, the remainder of this dissertation will be focused mostly on our design and
+implementation choices, the rationale for those choices, and empirical evaluation. However, it is still worth taking a
+minute to discuss the design space we are in and nail down what it means to design a data-centric OS that meets the
+requirements set out in the previous chapters.
+
+\paragraph{Low Kernel Involvement} As we saw earlier, the kernel imposes a heavy overhead on applications that wish to
+access data outside their local context, even in the case of interfaces like \texttt{mmap}, particularly as device
+latency continues to drop. A data-centric OS should, therefore, avoid requiring significant kernel intervention, instead
+preferring to allow applications to access data directly as in-memory data structures (see below). The reduction in
+kernel involvement and responsibility has some wide-reaching effects, namely in what I call ``the death of the process''.
+
+Processes as a first class OS abstraction are, like virtual addresses, unnecessary; a traditional process couples
+threads of control to a virtual address space, a security role, and kernel state.
+%an environment for a set of threads to operate in.
+However, with the kernel removed from
+persistent data access, much of that kernel state (\eg file descriptors) is unnecessary,
+leading to a decoupling of mechanisms:
+nothing fundamentally connects a virtual address space
+(a piece of ephemeral context used to access data) and a security context (\emph{what} data
+threads may access).
+Instead, a data-centric OS can keep the good parts of a process but \emph{separate} virtual address
+translation and security roles, allowing threads to select one of each as needed.
+
+\iffalse
+    \sidenote{Of course, we do not want to throw out \emph{good} parts of a process. Mechanisms like
+        protection, shared memory, and (in some cases) hierarchical responsibility still have their uses,
+        but do not need to be coalesced into a single, rigid abstraction. Their separation would have
+        significant effects on the POSIX model, but our model, built from clean abstractions,
+        can make use of gained flexibility (as we will see in Section~\ref{sec:eval}).}.
+\fi
+
+The process abstraction is just one example. Persistent data access and sharing plays a key role in OS
+abstraction design, and we need to avoid complexity arising from combining old and new interfaces.
+Hence, we need to consider the
+wide-reaching effects of changing the persistence model on \emph{all} aspects of the system, not
+just I/O interfaces. These hardware trends give us an opportunity to design an OS around the requirements
+of the target programming model instead of trying to mold support libraries around existing
+interfaces. While it is important that we provide support for legacy applications,
+it is these applications that should be relegated to support libraries; new applications built for
+the programming model should get first-class OS support.
+
+
+\paragraph{In-memory Data Structures and Global Addressing}
+The need to place in-memory data structures front and center sources from both the desire to reduce serialization
+overhead (Chapter~\ref{ch:softwaredemands}) but also to allow better sharing and direct use of distributed or persistent
+memory (Chapter~\ref{ch:farout}). However, as we discussed, the virtual address space does \emph{not} work for this
+purpose\sidenote{We will discuss single address space operating systems later in this chapter.} as it is ephemeral.
+Furthermore, sharing data with not just other applications but other nodes and devices demands a large and global
+address space of data to avoid the context problem. But
+we do still need a mechanism to allow the organization of data at a large scale, the coordination of that address space,
+and a method for naming data within a global address space that is invariant of local context. The solution to global
+addressing and data references makes up the bulk of the work presented here.
+
+
+\paragraph{Pointers as a Common Language} Data references are a fundamental part of encoding data relationships (see
+Chapter~\ref{ch:softwaredemands}). When we consider the implication of encoding data references within a truly global
+address space, we find that we can treat references as a \emph{common language}. If all nodes, processes, and devices
+agree not only on names for data but also \emph{how} to name data, they can more easily share data and interoperate. In
+fact, levels of the infrastructure that previously had no view into data relationships can now gain additional insight
+when performing tasks. As we will see later (Chapter~\ref{ch:concrete}), this opens the door to new optimizations, planning, and routing that would
+be difficult or impossible before.
+
+
+\paragraph{Persistence is Sharing} In Chapter~\ref{ch:farout} we discussed how persistence is getting closer to compute
+(in multiple ways). A natural approach would be to focus on \emph{orthogonal persistence}, in which applications write
+data and it is automatically persisted. However, mere orthogonal persistence misses out on a more fundamental
+relationship with distribution of memory and applications. In fact, our view is that persistence and distribution are
+two sides of the same coin---we saw previously that both are plagued by the same problems of overhead, and both domains
+are seeing dramatic improvements in performance. Thus, in a data-centric OS, persistence \emph{is} sharing, and the
+problems of persistence (\eg failure atomicity and durability) can be solved in terms of atomicity and transactions (as
+we will discuss in Section~\ref{sec:crash}).
+
+\section{Twizzler: A Point in the Design Space}
+
+The consequences of meeting the requirements of these hardware and software trends
+define a bounded design space for data-centric OSes that we layed out above. We have
+chosen a point in that space and built \Twizzler, our approach to providing
+applications with efficient and effective access to new, ``far out'' memory hierarchies. In the
+following chapters we will discuss our design choices, including our global address space, invariant pointers, and
+Twizzler OS services and libraries.
+
+\Twizzler is a stand-alone kernel and userspace runtime that provides execution support
+for programs. It provides, as first-class abstractions, a notion of threads, address spaces,
+persistent objects, and security contexts. A program
+typically executes as a number of threads in a single address space (providing backwards
+compatibility with existing programming models), into which persistent objects are mapped on-demand.
+Instead of providing a process abstraction, \Twizzler provides \emph{views}
+(Section~\ref{sec:view}) of the object space, which formalizes the notion of ephemeral context within our
+model by allowing programs to map objects for access,
+and \emph{security contexts} (Section~\ref{sec:sec}) which define a thread's access rights to objects in the system.
+\Twizzler provides invariant pointers (Chapter~\ref{ch:invariant}) in a low-coordination global address space (Chapter~\ref{ch:global}) for
+programs, as well as primitives to ensure crash-consistency
+(Section~\ref{sec:crash}). The thread abstraction is similar to modern operating systems; the
+kernel provides scheduling, synchronization, and management primitives.
+Figure~\ref{fig:twz_sys_overview} shows an overview of the system
+organization and how different parts of the system operate on data objects.
+
+\begin{SCfigure}[b]
+    \centering
+    \includegraphics[width=\linewidth]{fig/sys_diag}
+    \caption{\Twizzler system overview. Applications link to \texttt{musl} (a C library),
+        \texttt{twix} (our Linux syscall emulation library), and \texttt{libtwz} (our standard
+        library). Through \texttt{musl}, they may act on persistent data with POSIX interfaces,
+        though we expect \Twizzler applications to operate directly on persistent data with
+        memory-style semantics.}
+    %They can directly access objects or they can use legacy POSIX methods.}
+    %The \texttt{libtwz} library provides library-OS functionality and manages the
+    %address space and kernel interaction. The kernel manages objects, schedules threads, and
+    %enforces security by programming MMU hardware.}
+    \label{fig:twz_sys_overview}
+\end{SCfigure}
+
+
+\Twizzler's kernel acts much like an
+Exokernel~\cite{Kaashoek,engler:sosp95}, providing sufficient services for a
+userspace library OS, called \emph{\libcore}, to provide an execution environment for applications.
+The primary job of \libcore is to manage mappings of persistent objects into the address space (Section~\ref{sec:view})
+and deal with invariant pointers.
+\Twizzler also exposes a standard library that
+provides higher level interfaces beyond raw access to memory. For example, software that better fits
+message-passing semantics can use library routines that implement message-passing atop shared
+memory. \Twizzler's standard library provides additional
+higher level interfaces, including streams, logging, event notification, and many
+others. Applications use these to easily build composable tools and pipelines for
+operating on in-memory data structures without the performance loss and complexity of explicit I/O\@.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\iffalse
+
+    \unedit{
+
+        Our core vision is to combine the code mobility of RPC with the flexibility offered by
+        DSM-like models in a global address space with global references as a first-class abstraction. By
+        imbuing data with fundamental identity and pushing an understanding of data references into the OS
+        and the network, we can leverage aspects of content-based networks to reduce the coordination
+        typically required in a shared, distributed address space. The programmer is then free to express
+        their computation through references to code to run on some \emph{references} to data, instead
+        of needing to serialize and copy \emph{values} for arguments.
+        Today, developers are often forced to implement functionality such as caching, prefetching, and
+        manual data movement in preparation for some operation.
+        With data references as a common
+        language between the OS, the network, and applications, we can move this infrastructure-level functionality
+        out of the application and back \emph{into the infrastructure} where it belongs.
+    }
+
+    \section{A Common Language}
+
+
+
+    \unedit{
+        We cannot store virtual addresses in persistent data, so we need a new way to name a word of
+        persistent memory: a \emph{persistent pointer}. The persistent pointer encodes a persistent
+        identification
+        of data (\S~\ref{sec:invariant_pointers}) instead of an ephemeral address,
+        allowing any thread to access the desired word of memory regardless of
+        address space.
+        This approach dramatically improves programmability, as programmers
+        need not worry about the complexity of referring to persistent data with ephemeral constructs,
+        improving data sharing between programs and across runs of a program. \Twizzler still makes use of virtual
+        memory \emph{hardware} to provide isolation and translation, but persistent data
+        structures should not be written in terms of virtual addresses.
+
+
+        \paragraph{The Death of the Process.}
+        Processes as a first class OS abstraction are, like virtual addresses, unnecessary; a traditional process couples
+        threads of control to a virtual address space, a security role, and kernel state.
+        %an environment for a set of threads to operate in.
+        However, with the kernel removed from
+        persistent data access, much of that kernel state (\eg file descriptors) is unnecessary,
+        leading to a decoupling of mechanisms:
+        nothing fundamentally connects a virtual address space
+        (a piece of ephemeral context used to access data) and a security context (\emph{what} data
+        threads may access).
+        Instead, a data-centric OS can keep the good parts of a process but \emph{separate} virtual address
+        translation and security roles, allowing threads to select one of each as needed.
+
+
+        %\footnote{Of course, we do not want to throw out \emph{good} parts of a process. Mechanisms like
+        %protection, shared memory, and (in some cases) hierarchical responsibility still have their uses,
+        %but do not need to be coalesced into a single, rigid abstraction. Their separation would have
+        %significant effects on the POSIX model, but our model, but our model, built from clean abstractions,
+        %can make use of gained flexibility (as we will see in \S~\ref{sec:eval}).}.
+
+
+        % maybe move this to 4.3?
+        The process abstraction is just one example. Persistent data access plays a key role in OS
+        abstraction design, and we need to avoid complexity arising from combining old and new interfaces.
+        Hence, we need to consider the
+        wide-reaching effects of changing the persistence model on \emph{all} aspects of the system, not
+        just I/O interfaces. \NVM gives us an opportunity to design an OS around the requirements
+        of the target programming model instead of trying to mold support libraries around existing
+        interfaces. While it is important that we provide support for legacy applications,
+        it is these applications that should be relegated to support libraries; new applications built for
+        the programming model should get first-class OS support.
+    }
+
+    \unedit{
+        \subsection{Computation and References}
+
+        First-class support for call-by-reference instead of by-value allows an invoker to refer to data that \emph{they
+            do not have locally}. This allows greater freedom in the interface design between decoupled components.
+        Figure~\ref{fig:rpccopy} shows possible solutions to a problem like the
+        example in Section~\ref{sec:example}, wherein an operation is scheduled to run on Carol using data
+        currently located on Bob. Part (1) shows the na\"ive approach where the invoker copies the data
+        locally (step i) before forwarding it to Carol (step ii) and eventually invoking the intended computation
+        (step iii).  In an attempt to alleviate an unnecessary copy, we could implement an additional
+        RPC on Carol that allows it to copy data over from Bob itself (steps i and ii in part (2)) before we
+        finally invoke our computation. Both (1) and (2) require additional logic on Alice
+        to work---the programmer had to perform the infrastructure level task of data
+        movement.  Fundamentally, these issues arise because the system's core abstraction is
+        location-based---the programmer is forced to manually orchestrate machines or resort to
+        costly copying.
+
+        Figure~\ref{fig:rpccopy} part (3) is closer to our vision. The first step is for
+        the computation to move to Carol instead of first moving data in preparation.  This may seem like a
+        minor point, but it is not---by specifying \emph{up-front} the computation we want to perform, we
+        open the door for lower-level optimization to examine our requests before we go around manually
+        moving data.  In fact, in our model the programmer would not be directly asking Carol to perform the
+        computation; instead the placement decision would be made by the system. Once the code starts
+        executing, we can then move data on demand instead of having to move the entire
+        object.  Of course, the implementation is significant---without a global address space like
+        the one we are proposing, implementing (3) would require brittle code that either tightly couples
+        Carol and Bob or forces Alice to participate in the data movement by asking it to provide a
+        location-based reference to the data on Bob\footnote{Aside from the complexity, this also
+            opens up TOCTTOU errors.}.
+
+
+
+        As discussed previously, the ``good'' use case of RPC is one where code and data
+        co-location has already been preordained by initial decoupling (after which it is rigid) and
+        data transfer is minimal---often manifesting as something like a fronted key-value store service. This restricts
+        code mobility (as it accounts for no change to decoupling later), and requires a myriad of RPC calls
+        to implement all the ways a programmer might wish to view data (one need only look at the many S3
+        APIs available as an example).
+        If we limit ourselves to traditional RPC, any situation (such as the one discussed in
+        Section~\ref{sec:example}) that does not fit this pattern either results in expensive data movement
+        and complex application logic, or it must be dismissed altogether and the application redesigned.
+        By allowing applications to pass data references instead of just values, and by making data
+        references a first-class abstraction in the OS and the network, applications become much simpler to
+        express efficiently, even for what would be considered pathological cases for RPC.
+
+        \paragraph*{Serialization.}
+        %
+        In traditional host- and process-centric systems, virtual memory spaces are private to a
+        program instance and thus addresses are too. As a result, we serialize any data that passes between
+        hosts (and sometimes even processes) because memory addresses on one host do not translate to any
+        other host. However, in our model, pointers refer to data within the \emph{global} address space,
+        and thus a data structure containing pointers can be copied from one host to another with merely a
+        byte-level copy, alleviating 100\% of the loading overhead discussed in Section~\ref{sec:example}
+        and leaving only data transfer costs, which are fundamental. These transfer costs, however, can now
+        be included in cost-models when making placement decisions more easily, as they do not need to take
+        the additional loading time into account.
+
+    }
+
+
+    \section{The Design Space}
+
+
+
+    \unedit{
+        % maybe this goes in into or 4.1?
+        Operating systems provide abstractions for data access that reflect the hardware for which
+        they were designed. Current I/O interfaces and abstractions reflect the structure of mutually
+        exclusive volatile and persistent domains, the hallmarks of which are heavy kernel involvement for
+        persisting data, a
+        need for data serialization, and complexity in data sharing requiring the overhead of
+        pipes or the management cost of shared virtual memory. However, the introduction of low latency and directly
+        attached
+        \NVM into the memory hierarchy requires that we rethink key assumptions such as
+        the use of virtual addresses, the kernel's involvement in persistent I/O, and the way that
+        programs operate on and share persistent data~\cite{faraboschi:hotos15}.
+    }
+
+
+    \unedit{
+        %% we moved this into 2
+        These characteristics imply two basic requirements for OSes
+        to most effectively use \NVM:
+        \begin{enumerate}
+            \item[(R1)] \textbf{Remove the kernel from the persistence path.}
+                This addresses both
+                characteristics. System calls to persist data are costly; we must provide
+                lightweight, direct, memory-style access for programs to operate on persistent data.
+            \item[(R2)] \textbf{Design for pointers that last forever.}
+                %This is a direct
+                %consequence of applications using in-memory data structures in persistent memory.
+                Long-lived data structures can directly reference persistent data, so
+                pointers must have the same lifetime as the data they point to.
+                Virtual memory mappings are, by contrast,
+                ephemeral and so cannot effectively name persistent data.
+                Persistent data is, by definition, accessed by multiple actors, both
+                simultaneously and over time, and thus must be stored in a form that is conducive to sharing without
+                needing the ephemeral context associated with a particular actor.
+        \end{enumerate}
+    }
+
+
+
+
+
+    \unedit{
+
+        While considering a single machine as a distributed system\sidenote{While the system is
+            distributed, and contains communicating entities, it is not \emph{truly} a traditional
+            distributed system, since a single machine does not include partial-failure semantics (and the
+            cases where it does are rare enough that they may be largely ignored); often a partial failure
+            of a component is instantly upgrade to total failure. However, the messaging semantics of
+            distributed systems are present.} has been examined from the
+        perspective of OS design~\cite{baumann:sosp09}, the extent to which we are proposing has not been.
+        \emph{Each} device, including CPU sockets, acts like a component containing a local memory with
+        \emph{direct} access to a pool of shared, persistent storage.
+
+        Such a model has two significant implications:
+        \begin{enumerate}
+            \item Protection of data within this system is of utmost importance, considering how each of
+                  these devices
+                  could run an entire operating system with application suites. The green lines in
+                  Figure~\ref{fig:sys_arch} represent control paths, showing how memory access is administrated. Note
+                  that the CPU, while similar in some respects to other devices, is distinguished in that it sets
+                  security policies for the system\footnote{Only in supervisor mode; user-space applications can only
+                      administrate devices that have been mapped into their address spaces.}. The \emph{enforcement}
+                  of those policies is handled by the MMU and the IOMMU, both of which apply a mapping of virtual
+                  addresses to physical addresses along with access restrictions.
+            \item The addresses emitted by such devices are typically physical addresses that DMA engines
+                  operate on. However, similar to \observation~\ref{hetero-mem} above, emitting physical
+                  addresses has significant complications in our model, necessitating the need for hardware to
+                  abstract physical memory into an object-space as well. Current systems can implement this
+                  (along with protection) through the IOMMU for hardware devices and MMU for the CPU.
+        \end{enumerate}
+
+        These implications combined with \observation~\ref{hetero-mem} leads to another point:
+
+        \observe{sls}{The CPU and devices must agree on a single, global abstracted view of
+            shared physical memory, leading to a system-wide single-level store interface (shown in
+            Figure~\ref{fig:log_sys_arch}). Protection is
+            enforced by hardware devices such as the IOMMU, and devices can operate on data objects as
+            opposed to physical memory directly.}
+
+        In the case of specialized hardware running programs, this grants hardware better access to global
+        memory because it does not need to coordinate and the system can trust it more (since the IOMMU can
+        enforce security). For simple I/O controllers, like an NVMe device, it allows programming of such
+        devices in a more efficient and simpler way---instead of translating object pages into physical
+        addresses, it can issue DMA requests directly to object pages instead.
+
+
+        \begin{SCfigure}
+            \centering
+            \includegraphics[width=\linewidth]{fig/log_sys_arch}
+            \caption{Logical view of the system architecture. Mapping hardware such as the IOMMU would allow
+                \emph{all} devices to see a single-level store instead of raw physical memory.}
+            \label{fig:log_sys_arch}
+        \end{SCfigure}
+
+
+        An example of this would be if a NIC is processing data it received in a packet, and that data
+        references data in another data object. If there were no abstraction layer, the NIC would need to
+        either interrupt the CPU to ask where the data is, or it would need to keep a map of objects in
+        physical memory itself. The latter adds to management costs of maintaining such maps for all
+        hardware devices in the system when data placement changes, and the former results in performance
+        degradation (due to interrupting the CPU) and requires additional management code to assist in
+        making data transfers on behalf of the hardware devices\footnote{Many current devices today will
+            still need this. However, we are planning for a system model in which it is less necessary. Many
+            devices today fit this model, including some GPUs and special off-chip processing
+            accelerators.}. This also leads to another \observation about data movement, since data
+        processing decisions will need be made by devices autonomously:
+
+        \observe{mem-to-mem}{Operating systems will need to provide a way for applications to specify data
+            movement in a system declaratively, so that data movement decisions can be made largely without user
+            involvement.}
+
+        %A natural consequence of such a distributed system is heterogeneous computing, where we have
+        %different types of processors accessing memory simultaneously. This could be as simple as an x86
+        %processor and an ARM processor both operating on shared memory, where the system offloads
+        %computationally nonintensive tasks to the ARM chip, but also encompasses our system design above.
+        %For example, ARM GPUs can (and do) access global memory with cache coherence with the CPU (CITE).
+        %The jury is still out on scaling-up cache coherence in this way, and systems will need to support
+        %both devices that operate on only local memory and devices which operate on shared memory.
+
+
+
+        The system design shown in
+        Figure~\ref{fig:sys_arch} is not necessarily the end evolution of treating a single machine as a
+        distributed system of components. We could imagine treating the CPU like any other component which
+        accesses shared memory through a controller that itself enforces memory protections and mappings.
+        However, such a model is easier to reach and program for as an evolution of our proposed system
+        design presented here. Furthermore, Figure~\ref{fig:sys_arch} shows a system design that can be
+        realized \emph{now}, allowing us to construct a real system to explore our goals.
+
+
+    }
+
+
+    \subsection{Hardware Versus Software}
+
+    \unedit{
+        The challenges introduced by BNVM in mapping virtual addresses to physical
+        addresses are the different lifetimes of data with respect to
+        the references to that data and the heterogeneity of physical memory. Software and hardware have
+        different requirements for this mapping, in the following respects:
+
+        \begin{enumerate}
+            \item[Latency.] Prior persistent data access schemes relied on system calls to
+                operate on persistent storage. BNVM's low-latency can no longer tolerate the cost of those
+                system calls. Instead, programs must have direct access to
+                persistent data via load/store instructions. Similarly, hardware must be able to
+                transfer data to and from BNVM using DMA.
+            \item[In-memory data structures.] Direct access to persistent memory removes the loading and
+                unloading cost, but we must \emph{also} remove the cost of data serialization: since
+                persistent data is located in-memory, programs can operate on data as in-memory data
+                structures using standard programming techniques. This change
+                is not an issue for hardware, which treats data as a ``bag of bits''.
+            \item[Data lifetime.] If persistent data is stored as in-memory data structures, then
+                applications need a way to refer to data such that references have the same lifetime
+                as the referenced data, a requirement that fundamentally arises from the need for
+                to construct references that encode the relationships between data. Applications can store
+                \emph{persistent pointers} that encode a more persistent name for data than an ephemeral
+                virtual address.
+                Again, hardware has no such requirement, since it neither constructs
+                nor interprets relationships between data. Devices that need to consider data
+                relationships do so in software running atop the hardware.
+            \item[Mappings.] Both software and hardware must have a way of translating a
+                %$\langle \mathit{object}, \mathit{offset} \rangle$ reference
+                persistent pointer into a physical address.
+                This mapping may change frequently as the OS changes allocation of physical
+                pages to data (\eg, to persist a piece of data).
+                %to objects, potentially moving objects in and out of BNVM (\eg, to persist an object).
+                Hardware need only know
+                %the mappings for a short time, and need not even know the ``canonical''
+                %name for the object---
+                %it simply needs to know
+                how to access data in memory
+                for a single operation. In contrast, software must have longer-term mappings, and must
+                be able to support data shared between threads, potentially mapped into the threads
+                in different places.
+            \item[Memory heterogeneity.] Hardware and the operating system must know about different
+                types of memory, \eg DRAM and BNVM.
+                Software need only know how to allocate
+                from the different types, and should not deal with other differences. Hardware, however,
+                will need to know when data is moved between memory types if it wishes to correctly emit loads and stores
+                requested by software.
+        \end{enumerate}
+
+        Our design must support appropriate abstractions for both software and hardware, facilitating the
+        use of \emph{persistent pointers} to long-lived data for applications while providing hardware and
+        the OS with the ability to move data in, out of, and around physical memory, preferably only using
+        existing hardware functionality. We first abstract memory into \emph{objects},
+        where related data with similar access semantics (\eg, an entire B-tree, where all nodes are subject
+        to the same access control, \emph{etc}.) are placed in a single object and identified by
+        a \emph{globally} unique ID. IDs are formed via hashing, partitioned allocation, or other methods that prevent collisions
+        of IDs across machines with high probability.
+        %A programmer could, for example, place an entire B-tree within an object (as the
+        %tree itself has similar access control, etc.).
+        %, or create a tree that spans multiple objects with
+        %pointers between them.
+
+        We propose two abstractions to provide effective access to objects for both hardware and software:
+        a \emph{global object space}, which facilitates persistent pointers (discussed below), and a
+        \emph{logical object space}, which allows hardware to address data without needing knowledge of the
+        data's physical location. We split these abstractions and consider them different because of the
+        different requirements discussed above; software must worry about reference lifetime, whereas
+        hardware's access to objects is disconnected from persistence. On the other hand, today's hardware
+        must worry about physical location of data, which (with BNVM) is now more
+        likely to change over time.
+    }
+
+    \unedit {
+        \paragraph{Hardware and Memory}
+
+        The interface presented to hardware must enable interaction with a
+        \textit{heterogeneous memory system} and support the abstraction of an object space rather than a
+        collection of flat memory spaces. Unlike applications, hardware has no need for
+        creating long-lived pointers to locations within objects. Rather, hardware must
+        have the ability to transfer large chunks of objects to, from, and around memory, and must be able to
+        manage different \emph{types} of memory, preferably in a way that is largely transparent to
+        applications.
+
+        Requiring hardware to access a global object space through a $\langle \mathit{object},
+            \mathit{offset} \rangle$ tuple is unnecessary overhead and complexity---hardware need only ever
+        access the ``working set'' of objects currently undergoing computation. Thus, our design abstracts
+        the view from hardware of physical memory into a \emph{logical object space}, an address space that
+        maps contiguous objects within it to physical memory pages, managed by the
+        operating system. This solves the heterogeneity problem by allowing hardware to refer to data within
+        objects instead of physical addresses, whose lifetimes are much smaller than the objects, and
+        doesn't require hardware to emit (likely large) addresses for the global address space.
+
+        While SASOSes are not a viable solution to the problem of persistent pointers, they are
+        \emph{a} solution to implementing the logical object space.  Hardware, and the CPU, are
+        directly connected, reducing the cost of invalidation and coordination of an address space.
+        Additionally, this address space is \emph{intermediate} and hidden from programs---a virtual
+        address is translated to the logical object space, after which the address is translated to a
+        physical location (shown in Figure~\ref{fig:twolevel}). This translation for
+        applications (after the virtual address translation) and that of hardware is the same, reducing the
+        management complexity for the OS, discussed in Section~\ref{sec:os:addrspace}.
+
+    }
+
+
+    \subsection{Twizzler: A Point in This Space}
+
+
+
+
+    \unedit {
+        There are several design principles that we believe a successful system must adhere to:
+        \begin{enumerate}
+            \item \textbf{Get the OS out of the way}
+                  Addressing \observation~\ref{os-out-of-the-way} requires removing kernel invocations from the
+                  common path of persistent data access. Instead, we provide applications with methods for
+                  accessing persistent data directly as in-memory data structures, thereby removing the
+                  overhead of kernel boundary crossings. Note that this necessarily implies a shared-memory
+                  style interprocess communication. When shared memory is not possible, however, the system
+                  must support some form of message passing.
+
+                  Such a model also addresses \observations~\ref{data-movement} and~\ref{mem-to-mem}, since
+                  by removing the kernel from the path of persistent, shared data access, hardware can more
+                  autonomously operate on data objects.
+
+            \item \textbf{Orthogonal persistence} The emergence of BNVM will make persistence the norm
+                  rather than the exception, and so the programming model should have both \emph{persistence
+                      by default} and \emph{transparent, implicit} persistence. However, in accordance with
+                  \observation~\ref{consistency}, applications will need to play a significant role in
+                  consistency of persistent data.
+
+            \item \textbf{Single address space} We will provide a single address space of data objects to
+                  applications \emph{and hardware} called the \emph{object-space}. This addresses
+                  \observations~\ref{hetero-mem} and~\ref{sls} by abstracting
+                  different types of physical memory and allowing DMA transfers to refer to data within
+                  objects instead of physical addresses. Applications running on the CPU will, too, see this
+                  same address space, allowing references to more easily pass around the system. Additional
+                  benefits include:
+                  \begin{enumerate}
+                      \item Allows devices to refer to object data without needing to be aware of where the
+                            object is physically located. This is advantageous in a heterogeneous memory
+                            hierarchy, since data may move often.
+                      \item Simplified security policy: security policy can be defined for objects instead of
+                            physical address.
+                      \item More autonomous operation of devices: if the system can rely on security
+                            enforcement via the IOMMU, these devices can securely access data in main-memory on
+                            their own without needing to be reprogrammed often.
+                      \item Simplified system programming: the unified data access model of Twizzler allows
+                            programmers to write programs that operate on data
+                            that can then run on any device, from the CPU to a NIC, without needing to
+                            specialize their application.
+                  \end{enumerate}
+                  Of course, if a device (CPU or otherwise) wishes to provide additional layers of abstraction
+                  (such as segmentation or virtual address spaces) atop this single address space to ease
+                  programming, they may do so (to assist in addressing \observation~\ref{sasos}). Internally, however, the object-space allows hardware devices
+                  to agree on a way to reference that data within the system, regardless of where it may be
+                  physically located.
+            \item \textbf{Data movement and security} should be handled declaratively, so as to not require invoking
+                  the CPU whenever such a decision needs to be made (\observation~\ref{mem-to-mem}).
+        \end{enumerate}
+    }
+
+    \unedit{
+
+
+    }
+
+\fi
 
 \section{A Historical Look}
 \label{sec:historical}
