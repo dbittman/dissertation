@@ -164,12 +164,12 @@ organization and how different parts of the system operate on data objects.
 
 \begin{SCfigure}[b]
     \centering
-    \includegraphics[width=\linewidth]{fig/sys_diag}
+    \includegraphics[width=\linewidth]{fig/twz_sys_diag}
     \caption{\Twizzler system overview. Applications link to \texttt{musl} (a C library),
         \texttt{twix} (our Linux syscall emulation library), and \texttt{libtwz} (our standard
-        library). Through \texttt{musl}, they may act on persistent data with POSIX interfaces,
-        though we expect \Twizzler applications to operate directly on persistent data with
-        memory-style semantics.}
+        library). Through \texttt{musl}, they may act on in-memory data with POSIX interfaces,
+        though we expect \Twizzler applications to operate directly on in-memory data with
+        the supplied Twizzler abstractions.}
     %They can directly access objects or they can use legacy POSIX methods.}
     %The \texttt{libtwz} library provides library-OS functionality and manages the
     %address space and kernel interaction. The kernel manages objects, schedules threads, and
