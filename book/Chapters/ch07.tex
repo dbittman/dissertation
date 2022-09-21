@@ -255,6 +255,26 @@
 
 \section{Security}
 
+\unedit {
+    A \textit{capability} is, at its core, an unforgeable token which
+    grants a particular set of rights on an object~\cite{Lampson1973,Landwehr1981,Gong:sigops89}. A
+    given capability must be protected from tampering, accessible only to a process which is authorized
+    to have it, and obtainable only through some secure mechanism. Many of the systems discussed above
+    use capabilities, albeit in different forms. Some are secure because they are stored in-kernel and
+    accessed via indirection (\unix file descriptors), while some are password-based, granting access
+    when the kernel matches the provided password against an ACL. In most cases, however, these systems
+    require secure capability information to be stored, protected, in kernel-only memory. This limits
+    the power of these systems and requires significant kernel involvement whenever a security decision
+    is made.  Instead, \emph{signed} capabilities can be used~\cite{tanenbaum:osr81}, which allow the
+    kernel to verify the contents of a capability without needing to call out to a secure service or
+    trust that it has not been modified.
+    This approach has obvious benefits for distributed systems and for systems with long-life persistent
+    data, but has not seen significant research as an operating systems security concept over the past
+    few decades.
+
+
+}
+
 \section{\textsc{unix} Compatibility}
 \label{sec:legacy}
 

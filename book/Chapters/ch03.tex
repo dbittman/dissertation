@@ -301,6 +301,19 @@ functionality into the application logic and the RPC's APIs, resulting in brittl
 complex code to deal with the coordination, caching, and prefetching that
 comes from distributed data and global references when data moves.
 
+The ``good'' use cases of RPC are ones in which code and data
+co-location has already been preordained by initial decoupling (after which it is rigid) and
+data transfer is minimal---often manifesting as something like a fronted key-value store service. This restricts
+code mobility (as it accounts for no change to decoupling later), and requires a myriad of RPC calls
+to implement all the ways a programmer might wish to view data (one need only look at the many S3
+APIs available as an example).
+If we limit ourselves to traditional RPC, any situation (such as the one discussed in
+Section~\ref{sec:example}) that does not fit this pattern either results in expensive data movement
+and complex application logic, or it must be dismissed altogether and the application redesigned.
+By allowing applications to pass data references instead of just values, and by making data
+references a first-class abstraction in the OS and the network, applications become much simpler to
+express efficiently, even for what would be considered pathological cases for RPC.
+
 \paragraph{A Counter to a Defense of Serialization}
 
 A common response at this point is to point out that serialization serves several other purposes, such as ensuring
