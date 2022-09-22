@@ -5,127 +5,141 @@
     This chapter builds up the notion of data references within the global address space discussed in the previous chapter by way of introducing the key abstraction that underpins
     Twizzler---the invariant reference. We will discuss the design and implementation of invariant references along with several case studies and performance analyses.
 \end{chabstract}
-\unedit{
-    We cannot use virtual addresses, so we need a new way to name a word of
-    memory: an \emph{invariant pointer}. The invariant pointer encodes a more fundamental notion of data identity
-    instead of an ephemeral address,
-    allowing any thread or device to name the desired word of memory regardless of
-    address space or node.
-    This approach dramatically improves programmability, as programmers
-    need not worry about the complexity of referring to shared data with ephemeral constructs,
-    improving data sharing between programs and across runs of a program. \Twizzler still makes use of virtual
-    memory \emph{hardware} to provide isolation and translation, but persistent data
-    structures should not be written in terms of virtual addresses.
-}
 
 
-
+Last chapter, we discussed how we can name any piece of data within the global address space using a tuple of object ID
+and offset. However, with a large object ID space and an offset value, the tuple is quite big (192~bits). If we want to
+encode a reference to a piece of data, any pointers needs to encode all that information. But our current virtual
+address pointers are 64~bits wide, so we would be increasing our overhead over virtual addresses by a factor of 3.
+Instead, Twizzler uses an \emph{invariant pointer} abstraction that reduces overhead and maintains pointer sizes at
+64~bits while making it possible to refer to any data in the global address space (thus, these pointers are inherently
+cross-object or inter-object), and exposing object relationships to lower level parts of the system stack that would
+traditionally be blind to such relationships.
 
 \section{Implementation}
 
-
 %% TODO distinguish between persistent pointers and invariant pointers.
 
-\unedit{
-    Section~\ref{sec:datacentric} discussed the needs for references that outlive ephemeral actors.
-    \Twizzler provides \emph{cross-object} persistent pointers so that a pointer refers not to
-    a virtual address but to an offset within an object by encoding an \texttt{object-id}:\texttt{offset}
-    tuple. This enables a pointer to refer to persistent data,
-    but it also allows objects to have \emph{external} pointers that refer to data in any object in the
-    global object space.
-    %with the same semantics as internal pointers.
-    We highlight cross-object pointers' power
-    and flexibility by demonstrating their ability to express inter-object relationships in Section~\ref{sec:eval}.
+The authoritative name for a piece of data as defined in the previous chapter is,
+\begin{equation*}
+    (
+    \eqnmarkbox[NavyBlue]{g}{I_O}
+    , \eqnmarkbox[Orange]{o}{N})
+\end{equation*}
+\annotate[yshift=0.5em]{above}{g}{ID of object $O$}
+\annotate[yshift=-0.2em]{below}{o}{An offset into an object}
+
+To efficiently encode this tuple, we use indirection through a per-object \textit{foreign
+    object table} (FOT), located at a known offset within each object. The FOT is an array of entries
+that each stores an object ID (or a name that resolves into an object ID, as we will see
+below) and flags. An invariant pointer is thus a tuple,
+\begin{equation*}
+    (
+    \eqnmarkbox[NavyBlue]{f}{f}
+    , \eqnmarkbox[Orange]{n}{N})
+\end{equation*}
+\annotate[yshift=0.5em]{above}{f}{Index into the FOT}
+\annotate[yshift=-0.2em]{below}{n}{An offset into an object}
+
+This tuple is encoded into 64~bits by placing the $f$ into the upper 24~bits and placing $N$ into the lower bits. When
+We can then recover the original tuple by performing an FOT lookup. For example, if we have an invariant pointer in
+object $O$, the lookup is:
+
+\begin{equation*}
+    (
+    \eqnmarkbox[Red]{f}{I_T}
+    , \eqnmarkbox[Orange]{n}{N}) = (
+    \mathrm{\eqnmarkbox[Green]{fot}{FOT}}(\eqnmarkbox[NavyBlue]{obj}{O}, \eqnmarkbox[NavyBlue]{f}{f})
+    , \eqnmarkbox[Orange]{n}{N}
+    )
+\end{equation*}
+\annotate[yshift=0.5em]{above}{f}{Index into the FOT}
+\annotate[yshift=-0.2em]{below}{n}{An offset into an object}
 
 
-    To efficiently encode this tuple, we use indirection through a per-object \textit{foreign
-        object table} (FOT), located at a known offset within each object. The FOT is an array of entries
-    that each stores an object ID (or a name that resolves into an object ID, as we will see
-    below) and flags. A cross-object pointer is stored as a 64~bit
-    \texttt{FOT\_idx:offset} value, where the \texttt{FOT\_idx} is an index into the FOT\@. This provides us
-    with both large offsets \emph{and} large object IDs, since the IDs are not stored within the pointer
-    itself.
-    If an object wishes to point to data within itself (an \emph{intra-object} pointer), it stores $0$ in
-    \texttt{FOT\_idx}. When dereferencing, \Twizzler uses the \texttt{FOT\_idx} part of the
-    pointer as an index into the FOT, retrieving an object ID\@.
-    The combination of a FOT and a cross-object pointer logically forms
-    an \texttt{object-id:offset} pair, as shown in Figure~\ref{fig:fottran}.
+This provides us
+with both large offsets \emph{and} large object IDs, since the IDs are not stored within the pointer
+itself.
+If an object wishes to point to data within itself (an \emph{intra-object} pointer), it stores $0$ in
+\texttt{FOT\_idx}. When dereferencing, \Twizzler uses the \texttt{FOT\_idx} part of the
+pointer as an index into the FOT, retrieving an object ID\@.
+The combination of a FOT and a cross-object pointer logically forms
+an \texttt{object-id:offset} pair, as shown in Figure~\ref{fig:fottran}.
 
-    Our design (discussed in prior work~\cite{bittman:hotstorage19,bittman:plos19}) differs from existing
-    frameworks~\cite{corbato_introduction_1965,bensoussan:sosp69,daley:cacm68,pmdk-pointers,libpmem,Chen:micro17}
-    because of the indirection. Frameworks like PMDK store entire object IDs within pointers,
-    increasing pointer size and reducing flexibility by removing
-    the possibility of late-binding (discussed below). Additionally, \Twizzler extends the
-    namespace of data objects beyond one machine, as machine-independent data references
-    are a natural consequence of cross-object pointers. Existing solutions are limited
-    in this scalability. They either limit the ID space (necessary for storing IDs
-    in pointers) and thus resort to complex coordination or serialization when sharing, or
-    they require additional state (\eg per-process or per-machine ID tables) that must
-    be shared along with the data, forcing the receiving machine to ``fix-up''
-    references. Worse still, the fix-up is application-specific, since the object IDs are
-    within any pointer, not in a generically known location.
-    Our per-object FOT results in self-contained objects that are easier to share, thus interacting better with remote shared memory systems.
+Our design (discussed in prior work~\cite{bittman:hotstorage19,bittman:plos19}) differs from existing
+frameworks~\cite{corbato_introduction_1965,bensoussan:sosp69,daley:cacm68,pmdk-pointers,libpmem,Chen:micro17}
+because of the indirection. Frameworks like PMDK store entire object IDs within pointers,
+increasing pointer size and reducing flexibility by removing
+the possibility of late-binding (discussed below). Additionally, \Twizzler extends the
+namespace of data objects beyond one machine, as machine-independent data references
+are a natural consequence of cross-object pointers. Existing solutions are limited
+in this scalability. They either limit the ID space (necessary for storing IDs
+in pointers) and thus resort to complex coordination or serialization when sharing, or
+they require additional state (\eg per-process or per-machine ID tables) that must
+be shared along with the data, forcing the receiving machine to ``fix-up''
+references. Worse still, the fix-up is application-specific, since the object IDs are
+within any pointer, not in a generically known location.
+Our per-object FOT results in self-contained objects that are easier to share, thus interacting better with remote shared memory systems.
 
-    Part of our motivation for indirecting pointers through the FOT was to allow a large ID space
-    without increasing pointer size. The density of \NVM and the disaggregation of memory and
-    applications means that we will be accessing data in a larger and larger address space, and it is
-    vital that our abstractions allow for a large enough ID space to cover these needs. Since our IDs
-    are 128~bits and our offsets need to support large objects, replacing pointers with a ``fat
-    pointer'' style of just \texttt{object-id}:\texttt{offset} would mean more than doubling pointer
-    size, which we found unacceptable. Other frameworks like PMDK, by contrast, increase pointer size to 128~bits for each
-    pointer by encoding pointers as this tuple with 64~bit object IDs. The trade off is that our
-    pointers take a little more work to translate (as they require an FOT lookup), but in return we keep
-    pointers 64~bits while supporting a truly global-scale address space. Thus the overall space trade off is, for \Twizzler, no additional space overhead
-    per pointer, but an added 32-byte overhead per FOT entry.
-    The number of FOT entries, however, is typically much smaller than the number of
-    pointers since pointers to the same external object can all use the same FOT entry. As we will see
-    in Section~\ref{sec:res}, this has a dramatic benefit to performance.
+Part of our motivation for indirecting pointers through the FOT was to allow a large ID space
+without increasing pointer size. The density of \NVM and the disaggregation of memory and
+applications means that we will be accessing data in a larger and larger address space, and it is
+vital that our abstractions allow for a large enough ID space to cover these needs. Since our IDs
+are 128~bits and our offsets need to support large objects, replacing pointers with a ``fat
+pointer'' style of just \texttt{object-id}:\texttt{offset} would mean more than doubling pointer
+size, which we found unacceptable. Other frameworks like PMDK, by contrast, increase pointer size to 128~bits for each
+pointer by encoding pointers as this tuple with 64~bit object IDs. The trade off is that our
+pointers take a little more work to translate (as they require an FOT lookup), but in return we keep
+pointers 64~bits while supporting a truly global-scale address space. Thus the overall space trade off is, for \Twizzler, no additional space overhead
+per pointer, but an added 32-byte overhead per FOT entry.
+The number of FOT entries, however, is typically much smaller than the number of
+pointers since pointers to the same external object can all use the same FOT entry. As we will see
+in Section~\ref{sec:res}, this has a dramatic benefit to performance.
 
 
-    \paragraph{FOT Entries and Late-Binding.}
+\paragraph{FOT Entries and Late-Binding.}
 
-    The FOT entry's \texttt{flags} field has bits for read, write, and execute protections. The
-    protections are \textit{requests}; \Twizzler implements separate access control on objects.
-    This allows some pointers to refer to data with a read-only reference while others can be used for
-    writing, reducing stray writes (a single ID can repeat in the FOT with different protections).
-    The FOT entries also enable atomic updates that apply to all pointers using
-    that FOT entry.
-    %Additionally, the flags can contain other information, such as
-    %reference counts, which can be updated atomically for all pointers using that FOT entry.
+The FOT entry's \texttt{flags} field has bits for read, write, and execute protections. The
+protections are \textit{requests}; \Twizzler implements separate access control on objects.
+This allows some pointers to refer to data with a read-only reference while others can be used for
+writing, reducing stray writes (a single ID can repeat in the FOT with different protections).
+The FOT entries also enable atomic updates that apply to all pointers using
+that FOT entry.
+%Additionally, the flags can contain other information, such as
+%reference counts, which can be updated atomically for all pointers using that FOT entry.
 
-    \begin{SCfigure}[tb]
-        \includegraphics[width=\linewidth]{fig/ptrfot}
-        \caption{Pointer translation via the FOT\@.
-            The pointer and the FOT
-            are both contained in the same object (not shown). An FOT entry of $0$ indicates an ``internal''
-            pointer.
-        }
-        \label{fig:fottran}
-    \end{SCfigure}
+\begin{SCfigure}[tb]
+    \includegraphics[width=\linewidth]{fig/ptrfot}
+    \caption{Pointer translation via the FOT\@.
+        The pointer and the FOT
+        are both contained in the same object (not shown). An FOT entry of $0$ indicates an ``internal''
+        pointer.
+    }
+    \label{fig:fottran}
+\end{SCfigure}
 
-    Instead of \emph{requiring} programmers to refer to objects via IDs only, we allow
-    names in FOT entries. These entries may contain a pointer to an
-    in-object string table that contains a name.
-    %and a function pointer that resolves the name into an
-    %object ID.
-    Names enable late-binding~\cite{daley:cacm68}, a
-    vital aspect of systems, allowing references to objects which change over time, \eg shared library versions.
-    Names are passed to a \textit{resolving} function (specified in the FOT entry).
-    Allowing a program to specify how its names are resolved
-    increases the flexibility of the system beyond supporting \unix paths. \Twizzler
-    provides a default name resolver that uses \unix-like paths.% for ease of development of simpler applications.
+Instead of \emph{requiring} programmers to refer to objects via IDs only, we allow
+names in FOT entries. These entries may contain a pointer to an
+in-object string table that contains a name.
+%and a function pointer that resolves the name into an
+%object ID.
+Names enable late-binding~\cite{daley:cacm68}, a
+vital aspect of systems, allowing references to objects which change over time, \eg shared library versions.
+Names are passed to a \textit{resolving} function (specified in the FOT entry).
+Allowing a program to specify how its names are resolved
+increases the flexibility of the system beyond supporting \unix paths. \Twizzler
+provides a default name resolver that uses \unix-like paths.% for ease of development of simpler applications.
 
-    The implementation of naming is orthogonal to \Twizzler's design. We
-    allow a range of name resolution methods within the system stack
-    and allow objects to specify their own name resolution functions for flexibility. For example,
-    objects could be organized by both a relational database and a hierarchical namer
-    similar to conventional file systems. Non-hierarchical file systems
-    are well studied~\cite{gifford:sosp91, ames:mss06, padioleau:usenix03, gopal:osdi99,
-        parkerwood:systor14}, but these systems do not easily cooperate atop a single data space.
-    Since \Twizzler uses a flat namespace as its ``native'' object naming scheme, it
-    enables the required cooperation.
+The implementation of naming is orthogonal to \Twizzler's design. We
+allow a range of name resolution methods within the system stack
+and allow objects to specify their own name resolution functions for flexibility. For example,
+objects could be organized by both a relational database and a hierarchical namer
+similar to conventional file systems. Non-hierarchical file systems
+are well studied~\cite{gifford:sosp91, ames:mss06, padioleau:usenix03, gopal:osdi99,
+    parkerwood:systor14}, but these systems do not easily cooperate atop a single data space.
+Since \Twizzler uses a flat namespace as its ``native'' object naming scheme, it
+enables the required cooperation.
 
-}
 
 \unedit {
     \paragraph{Pointer Translation API}

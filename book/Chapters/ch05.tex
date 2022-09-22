@@ -147,8 +147,9 @@ is usable if the ID are allocated via coordination with a centralized allocator,
 we wish to allow object ID creation at scale, avoiding coordination is vital\sidenote{As we will
     discuss in the next chapter, some of these previous approches chose to put up with coordination and
     centralization because of the way they encoded their references. Twizzler uses a different method
-    that allows ID space to be much larger.}.
-
+    that allows ID space to be much larger.}. These alternative approaches with smaller ID spaces lead to problems when
+sharing, since moving an object from one node to another requires either coordination or application-specific fixup
+operations to avoid collisions.
 
 \section{Mapping Back to Virtual Memory}
 
