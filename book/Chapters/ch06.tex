@@ -22,9 +22,9 @@ traditionally be blind to such relationships.
 
 The authoritative name for a piece of data as defined in the previous chapter is,
 \begin{equation*}
-    (
+    \left(
     \eqnmarkbox[NavyBlue]{g}{I_O}
-    , \eqnmarkbox[Orange]{o}{N})
+    , \eqnmarkbox[Orange]{o}{N}\right)
 \end{equation*}
 \annotate[yshift=0.5em]{above}{g}{ID of object $O$}
 \annotate[yshift=-0.2em]{below}{o}{An offset into an object}
@@ -34,39 +34,41 @@ To efficiently encode this tuple, we use indirection through a per-object \texti
 that each stores an object ID (or a name that resolves into an object ID, as we will see
 below) and flags. An invariant pointer is thus a tuple,
 \begin{equation*}
-    (
+    \left(
     \eqnmarkbox[NavyBlue]{f}{f}
-    , \eqnmarkbox[Orange]{n}{N})
+    , \eqnmarkbox[Orange]{n}{N}\right)
 \end{equation*}
 \annotate[yshift=0.5em]{above}{f}{Index into the FOT}
 \annotate[yshift=-0.2em]{below}{n}{An offset into an object}
 
-This tuple is encoded into 64~bits by placing the $f$ into the upper 24~bits and placing $N$ into the lower bits. When
+This tuple is encoded into 64~bits by placing $f$ into the upper 24~bits and placing $N$ into the lower bits. When
 We can then recover the original tuple by performing an FOT lookup. For example, if we have an invariant pointer in
 object $O$, the lookup is:
 
-\begin{equation*}
-    (
-    \eqnmarkbox[Red]{f}{I_T}
-    , \eqnmarkbox[Orange]{n}{N}) = (
-    \mathrm{\eqnmarkbox[Green]{fot}{FOT}}(\eqnmarkbox[NavyBlue]{obj}{O}, \eqnmarkbox[NavyBlue]{f}{f})
-    , \eqnmarkbox[Orange]{n}{N}
-    )
-\end{equation*}
+\begin{equation}\label{eq:fot}
+    \left(
+    \eqnmarkbox[Green]{t}{I_T}
+    , \eqnmarkbox[Orange]{n}{N}\right) = \left(
+    \eqnmarkbox[Purple]{fot}{F_O}(\eqnmarkbox[NavyBlue]{f}{f})
+    , \eqnmarkbox[Orange]{n2}{N}
+    \right)
+\end{equation}
 \annotate[yshift=0.5em]{above}{f}{Index into the FOT}
-\annotate[yshift=-0.2em]{below}{n}{An offset into an object}
-
+\annotate[yshift=0.5em]{above,left}{fot}{FOT Index Operation}
+\annotate[yshift=-1.5em]{below}{t}{Target object ID}
+\annotatetwo[yshift=-0.2em]{below}{n}{n2}{An offset into an object}
+\vspace{0.4em}
 
 This provides us
 with both large offsets \emph{and} large object IDs, since the IDs are not stored within the pointer
 itself.
-If an object wishes to point to data within itself (an \emph{intra-object} pointer), it stores $0$ in
-\texttt{FOT\_idx}. When dereferencing, \Twizzler uses the \texttt{FOT\_idx} part of the
-pointer as an index into the FOT, retrieving an object ID\@.
-The combination of a FOT and a cross-object pointer logically forms
-an \texttt{object-id:offset} pair, as shown in Figure~\ref{fig:fottran}.
+If an object wishes to point to data within itself (an \emph{intra-object} pointer), it stores $f = 0$ in
+the invariant pointer. When dereferencing, \Twizzler uses $f$
+as an index into the FOT, retrieving an object ID\@.
+The combination of a FOT and an invariant pointer logically forms
+an authoritative name, as shown in Figure~\ref{fig:fottran}.
 
-Our design (discussed in prior work~\cite{bittman:hotstorage19,bittman:plos19}) differs from existing
+Our design differs from existing
 frameworks~\cite{corbato_introduction_1965,bensoussan:sosp69,daley:cacm68,pmdk-pointers,libpmem,Chen:micro17}
 because of the indirection. Frameworks like PMDK store entire object IDs within pointers,
 increasing pointer size and reducing flexibility by removing
@@ -90,11 +92,12 @@ pointer'' style of just \texttt{object-id}:\texttt{offset} would mean more than 
 size, which we found unacceptable. Other frameworks like PMDK, by contrast, increase pointer size to 128~bits for each
 pointer by encoding pointers as this tuple with 64~bit object IDs. The trade off is that our
 pointers take a little more work to translate (as they require an FOT lookup), but in return we keep
-pointers 64~bits while supporting a truly global-scale address space. Thus the overall space trade off is, for \Twizzler, no additional space overhead
-per pointer, but an added 32-byte overhead per FOT entry.
-The number of FOT entries, however, is typically much smaller than the number of
-pointers since pointers to the same external object can all use the same FOT entry. As we will see
-in Section~\ref{sec:res}, this has a dramatic benefit to performance.
+pointers 64~bits while supporting a truly global-scale address space. We will discuss space overhead later in this chapter.
+%Thus the overall space trade off is, for \Twizzler, no additional space overhead
+%per pointer, but an added 32-byte overhead per FOT entry.
+%The number of FOT entries, however, is typically much smaller than the number of
+%pointers since pointers to the same external object can all use the same FOT entry. As we will see
+%in Section~\ref{sec:res}, this has a dramatic benefit to performance.
 
 
 \paragraph{FOT Entries and Late-Binding.}
@@ -141,58 +144,87 @@ Since \Twizzler uses a flat namespace as its ``native'' object naming scheme, it
 enables the required cooperation.
 
 
-\unedit {
-    \paragraph{Pointer Translation API}
+\paragraph{Pointer Translation API}
 
-    \Twizzler applications use pointer translation helper functions to handle the
-    translations discussed above. These functions, which can be written manually,
-    can also be emitted automatically by proper compiler support.
-    %In our current implementation, applications
-    %must call them explicitly, though the compiler could be modified to emit
-    %implicit calls when necessary.
-    When a pointer must be
-    translated, the program calls \texttt{ptr\_lea} to convert the pointer into a
-    virtual address, and \texttt{ptr\_store} to convert a virtual address into a
-    cross-object pointer. The results can be cached to reduce translation calls.
-    These functions efficiently detect if a pointer needs no translation,
-    allowing the compiler to emit calls to these functions for pointers whose
-    origin it does not know.
+\Twizzler applications use pointer translation helper functions to handle the
+translations discussed above. The particular API depends on the language used and while some languages require
+translation functions to be written manually, these can be emitted automatically with proper compiler support.
+When an invariant pointer must be
+translated, the program calls performs the operation shown in Equation~\ref{eq:fot} to convert the pointer into a
+virtual address, and a reverse operation ot convert a virtual address into an invariant pointer.
+The results can be cached to reduce translation calls.
+These functions efficiently detect if a pointer needs no translation,
+allowing the compiler to emit calls to these functions for pointers whose
+origin it does not know.
 
-    Given an object ($o$), and a structure in
-    the object (\texttt{hdr}) containing a pointer to data, we cannot
-    dereference the pointer directly since it is in cross-object form. We use
-    \texttt{ptr\_lea} to convert it into a current virtual address: \\
-    \indent\hspace{5mm}\texttt{void *ptr = ptr\_lea(o, hdr->ptr);}\\
-    this call returns a virtual address that points to the requested
-    data whether \texttt{hdr->ptr} is an internal or cross-object pointer.
-    A similar operation on \unix would require calls to \texttt{open}, manually
-    written code to store a path to the target object (whether or not it is
-    different from $o$), and additional calls to \texttt{read} or \texttt{mmap} to
-    get the data---effectively reimplementing \Twizzler's pointer
-    framework with more complexity.
 
-    Writing a cross-object pointer is simple as well:
-    \\\indent\hspace{5mm}\texttt{hdr->ptr = ptr\_store(o, ptr);}\\
-    If \texttt{ptr} is a cross-object pointer, an FOT entry will be added to $o$ if
-    needed, and the returned address of \texttt{ptr\_store} will be a cross-object
-    pointer to the object pointed to by \texttt{ptr} for storage in $o$. Doing a
-    similar operation on \unix would require manual pointer serialization.
-    Optimizations like those discussed above can
-    turn these into no-ops in many cases. The resulting simplicity of programs and
-    enhanced object sharing is
-    discussed later, along with an analysis of performance.
 
-    Although some existing persistent memory programming
-    techniques~\cite{libpmem,Chen:micro17,wang:micro17} support similar
-    APIs, they do not support per-object indirection, they lack system-wide support,
-    some increase pointer size and do not always provide
-    type-safe translation functions, and they do not enable transparent use of pointer
-    types in the language. Implementing translations manually involves writing code
-    like
-    \texttt{(void *)((uintptr\_t)foo + vbase)}, resulting in brittle code that
-    cannot be easily expanded to include cross-object references.
+\begin{SCfigure}
+    \hspace*{-2.6cm}
+    \begin{lstlisting}[language=C]
+    struct Hdr {
+        int *inv_ptr;
+    }
 
-}
+    int *vptr = ptr_lea(o, hdr->inv_ptr);
+    hdr->inv_ptr = ptr_store(o, vptr);
+\end{lstlisting}
+    \caption{Example C code that converts an invariant pointer to a dereferenceable form and back.}
+    \label{fig:cex}
+\end{SCfigure}
+
+\begin{SCfigure}
+    \begin{lstlisting}[language=Rust]
+    struct Hdr {
+        inv_ptr: IPtr<i32>,
+    }
+
+    let vptr = hdr.inv_ptr.lea();
+    hdr.inv_ptr.store(vptr);
+    // *hdr.inv_ptr is also sufficient for dereference.
+\end{lstlisting}
+    \caption{Example Rust code that converts an invariant pointer to a dereferenceable form and back.}
+    \label{fig:rustex}
+\end{SCfigure}
+
+For an example in the C API, shown in Figure~\ref{fig:cex}, if we have
+an object ($o$), and a structure in
+the object containing a pointer to data,
+we use
+\texttt{ptr\_lea} to convert it into a current virtual address.
+This call returns a virtual address that points to the requested
+data whether \texttt{hdr->inv\_ptr} is an intra-object or cross-object pointer.
+A similar operation on \unix would require calls to \texttt{open}, manually
+written code to store a path to the target object (whether or not it is
+different from $o$), and additional calls to \texttt{read} or \texttt{mmap} to
+get the data---effectively reimplementing \Twizzler's pointer
+framework with more complexity.
+
+Writing a cross-object pointer is simple as well, as shown in Figure~\ref{fig:cex}.
+If \texttt{vptr} will form a cross-object pointer, an FOT entry will be added to $o$ if
+needed, and the returned value of \texttt{ptr\_store} will be n invariant
+pointer to the object pointed to by \texttt{vptr} for storage in $o$. Doing a
+similar operation on \unix would require manual pointer serialization.
+Optimizations like those discussed above can
+turn these into no-ops in many cases. The resulting simplicity of programs and
+enhanced object sharing is
+discussed later, along with an analysis of performance.
+
+A similar API is shown in Figure~\ref{fig:rustex} for Rust, but here we gain the advantages of Rust's type system. Not
+only is the target type of the invariant pointer known, but it is differentiated from the virtual address that we can
+convert it to (which has type \texttt{\&i32}). We will discuss Rust in more detail in Chapter~\ref{ch:prog}, in
+particular how it can be used to avoid common foot-guns that are present in the C version.
+
+Although some existing persistent memory programming
+techniques~\cite{libpmem,Chen:micro17,wang:micro17} support similar
+APIs, they do not support per-object indirection, they lack system-wide support,
+some increase pointer size and do not always provide
+type-safe translation functions, and they do not enable transparent use of pointer
+types in the language. Implementing translations manually involves writing code
+like
+\texttt{(void *)((uintptr\_t)foo + vbase)}, resulting in brittle code that
+cannot be easily expanded to include cross-object references.
+
 
 \section{Evaluation}
 
