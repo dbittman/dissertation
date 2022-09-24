@@ -40,8 +40,19 @@ below) and flags. An invariant pointer is thus a tuple,
 \end{equation*}
 \annotate[yshift=0.5em]{above}{f}{Index into the FOT}
 \annotate[yshift=-0.2em]{below}{n}{An offset into an object}
+and an FOT entry is also a tuple,
 
-This tuple is encoded into 64~bits by placing $f$ into the upper 24~bits and placing $N$ into the lower bits. When
+\begin{equation*}
+    \left(
+    \eqnmarkbox[NavyBlue]{t}{I_T},
+    \eqnmarkbox[Orange]{fl}{\mathrm{fl}}
+    \right)
+\end{equation*}
+\annotate[yshift=0.5em]{above}{t}{Target object ID}
+\annotate[yshift=-0.2em]{below}{fl}{Flags for this FOT entry}
+
+The invariant pointer tuple is encoded into 64~bits by placing $f$ into the upper 24~bits and placing $N$ into the lower
+bits, and the FOT entry tuple is 256~bits wide. When
 We can then recover the original tuple by performing an FOT lookup. For example, if we have an invariant pointer in
 object $O$, the lookup is:
 
@@ -66,7 +77,9 @@ If an object wishes to point to data within itself (an \emph{intra-object} point
 the invariant pointer. When dereferencing, \Twizzler uses $f$
 as an index into the FOT, retrieving an object ID\@.
 The combination of a FOT and an invariant pointer logically forms
-an authoritative name, as shown in Figure~\ref{fig:fottran}.
+an authoritative name, as shown in Figure~\ref{fig:fottran}. Since the FOT is a per-object structure and is stored
+within that object, objects are \emph{self-contained} and all context needed to interpret data in an object is stored
+within that object.
 
 Our design differs from existing
 frameworks~\cite{corbato_introduction_1965,bensoussan:sosp69,daley:cacm68,pmdk-pointers,libpmem,Chen:micro17}
@@ -100,7 +113,7 @@ pointers 64~bits while supporting a truly global-scale address space. We will di
 %in Section~\ref{sec:res}, this has a dramatic benefit to performance.
 
 
-\paragraph{FOT Entries and Late-Binding.}
+\paragraph{Late-Binding}
 
 The FOT entry's \texttt{flags} field has bits for read, write, and execute protections. The
 protections are \textit{requests}; \Twizzler implements separate access control on objects.
@@ -123,7 +136,8 @@ that FOT entry.
 
 Instead of \emph{requiring} programmers to refer to objects via IDs only, we allow
 names in FOT entries. These entries may contain a pointer to an
-in-object string table that contains a name.
+in-object string table that contains a name\sidenote{The name pointer is packed into the FOT entry by replacing the
+    target object ID and setting a bit in the flags field to indicate that this entry contains a name.}.
 %and a function pointer that resolves the name into an
 %object ID.
 Names enable late-binding~\cite{daley:cacm68}, a
@@ -796,7 +810,10 @@ this red-black tree, and saw performance benefits over block-based implementatio
 %by this benchmark.
 
 \begin{chconc}
-    We have discussed the design and implementation of invariant references in Twizzler and demonstrated their power, flexibility, and low overhead. However, the ability to create references in
+    We have discussed the design and implementation of invariant references in Twizzler and demonstrated their power,
+    flexibility, and low overhead. Importantly, the implementation of invariant pointers in Twizzler means that
+    \textbf{objects are self-contained} and all context necessary to interpret data in object is stored in that object.
+    However, the ability to create references in
     a global address space does not a full operating system make. In the coming chapters, we will discuss the OS infrastructure needed to realize our model, along with Twizzler OS services that
     enable easier programming on the kinds of systems we are envisioning.
 \end{chconc}
