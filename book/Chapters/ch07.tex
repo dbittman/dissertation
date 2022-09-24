@@ -34,8 +34,8 @@ which contain:
 
 \begin{enumerate}
     \item \texttt{srcid}: A source object ID.
-    \item \texttt{src_start}: A starting byte offset, interpreted as an offset into the source object.
-    \item \texttt{dst_start}: A starting byte offset, interpreted as an offset into the target object.
+    \item \texttt{src\_start}: A starting byte offset, interpreted as an offset into the source object.
+    \item \texttt{dst\_start}: A starting byte offset, interpreted as an offset into the target object.
     \item \texttt{length}: A length for the copy operation.
 \end{enumerate}
 
@@ -134,34 +134,36 @@ ephemeral virtual mappings, while on other architectures their jobs may be to ma
 tables. However, in all cases, views provide a mechanism for managing ephemeral state while
 providing enough context for threads to execute.
 
-
 \subsection{Threads}
 
-\unedit{\Twizzler provides a set of threading primitives for applications. Threads in \Twizzler are always
-    attached to a view and one or more security contexts. Threads may communicate with each other using
-    shared memory and can signal each other with a system call.
-    Since everything in \Twizzler is an object, each thread has a state object associated
-    with it. Signals can be raised assuming the raiser has appropriate permissions on the state object,
-    and the state object contains information about the thread.
+\Twizzler provides a set of threading primitives for applications. Threads in \Twizzler are always
+attached to a view and one or more security contexts. Threads may communicate with each other using
+shared memory and can signal each other with a system call.
+Since everything in \Twizzler is an object, each thread has a state object associated
+with it. Signals can be raised assuming the raiser has appropriate permissions on the state object,
+and the state object contains information about the thread.
 
-    A key primitive in \Twizzler is the \texttt{thread-sync} system call. This call operates similar to
-    \texttt{futex(2)} on Linux, except that it supports waiting on and waking up a number of different
-    words of memory simultaneously. Multi-word thread-sync is necessary to support
-    \texttt{select(2)}-like or \texttt{poll(2)}-like operations in a system where all data access is
-    done with memory semantics. \Twizzler's standard library exposes an API for event handling that uses
-    multi-world thread-sync, where objects may expose a set of ``events'' that can be triggered and waited for. This is
-    used in numerous places to implement event handling for multiple communications streams implemented
-    in objects.
-}
+A key primitive in \Twizzler is the \texttt{thread-sync} system call. This call operates similar to
+\texttt{futex(2)} on Linux, except that it supports waiting on and waking up a number of different
+words of memory simultaneously. Multi-word thread-sync is necessary to support
+\texttt{select(2)}-like or \texttt{poll(2)}-like operations in a system where all data access is
+done with memory semantics. \Twizzler's standard library exposes an API for event handling that uses
+multi-world thread-sync, where objects may expose a set of ``events'' that can be triggered and waited for. This is
+used in numerous places to implement event handling for multiple communications streams implemented
+in objects.
 
 \subsection{Program Instancing}
 
-
-\section{Late Binding}
-
+Programs can be loaded and run as ELF objects specifically linked for Twizzler. We provide a linker script that links
+program data into virtual addresses that correspond to the first few view slots in an address space. This way an ELF
+file can be loaded as a simple copy-from operation from the ELF object into several new objects (\eg, a \texttt{text},
+\texttt{rodata}, and \texttt{data} object). Program components like thread-local storage, stack, and heap can also be
+created out of objects. Finally, Twizzler supports a \texttt{fork}-like operation that copies a view object into a new
+view, remapping and applying copy-on-write copy-from operations as needed.
 
 \section{Security}
 
+\todo[inline]{Security section}
 \unedit {
     A \textit{capability} is, at its core, an unforgeable token which
     grants a particular set of rights on an object~\cite{Lampson1973,Landwehr1981,Gong:sigops89}. A
@@ -185,89 +187,97 @@ providing enough context for threads to execute.
 \section{\textsc{unix} Compatibility}
 \label{sec:legacy}
 
-\unedit{
-    \subsection{Porting Additional Applications}
-    In general, porting in \Twizzler is straight-forward. We have a collection of tools that provide a
-    framework for compiling software using the \Twizzler toolchain against other ported software and
-    libraries. Since we have chosen \texttt{musl} as our standard C library, many applications work
-    already with minor changes. However, it is often the case that applications require
-    some small tweaks to get running---for example, configuration paths---an experience common for anyone who has ported software to a new
-    operating system.
+Twizzler provides a compatibility framework for POSIX applications. C applications link to a forked version of \texttt{musl}~\cite{musl}, a
+C library written for Linux. We have modified \texttt{musl} to emit function calls to a library we wrote called
+\texttt{Twix} instead of directly issuing system calls. The calls into \texttt{twix} are then handled by emulating their
+Linux syscall behavior. For example, our implementation of \texttt{write(2)} allows us to create pseudo-terminal objects
+that are shared between applications and a terminal emulator (that is hooked up to the serial port). Thus applications
+can call \texttt{printf} to get their messages out to wider society. Rust applications do not need as much of a compatibility layer, both because we can modify
+Rust's standard library more easily, and because Rust is not as tied to POSIX as C is.
 
-    To date, we have ported a number of tools one would expect to find on a \unix system, such as
-    \texttt{busybox} (providing numerous command-line utilities), \texttt{bash}, \texttt{vim},
-    \texttt{gcc}, \texttt{binutils}, and others. Many of these programs required little or no
-    modification. Of course, this means that they do not gain some of the benefits \Twizzler's model
-    provides, since they still operate on persistent data with a POSIX model, however our goal in
-    porting these tools was not to improve their performance, it was to provide a somewhat familiar
-    environment for users.
+\subsection{Porting to Twizzler}
 
-    Of course, perfect emulation of a Linux kernel is a huge effort, and it is not the primary goal of
-    our research. As a result, not all system calls are implemented and Linux features like
-    \texttt{procfs} are lacking. This means that some programs may require features that are not yet
-    implemented, and therefore require modifications to \texttt{twix} to run. However, as we continue to
-    port software, \texttt{twix}'s coverage of Linux features grows, making future porting easier. We
-    will continue to implement more support in \texttt{twix} for applications as needs arise. Note that
-    many applications (even complex applications like \texttt{gcc}) often boil down to reading and
-    writing files and managing processes, all of which is implemented.
-}
+In general, porting in \Twizzler is straight-forward. We have a collection of tools that provide a
+framework for compiling software using the \Twizzler toolchain against other ported software and
+libraries. Since we have chosen \texttt{musl} as our standard C library, many applications work
+already with minor changes. However, it is often the case that applications require
+some small tweaks to get running---for example, configuration paths---an experience common for anyone who has ported software to a new
+operating system\sidenote{You can't see it, but I am raising my glass to you, those who have shared in this experience.}.
 
-\unedit{
-    \subsection{Twix System Call Overhead}
+To date, we have ported a number of tools one would expect to find on a \unix system, such as
+\texttt{busybox} (providing numerous command-line utilities), \texttt{bash}, \texttt{vim},
+\texttt{gcc}, \texttt{binutils}, and others. Many of these programs required little or no
+modification. Of course, this means that they do not gain some of the benefits \Twizzler's model
+provides, since they still operate on persistent data with a POSIX model, however our goal in
+porting these tools was not to improve their performance, it was to provide a somewhat familiar
+environment for users.
 
-    Our \unix emulation layer, \texttt{twix}, is meant to provide compatibility for legacy applications.
-    While we expect that applications will wish to take full advantage of \NVM and \Twizzler's
-    improvements in programmability and performance, we can still provide a small benefit
-    for applications that rely on \texttt{twix} to provide POSIX-like I/O. Access to \texttt{twix} is
-    done by \texttt{musl}, the C library we use, when it would normally perform a system call to a Linux
-    kernel. We replaced all instances of the \texttt{syscall} instruction in C and assembly code in
-    \texttt{musl} with a \texttt{call} instruction to an entry point in \texttt{twix}. This entry point,
-    despite being a function call, obeys the Linux system call ABI (\eg which registers hold
-    parameters). Thus while it has significantly less overhead than a full system call and context
-    switch, it does still have higher overhead than a normal function call since it must back up and
-    restore all registers.
+Of course, perfect emulation of a Linux kernel is a huge effort, and it is not the primary goal of
+our research. As a result, not all system calls are implemented and Linux features like
+\texttt{procfs} are lacking. This means that some programs may require features that are not yet
+implemented, and therefore require modifications to \texttt{twix} to run. However, as we continue to
+port software, \texttt{twix}'s coverage of Linux features grows, making future porting easier. We
+will continue to implement more support in \texttt{twix} for applications as needs arise. Note that
+many applications (even complex applications like \texttt{gcc}) often boil down to reading and
+writing files and managing processes, all of which is implemented.
+
+\subsection{Twix System Call Overhead}
+
+Our \unix emulation layer, \texttt{twix}, is meant to provide compatibility for legacy applications.
+While we expect that applications will wish to take full advantage of \NVM and \Twizzler's
+improvements in programmability and performance, we can still provide a small benefit
+for applications that rely on \texttt{twix} to provide POSIX-like I/O. Access to \texttt{twix} is
+done by \texttt{musl}, the C library we use, when it would normally perform a system call to a Linux
+kernel. We replaced all instances of the \texttt{syscall} instruction in C and assembly code in
+\texttt{musl} with a \texttt{call} instruction to an entry point in \texttt{twix}. This entry point,
+despite being a function call, obeys the Linux system call ABI (\eg which registers hold
+parameters). Thus while it has significantly less overhead than a full system call and context
+switch, it does still have higher overhead than a normal function call since it must back up and
+restore all registers.
 
 
-    \begin{SCtable}[b]
+\begin{SCtable}[b]
+    \centering
+    \caption{Latency of selected \texttt{twix} system calls compared to Linux system calls.}
+    \begin{minipage}{\linewidth}
         \centering
-        \caption{Latency of selected \texttt{twix} system calls compared to Linux system calls.}
-        \begin{minipage}{\linewidth}
-            \centering
-            \begin{tabular}{c | c | S[table-format=6.1]@{\,\,\( \pm \)\hspace{-7mm}} S[table-format=0.1]}
-                \textbf{System Call} & \textbf{OS} & \multicolumn{2}{c}{\textbf{Average Latency (ns)}}       \\
-                \hline
-                \hline
-                \texttt{getpid}      & Linux       & 98.7                                              & 2.3 \\
-                                     & Twizzler    & 10.2                                              & 0.2 \\
-                \hline
-                \texttt{read}        & Linux       & 321.4                                             & 0.2 \\
-                                     & Twizzler    & 55.4                                              & 0.2 \\
-            \end{tabular}
-        \end{minipage}
-        \label{tbl:twix}
-    \end{SCtable}
+        \begin{tabular}{c | c | S[table-format=6.1]@{\,\,\( \pm \)\hspace{-7mm}} S[table-format=0.1]}
+            \textbf{System Call} & \textbf{OS} & \multicolumn{2}{c}{\textbf{Average Latency (ns)}}       \\
+            \hline
+            \hline
+            \texttt{getpid}      & Linux       & 98.7                                              & 2.3 \\
+                                 & Twizzler    & 10.2                                              & 0.2 \\
+            \hline
+            \texttt{read}        & Linux       & 321.4                                             & 0.2 \\
+                                 & Twizzler    & 55.4                                              & 0.2 \\
+        \end{tabular}
+    \end{minipage}
+    \label{tbl:twix}
+\end{SCtable}
 
-    Table~\ref{tbl:twix} shows the latency of some selected system calls on both Linux and \Twizzler
-    (implemented via \texttt{twix}). As expected, \texttt{getpid}'s overhead is small on both systems,
-    but on \Twizzler it is significantly lower. The difference, in this case, comes largely from the
-    kernel entry overhead. A small amount of additional overhead comes from
-    \texttt{twix} matching the Linux system call ABI and having to call its \texttt{getpid}
-    implementation through a lookup table.
+Table~\ref{tbl:twix} shows the latency of some selected system calls on both Linux and \Twizzler
+(implemented via \texttt{twix}). As expected, \texttt{getpid}'s overhead is small on both systems,
+but on \Twizzler it is significantly lower. The difference, in this case, comes largely from the
+kernel entry overhead. A small amount of additional overhead comes from
+\texttt{twix} matching the Linux system call ABI and having to call its \texttt{getpid}
+implementation through a lookup table.
 
-    We also measured the latency of a call to \texttt{read} for a file. We chose to do reads on cached
-    files for a small number of (already cached) bytes to avoid device transfer overhead. Performing a file read on
-    \Twizzler often amounts to a call to \texttt{memcpy}, so applications that perform large numbers of
-    small reads could see some benefit. In contrast, on Linux, the kernel needs to traverse internal
-    file structures, the page-cache, and possibly file system structures.
-    However, as we said, \texttt{twix} is intended for legacy
-    support, not performance improvement despite the lower system call overhead.
-    %As \texttt{read}
-    %lengths increase, we expect to see the system call overhead diminish relative to the cost of copying
-    %bytes into the buffer.
-}
+We also measured the latency of a call to \texttt{read} for a file. We chose to do reads on cached
+files for a small number of (already cached) bytes to avoid device transfer overhead. Performing a file read on
+\Twizzler often amounts to a call to \texttt{memcpy}, so applications that perform large numbers of
+small reads could see some benefit. In contrast, on Linux, the kernel needs to traverse internal
+file structures, the page-cache, and possibly file system structures.
+However, as we said, \texttt{twix} is intended for legacy
+support, not performance improvement despite the lower system call overhead.
+%As \texttt{read}
+%lengths increase, we expect to see the system call overhead diminish relative to the cost of copying
+%bytes into the buffer.
 
-\section{Access to Legacy Devices}
-
-\subsection{Drivers}
-
-\subsection{Block Storage}
+\begin{chconc}
+    We now have an understanding of what addressing and pointers look like in Twizzler, and a basic idea of the
+    operating system services Twizzler provides. One can write programs, multi-thread them and synchronize across
+    threads and programs via object sync words, access, create, copy, and
+    delete objects, and use \unix compatibility for things like \texttt{printf}. But this still doesn't address issues
+    of memory safety, types, and failure-atomicity. Join us in the next chapter where we will start diving into these
+    scary topics.
+\end{chconc}
