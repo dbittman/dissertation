@@ -1,5 +1,5 @@
 
-\section{BNVM and Bit Flips}
+\section{\NVM and Bit Flips}
 \label{sec:background}
 
 %%% Byte-addressible NVMs on mem bus soon / general design and info Non-volatile memory
@@ -13,7 +13,7 @@ change the design of devices, operating systems, and applications. Although
 these technologies are starting to make their way into consumer
 devices~\cite{intel3dxpoint} and embedded systems~\cite{shen:dtc11}, their full
 potential will be seen when they replace or coexist with DRAM as
-byte-addressable non-volatile memory (BNVM). Such a memory hierarchy will allow
+byte-addressable non-volatile memory (\NVM). Such a memory hierarchy will allow
 the processor, and thus applications, to use load and store instructions to
 update persistent state, bypassing the high-latency I/O operations of the
 OS. However, power consumption, especially for write operations,
@@ -30,7 +30,7 @@ random reads~\cite{colgrove:sigmod15}.  Prior data structures and programming
 models for
 NVM~\cite{xu:fast16,meza:weed13,greenan:hotdep07,volos:asplos11,coburn:asplos11,condit:sosp09}
 have typically exploited its byte-addressability while mitigating the relatively
-slow access times of most BNVM technologies.  However, in the case of
+slow access times of most \NVM technologies.  However, in the case of
 technologies such as PCM or RRAM, existing research ignores two critical
 characteristics: asymmetric read/write power usage and the ability to avoid
 rewriting individual bits that are unchanged by a
@@ -47,13 +47,13 @@ a cell during a write if it already contains the desired
 value~\cite{yang:iscas07}, meaning that the major component of the power
 required by a write is proportional not to the number of bits (or words)
 \emph{written}, but rather to the number of bits \emph{actually flipped} by the
-write. Based on this observation, we should design data structures for BNVM to
+write. Based on this observation, we should design data structures for \NVM to
 minimize the number of bits flipped as the structures are modified and accessed
 rather than simply reducing the number of writes, as is more commonly done.
 
 \subsection{Power Consumption of PCM and DRAM}
 
-While our research applies to any BNVM technology in which writes are expensive,
+While our research applies to any \NVM technology in which writes are expensive,
 we focus on PCM because its power consumption figures are more readily
 available. Figure~\ref{fig:flip_throughput} shows the estimated power consumption of 1~GB of DRAM and
 PCM as a function of bits flipped per second, using power measurements from
@@ -87,9 +87,9 @@ primary concern for data structures in PCM is reducing the number of bit flips,
 which the memory controller cannot easily eliminate.
 
 Power consumption is particularly concerning for battery-operated Internet of Things (IoT) devices,
-which may become a significant consumer of BNVM technologies to facilitate fast power-up and reduce
+which may become a significant consumer of \NVM technologies to facilitate fast power-up and reduce
 idle power consumption~\cite{Jayakumar2014powering,jayakumar2014quickrecall}. Devices that collect
-large amounts of data and write frequently to BNVM may find power usage
+large amounts of data and write frequently to \NVM may find power usage
 increasing depending on access patterns. Thus, IoT devices may benefit significantly
 from bit-flip-aware systems and data structures.
 
@@ -97,12 +97,12 @@ from bit-flip-aware systems and data structures.
 \subsection{Wear-out}
 
 Another significant advantage to avoiding bit flips is reducing memory cell
-wear-out. BNVM technologies typically have a maximum number of lifetime writes,
+wear-out. \NVM technologies typically have a maximum number of lifetime writes,
 and fewer writes means a longer lifetime. However, by avoiding unnecessary overwrites,
-the controller would introduce uneven wear \emph{within} BNVM words where some of the bits flip
+the controller would introduce uneven wear \emph{within} \NVM words where some of the bits flip
 more frequently than others due to biases of certain writes.
 %However, techniques that minimize bit
-%flips may cause uneven wear \emph{within} BNVM words, where the reduction in bit
+%flips may cause uneven wear \emph{within} \NVM words, where the reduction in bit
 %flips comes from fixing some of the bits while the others vary at the original
 %rate.
 For example, pointer overwrites may only alter the low-order bits, except
@@ -112,13 +112,13 @@ wear out faster than the lowest and highest bits. While reducing bit-flips incre
 average lifetime of the cells in a word, it has the potential to exacerbate the uneven wear
 problem since such techniques might increase the biases of certain writes.
 
-Fortunately, we can take advantage of existing research in wear-leveling for BNVM that allows
+Fortunately, we can take advantage of existing research in wear-leveling for \NVM that allows
 the controller to spread out the cell updates within a given word.
 While a full remapping layer similar to a flash translation layer is infeasible
-for BNVM---the overhead would be too high---hardware techniques such as row
+for \NVM---the overhead would be too high---hardware techniques such as row
 shifting~\cite{zhou:isca09:fixed}, content-aware bit shuffling~\cite{Han:cabs}, and
 start-gap wear leveling~\cite{qureshi:micro09} may be able to mitigate biased
-write patterns with low overhead. This would allow BNVM to leverage bit flip
+write patterns with low overhead. This would allow \NVM to leverage bit flip
 reduction to reduce wear even if the result is that some bits are flipped more
 frequently than others.  These techniques, implemented at the memory
 controller level, can work in tandem with the techniques described in this paper since they benefit
@@ -127,9 +127,9 @@ patterns bit flip reduction techniques may introduce.
 %from any reduction in bit flips and can tolerate increases in biased write patterns.
 
 
-\subsection{Reducing Impact of Bit Flips in BNVM}
+\subsection{Reducing Impact of Bit Flips in \NVM}
 
-Although bit flips in BNVM have been studied previously, much of that work has
+Although bit flips in \NVM have been studied previously, much of that work has
 focused on hardware encoding, which re-encodes cache lines to reduce bit flips,
 but re-encoding has limited efficacy~\cite{flipnwrite,
 	jacobvitz2013coset, seyedzadeh2016coset} because it must also store information
@@ -138,7 +138,7 @@ exploring, software techniques to reduce bit flips can be more effective because
 they can leverage semantic knowledge available in the software but not
 visible in the memory controller's limited view of single cache lines.
 
-Chen \etal~\cite{Chen_rethinkingdatabase} evaluate data structures on BNVM and
+Chen \etal~\cite{Chen_rethinkingdatabase} evaluate data structures on \NVM and
 argue that reducing bit flips is workload dependent and difficult to reason
 about, so we should strive to reduce writes because writes are approximately
 proportional to bit flips. We found that this is often \emph{not} the case---our prior experiments
@@ -155,7 +155,7 @@ can study three separate aspects for bit flip reduction:
 	      %% TODO(BLOCKING) review this
 	      pointers directly. While \emph{data} writes themselves significantly affect bit flips, these writes
 	      are often unavoidable (since the data must be written), while data \emph{structure} writes are more
-	      easily optimized (as we see in existing BNVM data structure research).
+	      easily optimized (as we see in existing \NVM data structure research).
 	      Furthermore, data structures often require a significant number of updates
 	      over time, while data is often written once (since we can reduce writes by updating pointers instead
 	      of moving data). Thus the overall proportion of bit flips caused by data writes may drop over time as
@@ -169,7 +169,7 @@ can study three separate aspects for bit flip reduction:
 	\item \textbf{Effects of caching layers}: Since writes must first go through the
 	      cache, it is vital to understand how different caching layers and cache sizes
 	      affect bit flips in memory. Complicating matters is the unique consistency
-	      challenges of BNVM~\cite{coburn:asplos11,volos:asplos11,condit:sosp09}, wherein programs often flush cache-lines to main
+	      challenges of \NVM~\cite{coburn:asplos11,volos:asplos11,condit:sosp09}, wherein programs often flush cache-lines to main
 	      memory more frequently than they otherwise would, use write-through caching, or
 	      more complex, hardware-supported cache flushing protocols. These questions are evaluated in
 	      Section~\ref{sec:exp_cache}.

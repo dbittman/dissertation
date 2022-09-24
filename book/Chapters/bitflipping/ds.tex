@@ -1,7 +1,7 @@
 \section{Reducing Bit Flips in Software}
 \label{sec:datastruct}
 
-By reducing bit flips in software, we can effect improvements in BNVM lifetime
+By reducing bit flips in software, we can effect improvements in \NVM lifetime
 and power use without the need for hardware changes.
 To build data structures to reduce bit
 flips (Sections~\ref{sec:xorll_design}--\ref{sec:xrbt_design}), we propose
@@ -28,7 +28,7 @@ pointers are dereferenced.
 
 When they were proposed, XOR linked lists had little advantage over doubly linked lists beyond
 a modest memory saving.
-However, with the need for fewer bit flips on BNVM, they gain a critical
+However, with the need for fewer bit flips on \NVM, they gain a critical
 advantage: they cut the number of stored pointers in half, reducing writes, but
 they also store the XOR of two pointers, which are likely to contain similar
 higher-order bits, making the \texttt{siblings} pointer mostly zeros.
@@ -42,7 +42,7 @@ address $h$ is the head, then it stores $siblings = h \oplus n$ instead of
 $siblings = 0 \oplus n$). The optimization here is \textit{not} a performance
 optimization---in fact, it's likely to reduce performance---and only makes sense
 in the context of bit flips, an optimization goal that would not be
-targeted before the introduction of BNVM. However, with bit flips in-mind, it
+targeted before the introduction of \NVM. However, with bit flips in-mind, it
 becomes critical. Other data structures may have similar optimizations that we
 can easily make to reduce bit flips~\sidenote{Circular linked
 	lists solve the head and tail siblings pointer problem automatically, since no pointers are
@@ -155,12 +155,12 @@ Either technique can work with arbitrary graph nodes.
 Data structure layout and data writes are only some of the writes made by a
 program. Register spills, callee-saved register saving,
 and return addresses pushed during function calls are all writes to memory, and
-if these writes make it to BNVM, they will cause bit flips as well. These writes
+if these writes make it to \NVM, they will cause bit flips as well. These writes
 may make it to main memory if the cache is saturated or if the program is
-designed to keep program state in BNVM to enable instantaneous restart after
-power cycles~\cite{Narayanan:asplos12}. Additionally, systems designed for BNVM may run with write-through
+designed to keep program state in \NVM to enable instantaneous restart after
+power cycles~\cite{Narayanan:asplos12}. Additionally, systems designed for \NVM may run with write-through
 caches to reduce consistency complexity, resulting in execution state reaching
-BNVM.
+\NVM.
 
 The exact pattern of stack writes depends on the ABI and the calling convention of a system and
 processor, though we focus on x86-64 Linux systems. When a program calls a function, it

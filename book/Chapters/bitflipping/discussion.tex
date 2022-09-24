@@ -6,11 +6,11 @@
 The data structures presented here are both old and new ideas. While not
 algorithmically different from existing implementations (both \xrbt and \rbt use
 the same, standard red-black tree algorithms), they present a new approach to
-implementation with optimizations for bit flipping. This 
+implementation with optimizations for bit flipping. This
 has not been sufficiently studied before in the context of software optimization;
 after all, there is no theoretical advance nor is there an overwhelming
 practical advantage to these data structures outside of the bit flip reduction,
-an optimization goal that is new with BNVM. However, keeping this in mind has
+an optimization goal that is new with \NVM. However, keeping this in mind has
 huge ramifications for data structures in persistent memory and applications for
 new storage technologies, as it presents a whole new field of
 study in optimization and practical data structure design. The goal is
@@ -38,7 +38,7 @@ corresponded with no change in writes, while the reduction of writes was
 correlated with only a modest bit flip reduction.
 
 The implications are far-reaching, especially when considering novel computation
-models that include storing program state in BNVM. Writes to the stack also
+models that include storing program state in \NVM. Writes to the stack also
 affect bit flips, but these can be dramatically optimized. Compilers can
 implement standardized stack frame layouts for register spills that
 save many bit flips while remaining backwards compatible since
@@ -82,62 +82,61 @@ The resultant write reduction and bit flip reduction is well worth the cost
 since a read from cache is significantly cheaper than a write to memory.
 
 \iffalse
+    Data structures often have linear behavior for bit flips after a warmup.
 
-Data structures often have linear behavior for bit flips after a warmup.
+    Number of bytes often not too different, due to caches
 
-Number of bytes often not too different, due to caches
+    cache sizes change things as you'd expect, cache gets overrun
 
-cache sizes change things as you'd expect, cache gets overrun
+    These data structures are new and not new. Optimizations that only make sense
+    for BF. They're not theory advances, so haven't been looked at.
 
-These data structures are new and not new. Optimizations that only make sense
-for BF. They're not theory advances, so haven't been looked at.
+    We can worry about bit flips in software.
 
-We can worry about bit flips in software.
+    Trading writes for reads.
 
-Trading writes for reads.
+    Prediction is possible.
 
-Prediction is possible.
+    Absolute numbers!
+    Malloc has relatively small impact
 
-Absolute numbers!
-Malloc has relatively small impact
+    Minimizing writes isn't enough.
 
-Minimizing writes isn't enough.
+    XOR with self address is interesting
 
-XOR with self address is interesting
-
-Register allocations, frame layouts, etc.
-
+    Register allocations, frame layouts, etc.
 
 
 
 
 
-Reiterate the lessons learned, highlighting what we need to keep in mind when
-designing data structures.
 
-Some of these data structures are kinda novel... talk about that? Also about how
-some of them are optimizations that you wouldn't ever do without BNVM because
-they're crazy, but with bit flips they become attractive.
+    Reiterate the lessons learned, highlighting what we need to keep in mind when
+    designing data structures.
 
-No one thought about this before because they're the SAME data structures and
-algorithms... no new theory advances, just practical ones.
+    Some of these data structures are kinda novel... talk about that? Also about how
+    some of them are optimizations that you wouldn't ever do without \NVM because
+    they're crazy, but with bit flips they become attractive.
 
-We can worry about bit flips in software, and be right. We can reduce them,
-relatively easily.
+    No one thought about this before because they're the SAME data structures and
+    algorithms... no new theory advances, just practical ones.
 
-Effects on security?
+    We can worry about bit flips in software, and be right. We can reduce them,
+    relatively easily.
 
-trading writes for reads...
+    Effects on security?
 
-Make sure to hit all the key points in the OUTLINE.
+    trading writes for reads...
 
-Prediction is possible with instrumentation.
+    Make sure to hit all the key points in the OUTLINE.
 
-Some things are surprising, or change at other scales (40 vs 48).
+    Prediction is possible with instrumentation.
 
-Absolute numbers!
+    Some things are surprising, or change at other scales (40 vs 48).
 
-etc.
+    Absolute numbers!
+
+    etc.
 
 \fi
 

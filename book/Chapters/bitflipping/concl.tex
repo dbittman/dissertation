@@ -1,19 +1,19 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-The pressures from new storage hardware trends compel us to explore new optimization goals as BNVM
-becomes more common as a persistent store; the read/write asymmetry of BNVM must be addressed by
+The pressures from new storage hardware trends compel us to explore new optimization goals as \NVM
+becomes more common as a persistent store; the read/write asymmetry of \NVM must be addressed by
 reducing bit flips.
-%As BNVM becomes common as a persistent store, the pressures from new storage
+%As \NVM becomes common as a persistent store, the pressures from new storage
 %hardware trends compel us to explore new optimization goals---recognizing
-%the read/write asymmetry of BNVM by reducing bit flips.
+%the read/write asymmetry of \NVM by reducing bit flips.
 As we showed, the
 number of raw writes is not always a faithful proxy for the number of bit flips,
 so simple techniques that minimize writes overall may be ineffective.
 At the OS level, we can reconsider memory allocator design to
 minimize bit flips as pointers are written. Different data structures use and
 write pointers in different ways, leading to different tradeoffs for data
-structures when considering BNVM applications. At the compiler level, we show
+structures when considering \NVM applications. At the compiler level, we show
 that careful layout of stack frames can have a significant impact on bit flips
 during program operation. Since it can be challenging to reason directly about
 how application-level writes translate to raw writes due to the compiler and
@@ -40,7 +40,7 @@ of new storage trends that will have lasting impact on systems, applications, an
 %structures that we studied were not novel!  Rather, each was either a
 %``classic’’ but impractical structure (e.g. the XOR linked list) or a
 %straightforward adaptation of an existing structure (e.g. the XOR hash table).
-%The extreme asymmetry in BNVM power consumption merits the reconsideration of
+%The extreme asymmetry in \NVM power consumption merits the reconsideration of
 %our choice of data structures, in some cases favoring those specifically
 %designed to minimize bit flips.  We are excited to re-explore ingenious but
 %heretofore impractical data structures and algorithms under the pressure of
@@ -49,40 +49,40 @@ of new storage trends that will have lasting impact on systems, applications, an
 
 
 \iffalse
-\begin{prior}
+    \begin{prior}
 
 
-Minimizing bit flips is an important and challenging design goal for BNVM-aware
-data structures. Although minimizing writes \textit{can} be a
-good proxy for minimizing bit flips, it is not always one; thus, we must be sure
-to incorporate bit flips as an explicit measurement when evaluating a data
-structure's performance and fit for BNVM. Even in the case where both writes and
-bit flips are reduced, simple design choices can allow the bit flip reduction to
-vastly exceed the expected reduction from simply reducing writes,
-indicating that we can improve over blindly reducing writes by either choosing
-which writes to minimize and when or by making those writes cheaper. Write
-reduction techniques may not reduce bit flips equally, so profiling bit flips
-directly is the only viable mechanism to determine the behavior of a
-data structure.  Finally, we found that a few straight-forward implementation tweaks to a
-simple data structure resulted in significant savings, and many data
-structures can be similarly optimized.
+        Minimizing bit flips is an important and challenging design goal for \NVM-aware
+        data structures. Although minimizing writes \textit{can} be a
+        good proxy for minimizing bit flips, it is not always one; thus, we must be sure
+        to incorporate bit flips as an explicit measurement when evaluating a data
+        structure's performance and fit for \NVM. Even in the case where both writes and
+        bit flips are reduced, simple design choices can allow the bit flip reduction to
+        vastly exceed the expected reduction from simply reducing writes,
+        indicating that we can improve over blindly reducing writes by either choosing
+        which writes to minimize and when or by making those writes cheaper. Write
+        reduction techniques may not reduce bit flips equally, so profiling bit flips
+        directly is the only viable mechanism to determine the behavior of a
+        data structure.  Finally, we found that a few straight-forward implementation tweaks to a
+        simple data structure resulted in significant savings, and many data
+        structures can be similarly optimized.
 
-Although we do not expect every data structure to be easily optimized for bit
-flips, and although we acknowledge that optimizing for bit flips can be
-difficult without knowing something about the workload, how it changes, and how
-data is distributed,
-there is research that can be done towards common and
-often applicable techniques, ranging from which data structures and algorithms
-to choose, to how to best encode data structures in memory to reduce bit flips,
-and to how these techniques will apply or change with intermediate hardware
-layers such as caching, write ordering, and wear leveling.
-We plan to further this work by doing these experiments on real
-hardware and full system simulators.
-These questions will require more research to begin to answer, but
-we believe they are necessary to answer as BNVM grows in
-popularity.
+        Although we do not expect every data structure to be easily optimized for bit
+        flips, and although we acknowledge that optimizing for bit flips can be
+        difficult without knowing something about the workload, how it changes, and how
+        data is distributed,
+        there is research that can be done towards common and
+        often applicable techniques, ranging from which data structures and algorithms
+        to choose, to how to best encode data structures in memory to reduce bit flips,
+        and to how these techniques will apply or change with intermediate hardware
+        layers such as caching, write ordering, and wear leveling.
+        We plan to further this work by doing these experiments on real
+        hardware and full system simulators.
+        These questions will require more research to begin to answer, but
+        we believe they are necessary to answer as \NVM grows in
+        popularity.
 
-\end{prior}
+    \end{prior}
 
 \fi
 

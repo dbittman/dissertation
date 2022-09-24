@@ -12,8 +12,8 @@ accuracy of in-code instrumentation for bit flips, which would allow programmers
 to more easily optimize for bit flips at lower cost than full-system simulation.
 All of these experiments were designed to demonstrate how effective certain bit flipping reduction
 techniques are. Existing systems are poorly equipped to handle evaluation of these techniques, since
-existing systems are poorly optimized for BNVM. The techniques we present here are designed to be
-used by system designers when building \emph{new}, BNVM-optimized systems.
+existing systems are poorly optimized for \NVM. The techniques we present here are designed to be
+used by system designers when building \emph{new}, \NVM-optimized systems.
 %%TODO(BLOCKING) should we include this? clarify this?
 
 \subsection{Experimental Methods}
@@ -104,8 +104,8 @@ compare variants of a data structure by comparing their slopes. Error bars are
 
 Many data structures allocate data during their operation. For example, a binary
 tree may allocate space for a node during insert or a hash table might decide
-to resize its table. An allocator allocating data from BNVM must store the
-allocation metadata within BNVM as well, so the internal allocator structures
+to resize its table. An allocator allocating data from \NVM must store the
+allocation metadata within \NVM as well, so the internal allocator structures
 affect bit flips for data structures which allocate memory. Additionally, the
 pointers returned \textit{themselves} contribute to the bits flipped as they are
 written.
