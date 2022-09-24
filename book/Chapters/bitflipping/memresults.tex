@@ -169,15 +169,6 @@ and read from memory were the same between both lists. The reason is that,
 although an XOR list node is smaller, \texttt{malloc} actually allocates the
 same amount of memory for both.
 
-We counted the number of pointer read and write operations in the code,
-and discovered that, although the XOR linked list performs fewer write
-operations during updates, it performs \textit{more} read operations than the
-doubly-linked list. This is because updating the data structure requires more
-information than in a doubly-linked list. However, Figure~\ref{fig:xorll} shows
-that the number of reads \textit{from memory} are the same, indicating that the
-additional reads are always in-cache.
-% TODO: say more? trade cached-reads for writes/flips?
-
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/xorll_bfwr}
@@ -187,19 +178,27 @@ additional reads are always in-cache.
 \end{SCfigure}
 
 
-
-%% TODO: node sizes?
-
-
-
-
-
-
-
-
-
+We counted the number of pointer read and write operations in the code,
+and discovered that, although the XOR linked list performs fewer write
+operations during updates, it performs \textit{more} read operations than the
+doubly-linked list. This is because updating the data structure requires more
+information than in a doubly-linked list. However, Figure~\ref{fig:xorll} shows
+that the number of reads \textit{from memory} are the same, indicating that the
+additional reads are always in-cache.
+% TODO: say more? trade cached-reads for writes/flips?
 
 \subsection{XOR Hash Tables}
+
+We implemented two variants of our hash table: ``single-linked'', which
+implemented chaining using a standard linked list, and
+``XOR Node'', which
+XORs each pointer in the chain with the address of the node containing the pointer.
+We ran a Zipfian workload on them~\cite{zipf}, where 80\% of updates happen to
+20\% of keys\sidenote{Skew of 1, with a population of 100,000.}, where keys and values were
+themselves Zipfian. During each iteration, if a key was present, it was deleted, while
+if it was not present, it was inserted. This resulted in a workload where a
+large number of keys were rarely modified, but a smaller percentage were
+repeatedly inserted or removed from the hash table.
 
 \begin{SCfigure}
 	\centering
@@ -209,16 +208,6 @@ additional reads are always in-cache.
 	\label{fig:xht_fw}
 \end{SCfigure}
 
-We implemented two variants of our hash table: ``single-linked'', which
-implemented chaining using a standard linked list, and
-``XOR Node'', which
-XORs each pointer in the chain with the address of the node containing the pointer.
-We ran a Zipfian workload on them~\cite{zipf}, where 80\% of updates happen to
-20\% of keys\footnote{Skew of 1, with a population of 100,000.}, where keys and values were
-themselves Zipfian. During each iteration, if a key was present, it was deleted, while
-if it was not present, it was inserted. This resulted in a workload where a
-large number of keys were rarely modified, but a smaller percentage were
-repeatedly inserted or removed from the hash table.
 
 Figure~\ref{fig:xht_fw} shows the bits flipped and bytes written by the hash
 table after 100,000 updates. As expected, the XOR lists saw a reduction in bit
@@ -279,7 +268,7 @@ Although it is easy to exceed the size of the L1 cache during normal operation
 of large data structures at scale, larger caches may have more of an effect on
 the frequency of writes to memory. Of course, a persistent data structure which
 issues cache-line writebacks or uses write-through caching bypasses this by
-causing \textit{all} writes to go to memory\footnote{Even if this is the case, a
+causing \textit{all} writes to go to memory\sidenote{Even if this is the case, a
 	full system simulator will give a more accurate picture than manually counting
 	writes, since store ordering and compiler optimizations still affect memory
 	behavior.}, but it is still worth studying the effects of larger write-back

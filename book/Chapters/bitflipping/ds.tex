@@ -44,7 +44,7 @@ optimization---in fact, it's likely to reduce performance---and only makes sense
 in the context of bit flips, an optimization goal that would not be
 targeted before the introduction of BNVM. However, with bit flips in-mind, it
 becomes critical. Other data structures may have similar optimizations that we
-can easily make to reduce bit flips~\footnote{Circular linked
+can easily make to reduce bit flips~\sidenote{Circular linked
 	lists solve the head and tail siblings pointer problem automatically, since no pointers are
 	stored as \texttt{NULL}; however, in XOR linked lists this increases the number of pointer
 	updates during an insert operation and requires storing two adjacent head nodes to traverse.
@@ -108,9 +108,9 @@ stores \texttt{NULL}.
 
 Determining the child of a node requires both the node and its parent:\\
 \texttt{
-get\_left\_child(Node *node, Node *parent) \{
+	get\_left\_child(Node *node, Node *parent) \{
 	\indent return (parent $\oplus$ node->xleft); \\
-\}
+	\}
 }\\
 Getting a node's parent, however, requires additional work. Given a child $c$ and a
 node $n$, getting $n$'s parent requires we know \textit{which} child (left or
@@ -118,7 +118,7 @@ right) $c$ is. Fortunately, in a binary search tree we store the key $k$ of a no
 in each node, and the nodes are well-ordered by their $k$. Thus, getting the
 parent works as follows:\\
 \texttt{
-get\_parent(Node *n, Node *c) \{\\
+	get\_parent(Node *n, Node *c) \{\\
 	\indent if(c->k < n->k) return (n->xleft $\oplus$ c);\\
 	\indent else return (n->xright $\oplus$ c);\\
 	\}}\\
@@ -203,25 +203,25 @@ traditionally each function would simply push the frame pointer followed by the
 register they wish to save:\\
 
 \begin{minipage}{0.5\columnwidth}
-\texttt{A:\\
-\indent push fp\\
-\indent mov fp $\leftarrow$ sp\\
-\indent push e\\
-\indent ...\\
-\indent pop e\\
-\indent pop fp; ret
-}
+	\texttt{A:\\
+		\indent push fp\\
+		\indent mov fp $\leftarrow$ sp\\
+		\indent push e\\
+		\indent ...\\
+		\indent pop e\\
+		\indent pop fp; ret
+	}
 \end{minipage}%
 ~
 \begin{minipage}{0.5\columnwidth}
-\texttt{B:\\
-\indent push fp\\
-\indent mov fp $\leftarrow$ sp\\
-\indent push g\\
-\indent ...\\
-\indent pop g\\
-\indent pop fp; ret
-}
+	\texttt{B:\\
+		\indent push fp\\
+		\indent mov fp $\leftarrow$ sp\\
+		\indent push g\\
+		\indent ...\\
+		\indent pop g\\
+		\indent pop fp; ret
+	}
 \end{minipage}\\
 
 If $e$ and $g$ are significantly different, then a significant amount of needless
@@ -230,31 +230,31 @@ Instead, if we define a layout that functions adhere to for register saving, the
 code would look like:\\
 
 \begin{minipage}{0.5\columnwidth}
-\texttt{A:\\
-\indent push fp\\
-\indent mov fp $\leftarrow$ sp\\
-\indent push e\\
-\indent sub sp, 24\\
-\indent ...\\
-\indent add sp, 24\\
-\indent pop e\\
-\indent pop fp; ret
-}
+	\texttt{A:\\
+		\indent push fp\\
+		\indent mov fp $\leftarrow$ sp\\
+		\indent push e\\
+		\indent sub sp, 24\\
+		\indent ...\\
+		\indent add sp, 24\\
+		\indent pop e\\
+		\indent pop fp; ret
+	}
 \end{minipage}%
 ~
 \begin{minipage}{0.5\columnwidth}
-\texttt{B:\\
-\indent push fp\\
-\indent mov fp $\leftarrow$ sp\\
-\indent sub sp, 16\\
-\indent push g\\
-\indent sub sp, 8\\
-\indent ...\\
-\indent add sp, 8\\
-\indent pop g\\
-\indent add sp, 16\\
-\indent pop fp; ret
-}
+	\texttt{B:\\
+		\indent push fp\\
+		\indent mov fp $\leftarrow$ sp\\
+		\indent sub sp, 16\\
+		\indent push g\\
+		\indent sub sp, 8\\
+		\indent ...\\
+		\indent add sp, 8\\
+		\indent pop g\\
+		\indent add sp, 16\\
+		\indent pop fp; ret
+	}
 \end{minipage}\\
 
 Here the code always pushes the same register to the same place, regardless of
