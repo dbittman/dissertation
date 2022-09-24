@@ -1,0 +1,143 @@
+\section{Discussion}
+\label{sec:disc}
+
+\paragraph{Software Bit Flip Reduction}
+
+The data structures presented here are both old and new ideas. While not
+algorithmically different from existing implementations (both \xrbt and \rbt use
+the same, standard red-black tree algorithms), they present a new approach to
+implementation with optimizations for bit flipping. This 
+has not been sufficiently studied before in the context of software optimization;
+after all, there is no theoretical advance nor is there an overwhelming
+practical advantage to these data structures outside of the bit flip reduction,
+an optimization goal that is new with BNVM. However, keeping this in mind has
+huge ramifications for data structures in persistent memory and applications for
+new storage technologies, as it presents a whole new field of
+study in optimization and practical data structure design. The goal is
+not performance improvements; instead we strive to prolong the lifetime of expensive
+memory devices while reducing power use, with at most a minor
+performance cost. These improvements can be achieved without hardware
+changes, meaning even savings of 10\% ($1.1\times$) or
+less are worthwhile to implement because savings are cumulative.
+
+These optimizations are not specific to PCM; any memory with a significant read/write
+disparity and bit-level updates could benefit from this. The energy savings from bit flip
+optimization will, of course, be technology-dependent, numbers for which will solidify as the
+technologies are adopted. Our estimates of the linear relationship
+between flips and power use (Figure~\ref{fig:flip_throughput}) indicate that, on PCM, the energy
+savings will be roughly proportional to the bit flip savings since the difference between read and
+write energy is so high.
+
+Bit flips can and should be reasoned about directly. Not only is it possible to
+do so, but the methods presented here are straightforward once this goal is in mind.
+Furthermore, while reducing writes \textit{can} reduce bit flips, we have
+confirmed that this is not \textit{always} true. XOR linked lists reduced bit
+flips without affecting writes, while \xrbt reduced writes over \xrbtbig
+at the cost of increasing bit flips. With stack frames, the biggest reduction in bit flips
+corresponded with no change in writes, while the reduction of writes was
+correlated with only a modest bit flip reduction.
+
+The implications are far-reaching, especially when considering novel computation
+models that include storing program state in BNVM. Writes to the stack also
+affect bit flips, but these can be dramatically optimized. Compilers can
+implement standardized stack frame layouts for register spills that
+save many bit flips while remaining backwards compatible since
+nothing in these optimizations breaks existing ABIs. Further research is
+required to better study the effects of stack frame layout in larger programs,
+and engineering work is needed to build these features into existing toolchains.
+
+Of course, we must be cautious to optimize where it matters. While different
+allocation sizes reduced bit flips relative to each other, the overall effect
+was minor compared to the savings gained in other data structures. In fact, the
+reduction in allocation size from 48 to 40 bytes in \xrbt actually
+\textit{increased} bit flips in calls to \malloc, but this increase is
+dwarfed by the savings from the XOR pointers. Additionally, the hash table
+saw a relatively small saving compared to other data structures since it
+already flipped a minimal number of bits in the average case;
+red-black trees often do more work during \textit{each} update operation,
+resulting in a number of pointer updates. Hash tables often do their
+``rebalancing'' during a single rehash operation; perhaps bit flip optimization
+for hash tables should focus on these operations, something we plan to
+investigate in the future.
+
+\paragraph{Cache Effects}
+The data structures we tested all had the same behavior---a warm-up period
+where the cache system absorbed many of the writes followed by a period of
+proportional increasing of bit flips as the number of update operations
+increased. We must
+keep this in-mind when evaluating data structures for bit flips, since we must
+ensure that the ranges of inputs we test reach the expected scale for
+our data structures, or we may be blind to its true behavior.
+The cache size affects this, of course, but it does so in a predictable way in
+the case of \xrbt, with only the warm-up period being extended by an amount
+proportional to cache size. Of course, the behaviour may be heavily dependent on write patterns.
+Thus, we recommend further experiments and that system designers take caches into account when
+evaluating bit flip behaviour of their systems.
+
+The cache additionally affects the read amplification seen in XOR linked lists,
+wherein the XOR linked list implementation issues more reads than a
+doubly-linked list implementation. However, the reads that make it to memory are
+the same between the two, indicating that those extra reads are always in-cache.
+The resultant write reduction and bit flip reduction is well worth the cost
+since a read from cache is significantly cheaper than a write to memory.
+
+\iffalse
+
+Data structures often have linear behavior for bit flips after a warmup.
+
+Number of bytes often not too different, due to caches
+
+cache sizes change things as you'd expect, cache gets overrun
+
+These data structures are new and not new. Optimizations that only make sense
+for BF. They're not theory advances, so haven't been looked at.
+
+We can worry about bit flips in software.
+
+Trading writes for reads.
+
+Prediction is possible.
+
+Absolute numbers!
+Malloc has relatively small impact
+
+Minimizing writes isn't enough.
+
+XOR with self address is interesting
+
+Register allocations, frame layouts, etc.
+
+
+
+
+
+
+Reiterate the lessons learned, highlighting what we need to keep in mind when
+designing data structures.
+
+Some of these data structures are kinda novel... talk about that? Also about how
+some of them are optimizations that you wouldn't ever do without BNVM because
+they're crazy, but with bit flips they become attractive.
+
+No one thought about this before because they're the SAME data structures and
+algorithms... no new theory advances, just practical ones.
+
+We can worry about bit flips in software, and be right. We can reduce them,
+relatively easily.
+
+Effects on security?
+
+trading writes for reads...
+
+Make sure to hit all the key points in the OUTLINE.
+
+Prediction is possible with instrumentation.
+
+Some things are surprising, or change at other scales (40 vs 48).
+
+Absolute numbers!
+
+etc.
+
+\fi
+

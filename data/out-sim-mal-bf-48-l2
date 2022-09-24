@@ -1,0 +1,15 @@
+30000 mal system.mem_ctrls.bits_flipped::total             3276                       # Number of bits flipped by writes to this memory
+35000 mal system.mem_ctrls.bits_flipped::total            10151                       # Number of bits flipped by writes to this memory
+40000 mal system.mem_ctrls.bits_flipped::total            20148                       # Number of bits flipped by writes to this memory
+45000 mal system.mem_ctrls.bits_flipped::total            30150                       # Number of bits flipped by writes to this memory
+50000 mal system.mem_ctrls.bits_flipped::total            40149                       # Number of bits flipped by writes to this memory
+55000 mal system.mem_ctrls.bits_flipped::total            50151                       # Number of bits flipped by writes to this memory
+60000 mal system.mem_ctrls.bits_flipped::total            60149                       # Number of bits flipped by writes to this memory
+65000 mal system.mem_ctrls.bits_flipped::total            70151                       # Number of bits flipped by writes to this memory
+70000 mal system.mem_ctrls.bits_flipped::total            80150                       # Number of bits flipped by writes to this memory
+75000 mal system.mem_ctrls.bits_flipped::total            90152                       # Number of bits flipped by writes to this memory
+80000 mal system.mem_ctrls.bits_flipped::total           100148                       # Number of bits flipped by writes to this memory
+85000 mal system.mem_ctrls.bits_flipped::total           110150                       # Number of bits flipped by writes to this memory
+90000 mal system.mem_ctrls.bits_flipped::total           120149                       # Number of bits flipped by writes to this memory
+95000 mal system.mem_ctrls.bits_flipped::total           130151                       # Number of bits flipped by writes to this memory
+100000 mal system.mem_ctrls.bits_flipped::total           140155                       # Number of bits flipped by writes to this memory

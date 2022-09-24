@@ -1,0 +1,416 @@
+\section{Memory Characteristics Results}
+\label{sec:evaluation}
+
+We evaluated XOR linked lists, XOR hash tables, and XOR red-black trees,
+tracking bits flipped in memory, bytes written to memory, and bytes read from
+memory during program execution. Our goal was not only to demonstrate that our
+bit flip optimizations were effective, but to also understand how different
+system and program components affected bit flips. In addition to tracking bit
+flips caused by our data structures, we also studied bit flips caused by varying
+levels and sizes of caching, calls to \malloc, and writes to the stack. Finally, we evaluated the
+accuracy of in-code instrumentation for bit flips, which would allow programmers
+to more easily optimize for bit flips at lower cost than full-system simulation.
+All of these experiments were designed to demonstrate how effective certain bit flipping reduction
+techniques are. Existing systems are poorly equipped to handle evaluation of these techniques, since
+existing systems are poorly optimized for BNVM. The techniques we present here are designed to be
+used by system designers when building \emph{new}, BNVM-optimized systems.
+%%TODO(BLOCKING) should we include this? clarify this?
+
+\subsection{Experimental Methods}
+
+
+%% TODO: some (or all) of this should be earlier.
+Evaluating bit flips during data structure operations requires more than simply
+counting the bits flipped in each write in the code. Compiler optimizations,
+store-ordering, and the cache hierarchy can all conspire to change the order and
+frequency of writes to main memory, potentially causing a manual count of bit
+flips in the code to deviate from the bits flipped by writes that
+\textit{actually} make it to memory. To record better metrics than in-code
+instrumentation, we ran our test programs on a modified version of \gem~\cite{gem5}, a full-system
+simulator that accurately tracks writes through the cache hierarchy and
+memory. We modified the simulator's memory system so that, for each
+cache-line written, it could compute the Hamming distance between the existing
+data and the incoming write, thereby counting the bit flips caused by each
+write to memory. The bit flips for each write were added to a global count,
+which was reported after the program terminated, along with the number of bytes
+written to and read from memory. This gave us a more accurate picture of the bit
+flips caused by our programs, since writes that stay within the simulated cache
+hierarchy do not contribute to the global count.
+We ran the simulator in
+\textit{system-call emulation} mode, which runs a cycle-accurate simulation,
+emulating system calls to provide a Linux-like environment, while
+tracking statistics about the program, including the memory events we recorded.
+
+
+
+We used the default cache hierarchy (shown in Table~\ref{tbl:gem_cache}) provided by \gem, using the
+command-line options ``\texttt{-{}-caches -{}-l2cache}''.  For the XOR linked list and stack writes
+experiments, we used \texttt{clwb} instructions to simulate consistency points (in the linked list,
+\texttt{clwb} was issued to persist the contents of a node before persisting the pointers to the
+node, and for stack writes, \texttt{clwb} was issued after each write). This was not done
+for the \malloc experiment (we used an unmodified system \malloc for testing), the XOR hash table
+(the randomness of access to the table quickly saturated the caches anyway), or manual
+instrumentation (caches were irrelevant). For the XOR red-black tree, in addition to the bit flip
+characteristics, we focused on observing how cache behavior affected more complex data structures;
+these results, along with the results of varying L2 size, are discussed in
+Section~\ref{sec:exp_cache}.
+
+
+
+\begin{SCtable}
+	\centering
+	\caption{Cache parameters used in \gem.}
+	\label{tbl:gem_cache}
+	\begin{tabular}{c | c | c | c}
+		\textbf{Cache} & \textbf{Count} & \textbf{Size} & \textbf{Associativity}
+		\\
+		\hline
+		L1d            & 1              & 64KB          & 2-way                  \\
+		L1i            & 1              & 32KB          & 2-way                  \\
+		L2             & 1              & 2MB           & 8-way                  \\
+		%	L3  & 1 & 16MB & 16-way \\
+	\end{tabular}
+\end{SCtable}
+
+Most of the programs we ran accept as their first argument an
+\texttt{iteration\_count}, which specifies how many iterations the program should run. For
+example, the red-black tree would do \texttt{iteration\_count}
+number of insertions. We ran the simulator on a range of
+\texttt{iteration\_count}s,
+recording the bits flipped, bytes written, and bytes read (collectively referred
+to as \textit{memory events}) for each value of \texttt{iteration\_count}.
+An example of a typical
+result is shown in Figure~\ref{fig:xrbt_ex}. The result was often linear,
+allowing us to calculate a linear regression using gnuplot,
+giving us both a slope and confidence intervals. The slope of the line is ``bit
+flips per operation''---for example, a slope of 10 for linked list insert means
+that it flipped 10 bits on average during insert operations.
+Throughout our results, only the slope is presented unless the raw data is
+non-linear. Since the slope encodes the bit flips per operation, we can directly
+compare variants of a data structure by comparing their slopes. Error bars are
+95\% confidence intervals.
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/xrbt_ex}
+	\caption{A typical result of running a test program with increasing
+		values of \texttt{iteration\_count}.}
+	\label{fig:xrbt_ex}
+\end{SCfigure}
+
+
+\subsection{Calls to \malloc}
+\label{sec:exp_malloc}
+
+Many data structures allocate data during their operation. For example, a binary
+tree may allocate space for a node during insert or a hash table might decide
+to resize its table. An allocator allocating data from BNVM must store the
+allocation metadata within BNVM as well, so the internal allocator structures
+affect bit flips for data structures which allocate memory. Additionally, the
+pointers returned \textit{themselves} contribute to the bits flipped as they are
+written.
+
+We called \malloc 100,000 times with allocation sizes of 16, 24, 40, and 48
+bytes. We chose these sizes because our data structure nodes were all
+one of these sizes. The number of bits flipped per \malloc call is shown
+in Figure~\ref{fig:malloc_bf}. As expected, larger allocation sizes flip more
+bits, since the allocator meta-data and the allocated regions span additional
+cache lines. Interestingly, 40 byte allocations and 48 byte allocations switch
+places partway through, with 40 byte allocations initially causing fewer bit
+flips and later causing more after a cross-over point. We believe this is due
+to 40 byte allocations using fewer cache lines, but 48 byte allocations having
+better alignment.
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/malloc_bf}
+	\caption{Bit flips due to calls to \malloc. Allocation size of 16 bytes is not
+		shown because it matches with 24 bytes.}
+	\label{fig:malloc_bf}
+\end{SCfigure}
+
+
+After a warm-up period where the cache hierarchy has a greater effect, the
+trends become linear, allowing us to calculate the bit flips per \malloc call.
+Allocating 40 bytes costs $1.5\times$ more bit flips on average than allocating
+48 bytes. Allocating 24 or 16 bytes has the same flips per \malloc as 48 bytes
+but has a longer warm-up period, such that programs would need to call \malloc(24)
+$1.56\times$ as often to flip the same number of bits as \malloc(48).
+
+While the relative savings for bit flips between \malloc sizes are significant,
+their absolute values must be taken into consideration. Calls to \malloc for 16
+and 48
+bytes cost $2\pm0.1$ flips per \malloc (after the warm-up period) while calls to
+\malloc for 40 bytes cost $3 \pm 0.1$ flips per \malloc.
+As we will see shortly, the data structures we are evaluating flip tens of bits
+per operation, indicating that savings from \malloc sizes are less significant
+than the specific optimizations they employ.
+
+%% 0.75 flips/malloc on 16
+%% 1.75 flips/malloc on 40
+%% 1.4 flips/malloc on 48
+
+
+
+
+\subsection{XOR Linked Lists}
+
+
+We evaluated the bit flip characteristics of an XOR linked list compared to a
+doubly-linked list, where we randomly inserted (at the head) and popped nodes from the tail
+at a ratio of 5:1 inserts to pops.
+%To simulate
+%consistency points, we included \texttt{clwb} instructions to
+%write-back data within cache-lines during list operations.
+The results are shown in
+Figure~\ref{fig:xorll}. As expected, bit flips are significantly reduced when
+using XOR linked lists, by a factor of $3.56\times$. However, both the number of bytes written to
+and read from memory were the same between both lists. The reason is that,
+although an XOR list node is smaller, \texttt{malloc} actually allocates the
+same amount of memory for both.
+
+We counted the number of pointer read and write operations in the code,
+and discovered that, although the XOR linked list performs fewer write
+operations during updates, it performs \textit{more} read operations than the
+doubly-linked list. This is because updating the data structure requires more
+information than in a doubly-linked list. However, Figure~\ref{fig:xorll} shows
+that the number of reads \textit{from memory} are the same, indicating that the
+additional reads are always in-cache.
+% TODO: say more? trade cached-reads for writes/flips?
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/xorll_bfwr}
+	\caption{Memory characteristics of of XOR linked lists compared to Doubly-Linked
+		Lists.}
+	\label{fig:xorll}
+\end{SCfigure}
+
+
+
+%% TODO: node sizes?
+
+
+
+
+
+
+
+
+
+
+\subsection{XOR Hash Tables}
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/xht_fw}
+	\caption{Memory characteristics of XOR hash table variants under Zipfian
+		workload.}
+	\label{fig:xht_fw}
+\end{SCfigure}
+
+We implemented two variants of our hash table: ``single-linked'', which
+implemented chaining using a standard linked list, and
+``XOR Node'', which
+XORs each pointer in the chain with the address of the node containing the pointer.
+We ran a Zipfian workload on them~\cite{zipf}, where 80\% of updates happen to
+20\% of keys\footnote{Skew of 1, with a population of 100,000.}, where keys and values were
+themselves Zipfian. During each iteration, if a key was present, it was deleted, while
+if it was not present, it was inserted. This resulted in a workload where a
+large number of keys were rarely modified, but a smaller percentage were
+repeatedly inserted or removed from the hash table.
+
+Figure~\ref{fig:xht_fw} shows the bits flipped and bytes written by the hash
+table after 100,000 updates. As expected, the XOR lists saw a reduction in bit
+flips over the standard, singly-linked list implementation while the number of
+bytes written were unchanged. We were initially surprised by the relatively low
+reduction in bit flips ($1.13\times$) considering the relative success of XOR linked
+lists; however, the common case for hash tables is short chains. We observed
+that longer chains improve the bit flips savings, but forcing long hash chains is
+an unrealistic evaluation. Since buckets typically have one element in them, and
+that element is stored in the table itself, there are few pointers to XOR,
+meaning the reduction is primarily from indicating a list is valid via the
+least-significant bit of the next pointer. The bit flips in all variants come
+primarily from writing the key and value, which comprise 9.3 bit flips per
+iteration on average. Thus, this data structure had little room for optimization,
+and the improvements we made were relatively minor---although they still
+translate directly to power saving and less wear, and are easy to achieve while
+not affecting code complexity significantly.
+
+\subsection{XOR Red-Black Trees}
+Figure~\ref{fig:xrbt_fwr} shows the memory event characteristics of \xrbt (our XOR RBT with two
+pointers, \texttt{xleft} and \texttt{xright}),
+\xrbtbig (our XOR RBT with each node inflated to the size of our normal RBT nodes), and \rbt (our
+standard RBT) under sequential and random inserts of one million unique items. Each item
+comprises an integer key from 0 to one million and a random value.
+Both \xrbt and \xrbtbig cut bit flips by $1.92\times$ (nearly in half)
+in the case of sequential
+inserts and by $1.47\times$ in the case of random inserts, a dramatic improvement for
+a simple implementation change. The small saving in bit flips in \xrbtbig over
+\xrbt is likely due to the allocation size difference as discussed in
+Section~\ref{sec:exp_malloc}.
+
+The number of bytes written is also shown in Figure~\ref{fig:xrbt_fwr}. Due to
+the cache absorbing writes, \xrbtbig and \rbt write the same number of bytes to
+memory in all cases, even though \rbt writes more pointers during its operation.
+We can also see a case where the number of writes was not correlated with the
+number of bits flipped, since \xrbt writes fewer bytes but flips more bits than
+\xrbtbig.
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/xrbt_fwr}
+	\caption{Memory characteristics of XOR red-black trees compared to normal
+		red-black trees.}
+	\label{fig:xrbt_fwr}
+\end{SCfigure}
+
+We did not implement and test delete operation in our red-black trees because
+the algorithm is similar to insert in that its balancing algorithm is
+tail-recursive and merely recolors or rotates the tree a bounded number of times.
+Since the necessary functions to implement this algorithm are present in all
+variations, it is certainly possible to implement, and we expect the results to be similar
+between them.
+
+\subsection{Cache Effects}
+\label{sec:exp_cache}
+
+Although it is easy to exceed the size of the L1 cache during normal operation
+of large data structures at scale, larger caches may have more of an effect on
+the frequency of writes to memory. Of course, a persistent data structure which
+issues cache-line writebacks or uses write-through caching bypasses this by
+causing \textit{all} writes to go to memory\footnote{Even if this is the case, a
+	full system simulator will give a more accurate picture than manually counting
+	writes, since store ordering and compiler optimizations still affect memory
+	behavior.}, but it is still worth studying the effects of larger write-back
+caches on bit flips. They may absorb specific writes that have higher
+than average flips, or they may cause coalescing even for persistent data
+structures worrying about consistency.
+
+We studied cache effects in two ways---how the mere presence of a layer-2
+cache affects the data structures we studied and how varying the size
+of that cache affects them. Figure~\ref{fig:cache_comp} shows \xrbt compared
+with \rbt, with and without L2. The effect of L2 is limited as the
+operations scale, with the bit flips for both data structures reaching a steady,
+linear increase once L2 is saturated. The bit flips per operation for both data
+structures with L2 is the same as without L2 once the saturation point is
+reached, indicating that while the presence of the cache \textit{delays} bit
+flips from reaching memory, it does little to reduce them in the long term.
+Finally, since \xrbt has fewer bit flips overall and fewer memory writes, it
+took longer to saturate L2, delaying the effect.
+
+
+%% TODO: We could also eval bw variant.
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/cache_comp}
+	\caption{Bits flipped by xrbt and rbt over a varying number of sequential
+		inserts, with and without the L2 cache present.}
+	\label{fig:cache_comp}
+\end{SCfigure}
+
+Next, we looked at different L2 sizes, running \xrbt with no L2, 1MB L2, 2MB L2
+(the default), and 4MB L2, as shown in Figure~\ref{fig:cachesz}. The exact same
+pattern emerges for each size, delayed by an amount proportional to the cache
+size. This is to be expected, and it further corroborates our claim that cache
+size has only short-term effects.
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/cachesz}
+	\caption{Bits flipped by xrbt over a varying number of sequential
+		inserts, with different sizes for L2.}
+	\label{fig:cachesz}
+\end{SCfigure}
+
+
+
+\subsection{Manual Instrumentation}
+
+While testing data structures on \gem was straightforward, if time
+consuming, more complex structures and programs may be difficult to
+evaluate, either due to \gem's relatively limited system call support or due to
+the extreme slowdown caused by the simulation. Since real hardware does not
+provide bit flip counting methods, we are left with using in-program
+instrumentation if we want to avoid the \gem overhead. However, these results
+may be less accurate.
+
+To study the accuracy of in-code instrumentation, we
+manually counted bit flips in the XOR and doubly-linked lists.
+We did this by replacing all direct data structure writes (\eg, \texttt{node->prev =
+	pnode}) with a macro that both did that write and also counted the number of bytes (by looking
+at the types), and computing the Hamming distance between the original and new values. Totals of
+each were kept track of and reported at the end of program execution. While not difficult to
+implement, manual instrumentation adds the possibility of error and increases implementation
+complexity.
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/instr}
+	\caption{Manual instrumentation for counting bit flips (instr) compared to
+		full-system simulation (sim).}
+	\label{fig:instr}
+\end{SCfigure}
+
+
+Figure~\ref{fig:instr} shows the results of manual instrumentation compared to
+results from \gem. While accuracy suffered, manual counting was not off by
+orders of magnitude. It properly represented the relationship between XOR
+linked lists and doubly-linked lists in terms of bit flips, and it was off by a
+constant factor across the test. We hypothesize that the discrepancy arose from the fact that our
+additional flip counting code affected the write combining and (possibly) the cache
+utilization. We expect that
+future system designs could ``calibrate'' manual instrumentation by running
+a smaller version of their system on \gem to calculate the discrepancy between
+its counts and theirs, allowing them to more accurately extrapolate the bits
+flipped
+in their system using instrumentation. Additionally, one could modify
+toolchains and debugging tools to automatically emit such instrumentation code
+during code generation. Manual instrumentation may find its use here for large systems that are too
+complex or unwieldy to run on \gem, or as a way to quickly prototype bit flipping optimizations.
+
+
+\subsection{Stack Frames}
+
+To study bit flips caused by stack writes, we wrote an assembly program
+that alternates between two function calls in a tight loop while incrementing
+several callee-saved registers on x86-64. The loop could call two of three
+functions---function $x$, which pushed six registers (the callee-save registers on x86\_64,
+including the base pointer) in a given order, $y$,
+which pushed the registers in a different, given order, and $s$, which pushed only
+two of the registers, but pushed them to the same locations as function $x$.
+Our program had three variations: \textbf{x-x}, which called function $x$ twice,
+\textbf{x-s}, which alternated between functions $x$ and $s$, and \textbf{x-y},
+which alternated between functions $x$ and $y$.  The x-y variant represents
+the worst-case scenario of today's methods for register spilling, while x-s
+demonstrates our suggestion for reducing bit flips. To force the writes to
+memory, we used \texttt{clwb} after the writes to simulate write-through
+caching or resumable programs.
+
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/frames_f}
+	\caption{Bits flipped by different stack frame layouts.}
+	\label{fig:frames_f}
+\end{SCfigure}
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/frames_w}
+	\caption{Bytes written by different stack frame layouts.}
+	\label{fig:frames_w}
+\end{SCfigure}
+
+
+Figure~\ref{fig:frames_f} shows bit flips and Figure~\ref{fig:frames_w} shows bytes written by all
+three variants. The x-s and x-x variants have similar behavior in terms of bit
+flips, which is understandable because they are pushing registers to the same
+locations within the frame. The x-y variant, however, had $3.8\times$ the number
+of bit flips compared to x-x and $4.1\times$ the number of bit flips compared to x-s, showing that
+consistency of frame layout has dramatic impact. Unsurprisingly, x-x and x-y had
+the same number of bytes written, since they write the same number of
+registers, while x-s wrote fewer registers. By keeping frame layout consistent,
+we can reduce bit flips, and the optimization of only pushing the registers
+needed but to the same locations can further reduce writes as well.
+

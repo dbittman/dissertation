@@ -1,0 +1,3 @@
+This data increments r12 and r15 between calls and after both, along with r13
+and rbx after both.
+

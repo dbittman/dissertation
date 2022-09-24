@@ -1,0 +1,21 @@
+0 mal 
+5000 mal 
+10000 mal 
+15000 mal 
+20000 mal 
+25000 mal 
+30000 mal 
+35000 mal 
+40000 mal 
+45000 mal 
+50000 mal 
+55000 mal system.mem_ctrls.bytes_written::total              64                       # Number of bytes written to this memory
+60000 mal system.mem_ctrls.bytes_written::total            7680                       # Number of bytes written to this memory
+65000 mal system.mem_ctrls.bytes_written::total           15104                       # Number of bytes written to this memory
+70000 mal system.mem_ctrls.bytes_written::total          161152                       # Number of bytes written to this memory
+75000 mal system.mem_ctrls.bytes_written::total          321152                       # Number of bytes written to this memory
+80000 mal system.mem_ctrls.bytes_written::total          481152                       # Number of bytes written to this memory
+85000 mal system.mem_ctrls.bytes_written::total          641152                       # Number of bytes written to this memory
+90000 mal system.mem_ctrls.bytes_written::total          801152                       # Number of bytes written to this memory
+95000 mal system.mem_ctrls.bytes_written::total          961152                       # Number of bytes written to this memory
+100000 mal system.mem_ctrls.bytes_written::total         1121152                       # Number of bytes written to this memory

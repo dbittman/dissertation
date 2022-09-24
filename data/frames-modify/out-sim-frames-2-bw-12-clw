@@ -1,0 +1,11 @@
+0 frames-2 system.mem_ctrls.bytes_written::total             640                       # Number of bytes written to this memory
+10000 frames-2 system.mem_ctrls.bytes_written::total         6400000                       # Number of bytes written to this memory
+20000 frames-2 system.mem_ctrls.bytes_written::total        12800000                       # Number of bytes written to this memory
+30000 frames-2 system.mem_ctrls.bytes_written::total        19200000                       # Number of bytes written to this memory
+40000 frames-2 system.mem_ctrls.bytes_written::total        25600000                       # Number of bytes written to this memory
+50000 frames-2 system.mem_ctrls.bytes_written::total        32000000                       # Number of bytes written to this memory
+60000 frames-2 system.mem_ctrls.bytes_written::total        38400000                       # Number of bytes written to this memory
+70000 frames-2 system.mem_ctrls.bytes_written::total        44800000                       # Number of bytes written to this memory
+80000 frames-2 system.mem_ctrls.bytes_written::total        51200000                       # Number of bytes written to this memory
+90000 frames-2 system.mem_ctrls.bytes_written::total        57600000                       # Number of bytes written to this memory
+100000 frames-2 system.mem_ctrls.bytes_written::total        64000000                       # Number of bytes written to this memory

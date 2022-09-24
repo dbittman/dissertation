@@ -1,0 +1,190 @@
+
+\section{BNVM and Bit Flips}
+\label{sec:background}
+
+%%% Byte-addressible NVMs on mem bus soon / general design and info Non-volatile memory
+
+Non-volatile memory technologies~\cite{burr:ibmjrd08} such as phase-change memory
+(PCM)~\cite{lee_architecting_2009}, resistive RAM (RRAM, or
+memristors)~\cite{strukov:nature08,shen:dtc11}, Ferroelectric RAM
+(FeRAM)~\cite{fox:2001feram}, and spin-torque transfer RAM
+(STT-RAM)~\cite{sttram}, among others, have the potential to fundamentally
+change the design of devices, operating systems, and applications. Although
+these technologies are starting to make their way into consumer
+devices~\cite{intel3dxpoint} and embedded systems~\cite{shen:dtc11}, their full
+potential will be seen when they replace or coexist with DRAM as
+byte-addressable non-volatile memory (BNVM). Such a memory hierarchy will allow
+the processor, and thus applications, to use load and store instructions to
+update persistent state, bypassing the high-latency I/O operations of the
+OS. However, power consumption, especially for write operations,
+and device lifetime are more serious concerns for these technologies than
+for existing memory technologies.
+
+\subsection{Optimizing for Memory Technologies}
+
+Data structures should be designed to exploit the advantages and mitigate the
+disadvantages of the technologies on which they are deployed.  For example, data
+structures for disks are block-oriented and favor sequential access, while those
+designed for flash reduce writes, especially random writes, often by trading them for an increase in
+random reads~\cite{colgrove:sigmod15}.  Prior data structures and programming
+models for
+NVM~\cite{xu:fast16,meza:weed13,greenan:hotdep07,volos:asplos11,coburn:asplos11,condit:sosp09}
+have typically exploited its byte-addressability while mitigating the relatively
+slow access times of most BNVM technologies.  However, in the case of
+technologies such as PCM or RRAM, existing research ignores two critical
+characteristics: asymmetric read/write power usage and the ability to avoid
+rewriting individual bits that are unchanged by a
+write~\cite{burr:ibmjrd08,yang:iscas07}.
+
+For example, writes to PCM are done by melting a cell's worth of material with a
+relatively high current and cooling it at two different rates, leaving the material
+in either an amorphous or crystalline phase~\cite{raoux:ibmjrd08}.  These two
+phases have different electrical resistance, each corresponding to a bit value
+of zero or one.  The writing process takes much more energy than reading the
+phase of the cell, which is done by sensing the cell's resistance with a
+relatively low current. To save energy, the PCM controller can avoid writing to
+a cell during a write if it already contains the desired
+value~\cite{yang:iscas07}, meaning that the major component of the power
+required by a write is proportional not to the number of bits (or words)
+\emph{written}, but rather to the number of bits \emph{actually flipped} by the
+write. Based on this observation, we should design data structures for BNVM to
+minimize the number of bits flipped as the structures are modified and accessed
+rather than simply reducing the number of writes, as is more commonly done.
+
+\subsection{Power Consumption of PCM and DRAM}
+
+While our research applies to any BNVM technology in which writes are expensive,
+we focus on PCM because its power consumption figures are more readily
+available. Figure~\ref{fig:flip_throughput} shows the estimated power consumption of 1~GB of DRAM and
+PCM as a function of bits flipped per second, using power measurements from
+prior studies of memory
+systems~\cite{dhiman_pdram:_2009,lee_architecting_2009,xiangyu_dong_nvsim:_2012,qureshi_scalable_2009,Chen_rethinkingdatabase,bittman:nvmsa18}.
+The number of writes to DRAM has little effect on overall power consumption
+since the \emph{entire} DRAM must be periodically refreshed (read and
+rewritten); refresh dominates, resulting in a high power requirement
+regardless of the number of writes. In contrast, PCM requires no
+``maintenance'' power, but needs a great deal more energy to write an
+individual bit (\textasciitilde50\,pJ/b~\cite{bedeschi_8mb_2004}) compared to the
+low overhead for writing a DRAM page
+(\textasciitilde1\,pJ/b~\cite{lee_architecting_2009}).  The result is that power use
+for DRAM is largely proportional to memory \emph{size}, while power consumption
+for PCM is largely proportional to \emph{cell change rate}. The exact position of the cross-over
+point in Figure~\ref{fig:flip_throughput} will be narrowed down as these devices become more common; many features of these devices,
+including asymmetric write-zero and write-one costs, increased density of PCM over DRAM, and
+decreasing feature sizes, will affect the trade-off point over time.
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/power}
+	\caption{Power use as a function of flips per second~\cite{bittman:nvmsa18}.}
+	\label{fig:flip_throughput}
+\end{SCfigure}
+
+Figure~\ref{fig:flip_throughput} demonstrates the need for data structures for
+PCM to minimize cell writes.  Because the memory controller can minimize the
+cost of ``writing'' a memory cell with the same value it already contains, the
+primary concern for data structures in PCM is reducing the number of bit flips,
+which the memory controller cannot easily eliminate.
+
+Power consumption is particularly concerning for battery-operated Internet of Things (IoT) devices,
+which may become a significant consumer of BNVM technologies to facilitate fast power-up and reduce
+idle power consumption~\cite{Jayakumar2014powering,jayakumar2014quickrecall}. Devices that collect
+large amounts of data and write frequently to BNVM may find power usage
+increasing depending on access patterns. Thus, IoT devices may benefit significantly
+from bit-flip-aware systems and data structures.
+
+
+\subsection{Wear-out}
+
+Another significant advantage to avoiding bit flips is reducing memory cell
+wear-out. BNVM technologies typically have a maximum number of lifetime writes,
+and fewer writes means a longer lifetime. However, by avoiding unnecessary overwrites,
+the controller would introduce uneven wear \emph{within} BNVM words where some of the bits flip
+more frequently than others due to biases of certain writes.
+%However, techniques that minimize bit
+%flips may cause uneven wear \emph{within} BNVM words, where the reduction in bit
+%flips comes from fixing some of the bits while the others vary at the original
+%rate.
+For example, pointer overwrites may only alter the low-order bits, except
+for the few that are zero because of structure alignment in memory, if the
+pointers are to nearby regions. Thus, the middle bits in a 64-bit word may
+wear out faster than the lowest and highest bits. While reducing bit-flips increases the
+average lifetime of the cells in a word, it has the potential to exacerbate the uneven wear
+problem since such techniques might increase the biases of certain writes.
+
+Fortunately, we can take advantage of existing research in wear-leveling for BNVM that allows
+the controller to spread out the cell updates within a given word.
+While a full remapping layer similar to a flash translation layer is infeasible
+for BNVM---the overhead would be too high---hardware techniques such as row
+shifting~\cite{zhou:isca09:fixed}, content-aware bit shuffling~\cite{Han:cabs}, and
+start-gap wear leveling~\cite{qureshi:micro09} may be able to mitigate biased
+write patterns with low overhead. This would allow BNVM to leverage bit flip
+reduction to reduce wear even if the result is that some bits are flipped more
+frequently than others.  These techniques, implemented at the memory
+controller level, can work in tandem with the techniques described in this paper since they benefit
+bit flip reduction and can distribute ``hot'' bits across a word, mitigating the biased write
+patterns bit flip reduction techniques may introduce.
+%from any reduction in bit flips and can tolerate increases in biased write patterns.
+
+
+\subsection{Reducing Impact of Bit Flips in BNVM}
+
+Although bit flips in BNVM have been studied previously, much of that work has
+focused on hardware encoding, which re-encodes cache lines to reduce bit flips,
+but re-encoding has limited efficacy~\cite{flipnwrite,
+	jacobvitz2013coset, seyedzadeh2016coset} because it must also store information
+on \textit{which} encoding was used. While hardware techniques are worth
+exploring, software techniques to reduce bit flips can be more effective because
+they can leverage semantic knowledge available in the software but not
+visible in the memory controller's limited view of single cache lines.
+
+Chen \etal~\cite{Chen_rethinkingdatabase} evaluate data structures on BNVM and
+argue that reducing bit flips is workload dependent and difficult to reason
+about, so we should strive to reduce writes because writes are approximately
+proportional to bit flips. We found that this is often \emph{not} the case---our prior experiments
+revealed that bit flips were often \emph{not} proportional to writes, and we were able to
+examine bit flips and optimize for them in an example data structure~\cite{bittman:nvmsa18}. These findings are further
+corroborated by our experiments in Section~\ref{sec:evaluation}.
+
+Since bit flips directly affect power consumption and wear, we
+can study three separate aspects for bit flip reduction:
+\begin{enumerate}
+	\item \textbf{Data structure design}: Since data organization plays a large role
+	      in the writes that make it to memory, we designed new data structures built
+	      around the idea of \textit{pointer distance}~\cite{xorll} instead of storing
+	      %% TODO(BLOCKING) review this
+	      pointers directly. While \emph{data} writes themselves significantly affect bit flips, these writes
+	      are often unavoidable (since the data must be written), while data \emph{structure} writes are more
+	      easily optimized (as we see in existing BNVM data structure research).
+	      Furthermore, data structures often require a significant number of updates
+	      over time, while data is often written once (since we can reduce writes by updating pointers instead
+	      of moving data). Thus the overall proportion of bit flips caused by data writes may drop over time as
+	      data structures are updated.
+	      %---after all, if the goal is to reduce writes and bit
+	      %flips, it would be advantageous to avoid moving data and instead update pointers to the data.
+	\item \textbf{Effects of program operation}: A common source of writes is
+	      the stack, where return addresses, saved registers, and
+	      register spills are written. Understanding how these writes affect bit flips
+	      plays a critical role in recommendations for bit flip reduction for system designers.
+	\item \textbf{Effects of caching layers}: Since writes must first go through the
+	      cache, it is vital to understand how different caching layers and cache sizes
+	      affect bit flips in memory. Complicating matters is the unique consistency
+	      challenges of BNVM~\cite{coburn:asplos11,volos:asplos11,condit:sosp09}, wherein programs often flush cache-lines to main
+	      memory more frequently than they otherwise would, use write-through caching, or
+	      more complex, hardware-supported cache flushing protocols. These questions are evaluated in
+	      Section~\ref{sec:exp_cache}.
+\end{enumerate}
+
+\if0
+	Data structures are often constructed using pointers that describe the
+	relationships between different components. These pointers are updated during
+	data structure updates, often being updated several times (e.g. tree rotation).
+	Given the frequency of these updates, a clear candidate for bit flip reduction
+	is to reduce the bit flips caused by pointer writes. One method, which we study
+	here, is learned from XOR linked lists (discussed below), and involves XOR-ing
+	pointers together to reduce the number of stored pointers while also clearing
+	many bits to zero.  Of course, this technique only applies to pointer-heavy data
+	structures---pointer-light data structures, such as open-addressed hash tables,
+	may not benefit from these techniques. However, some of the optimizations
+	discussed below still apply.
+\fi

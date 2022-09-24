@@ -1,0 +1,8 @@
+65000 xrbt2 system.mem_ctrls.bytes_written::total            1216                       # Number of bytes written to this memory
+70000 xrbt2 system.mem_ctrls.bytes_written::total            5248                       # Number of bytes written to this memory
+75000 xrbt2 system.mem_ctrls.bytes_written::total           45248                       # Number of bytes written to this memory
+80000 xrbt2 system.mem_ctrls.bytes_written::total          327552                       # Number of bytes written to this memory
+85000 xrbt2 system.mem_ctrls.bytes_written::total         1059584                       # Number of bytes written to this memory
+90000 xrbt2 system.mem_ctrls.bytes_written::total         2013568                       # Number of bytes written to this memory
+95000 xrbt2 system.mem_ctrls.bytes_written::total         3534848                       # Number of bytes written to this memory
+100000 xrbt2 system.mem_ctrls.bytes_written::total         5241536                       # Number of bytes written to this memory

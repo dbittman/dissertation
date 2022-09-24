@@ -1,0 +1,100 @@
+\section{Performance Analysis}
+\label{sec:perf}
+
+While bit flip optimization is important, it is less attractive if it produces a
+large performance cost. We compared our data structures' performance to equivalent ``normal''
+versions not designed to reduce bit flips.
+Benchmarks were run on an i7-6700K Intel processor at 4GHz, running Linux 4.18, \texttt{glibc} 2.28.
+They were compiled using \texttt{gcc} 8.2.1 and linked with GNU \texttt{ld} 2.31.1. Unless
+otherwise stated, programs were linked dynamically and compiled with \texttt{O3}
+optimizations.
+
+\paragraph{XOR Linked Lists}
+
+The original publication of XOR linked lists found little performance difference
+between them and normal linked lists~\cite{xorll}; we see the same relationship
+in our implementation (see Table~\ref{tbl:xorll_perf}). The only statistically
+significant difference was seen in traversal, where XOR linked lists have a
+$1.18\times$ increase in latency; however, both lists average less than three
+nanosecond-per-node during traversal.
+
+\begin{SCtable}
+	\centering
+	\caption{Performance of XOR linked lists compared with doubly-linked lists.}
+	\label{tbl:xorll_perf}
+	\begin{tabular}{c|c c}
+		Operation          & XOR Linked    & Doubly-Linked \\
+		\hline
+		Insert (ns)        & $45 \pm 1$    & $45 \pm 1$    \\
+		Pop (ns)           & $27 \pm 1$    & $28 \pm 1$    \\
+		Traverse (ns/node) & $2.6 \pm 0.1$ & $2.2 \pm 0.1$ \\
+	\end{tabular}
+\end{SCtable}
+
+\paragraph{XOR Hash Tables}
+
+
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/xht_perf}
+	\caption{Performance of XOR hash table variants.}
+	\label{fig:xht_perf}
+\end{SCfigure}
+
+Figure~\ref{fig:xht_perf} shows the performance of the two hash table variants
+we developed. We inserted 100,000 keys, followed by lookup and delete.
+As expected, both variants have nearly identical latencies, with a slowdown of
+only $1.06\times$ for using XOR lists during lookup.
+
+
+
+
+\paragraph{XOR Red-Black Trees}
+
+
+
+
+
+
+%\begin{table}
+%	\caption{Average latency per call of calling \malloc one million times.}
+%	\label{tbl:malloc_lat}
+%	\begin{tabular}{c | c  c}
+%		\textbf{Operation} & \malloc(40) & \malloc(48) \\
+%		\hline
+%		\textbf{Average Latency (ns)} & $27.4 \pm 0.5$ & $31.5 \pm 0.6$ \\
+%	\end{tabular}
+%\end{table}
+
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/xrbt_perf}
+	\caption{Insert latency for XOR red-black trees compared to normal
+		red-black trees. The label ``a'' shows the cost of the XORs, while ``b''
+		shows the cost of the larger node.}
+	\label{fig:xrbt_perf}
+\end{SCfigure}
+
+
+
+%TODO(BLOCKING): look at the comment about num of inserts and lookups
+We measured \xrbt, \xrbtbig, and \rbt during 100,000 inserts and lookups, the results of
+which are shown in Figure~\ref{fig:xrbt_perf} and
+Figure~\ref{fig:xrbt_perf_lookup}. During insert, \xrbt is actually slightly
+faster than \rbt, with \xrbtbig being slower, indicating that although there is
+a non-zero cost for the additional XOR operations, it is outweighed by the
+performance improvement from smaller node size and better cache utilization. The
+lookup performance shown in Figure~\ref{fig:xrbt_perf_lookup} demonstrates a
+similar pattern, although for sequential lookup the overheads are similar enough
+that there is no significant performance difference between \xrbt and \rbt.
+
+\begin{SCfigure}
+	\centering
+	\includegraphics[width=\linewidth]{genfig/xrbt_perf_lookup}
+	\caption{Lookup latency for XOR red-black trees compared to normal
+		red-black trees.}
+	\label{fig:xrbt_perf_lookup}
+\end{SCfigure}
+

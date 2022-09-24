@@ -1,0 +1,6 @@
+set term pdf size 4in,3in
+set out out.pdf
+set xlabel "Number of calls to malloc()"
+set ylabel "Number of bits flipped"
+set key left
+plot 'out-sim-mal-bf-16-l2' using 1:4 title "16 bytes", 'out-sim-mal-bf-24-l2' using 1:4 title "24 bytes", 'out-sim-mal-bf-40-l2' using 1:4 title "40 bytes", 'out-sim-mal-bf-48-l2' using 1:4 title "48 bytes"

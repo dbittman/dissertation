@@ -1,0 +1,265 @@
+\section{Reducing Bit Flips in Software}
+\label{sec:datastruct}
+
+By reducing bit flips in software, we can effect improvements in BNVM lifetime
+and power use without the need for hardware changes.
+To build data structures to reduce bit
+flips (Sections~\ref{sec:xorll_design}--\ref{sec:xrbt_design}), we propose
+several optimizations to pointer storage along with additional optimizations for
+indicating occupancy. For stack writes, we propose changes to compilers
+to spill registers such that they avoid writing different registers to the same
+place in the stack (Section~\ref{sec:stack}).
+
+\subsection{XOR Linked Lists}
+\label{sec:xorll_design}
+
+XOR linked lists~\cite{xorll} are a memory-efficient doubly-linked list design
+where, instead of storing a previous and next node pointer, each node stores
+only a \texttt{siblings} value that is the XOR between the previous and next
+node. If the previous node is at address $p$ and the next node is
+at address $n$, the node stores $siblings = p \oplus n$. This scheme cuts the
+number of stored pointers per node in half while still allowing bi-directional
+traversal of the list---having pointers to two adjacent nodes is sufficient to
+traverse both directions. However, an XOR linked list has
+disadvantages; it does not allow $O(1)$ removal of a node with just a
+single pointer to that node, as a node's siblings cannot be determined from the
+node alone, and it increases code complexity by requiring XOR operations before
+pointers are dereferenced.
+
+When they were proposed, XOR linked lists had little advantage over doubly linked lists beyond
+a modest memory saving.
+However, with the need for fewer bit flips on BNVM, they gain a critical
+advantage: they cut the number of stored pointers in half, reducing writes, but
+they also store the XOR of two pointers, which are likely to contain similar
+higher-order bits, making the \texttt{siblings} pointer mostly zeros.
+
+One problem with the original design for XOR linked lists is that each node
+stores $siblings = p \oplus n$, but for the first and last node, $p$ or $n$ are
+\texttt{NULL}, so the full pointer value for its adjacent node is stored in the
+head and tail. To further cut down on bit flips, we changed this design so that
+the head and tail XOR their adjacent nodes with themselves (if the node at
+address $h$ is the head, then it stores $siblings = h \oplus n$ instead of
+$siblings = 0 \oplus n$). The optimization here is \textit{not} a performance
+optimization---in fact, it's likely to reduce performance---and only makes sense
+in the context of bit flips, an optimization goal that would not be
+targeted before the introduction of BNVM. However, with bit flips in-mind, it
+becomes critical. Other data structures may have similar optimizations that we
+can easily make to reduce bit flips~\footnote{Circular linked
+	lists solve the head and tail siblings pointer problem automatically, since no pointers are
+	stored as \texttt{NULL}; however, in XOR linked lists this increases the number of pointer
+	updates during an insert operation and requires storing two adjacent head nodes to traverse.
+}.
+
+\subsection{XOR Hash Tables}
+\label{sec:xht_design}
+
+A direct application of XOR linked lists is chained hashing, a common
+technique for dealing with hash table collisions~\cite{clrs}. An array of linked list heads
+is maintained as the hash table, and when an item is inserted, it is appended to
+the list at the bucket that the item hashes to. To optimize for bit flips,
+we can store an XOR list instead of a normal linked list, but
+since bidirectional traversal is not needed in a hash table
+bucket, we need not complicate the implementation with a full XOR linked
+list. Instead, we apply the property of XOR linked lists that we find
+useful---XORing pointers.
+
+Each pointer in each list node is XORed with the address of the node that
+contains that pointer. For example, a list node $n$ whose next node is $p$ will
+store $n \oplus p$ instead of $p$. In effect, this stores the distance between
+the nodes rather than the absolute address of the next node and exploits
+locality in memory allocators. The end of the list is marked with a \texttt{NULL}
+pointer. In addition to a distance pointer, each node contains a key and a
+pointer to a value. The list head stored in the hash table is a full node,
+allowing access to the first entry in the list without needing to follow a
+pointer.
+
+A second optimization we make is that an empty list can be marked in one of two ways: the
+least-significant bit (LSB) of the \texttt{next} pointer set to one, or the data pointer set to
+\texttt{NULL}. When we initialize the table, it is set to zero everywhere, so the data pointers
+are \texttt{NULL}.  During delete, if the list becomes empty, the LSB of the next
+pointer in the list head is set to 1, a value it would never have when part of a list. This
+allows the data pointer to remain set to a value such that when it is later overwritten, fewer bits
+need to change. This is an example of an optimization that only makes sense in the context of bit
+flips, as it increases code complexity for no other gain.
+
+\subsection{XOR Red-Black Trees}
+\label{sec:xrbt_design}
+
+Binary search trees are commonly used for data indexing, support range queries,
+and allow efficient lookup and modification, as long as they are balanced.
+Red-black trees~\cite{rbt,clrs} are a common balanced binary tree data structure with
+strictly-bounded rebalancing operations during modification. A typical red-black
+tree (RBT) node contains pointers to its left child and right child, along with
+meta-data. They often also contain a pointer to the parent node, since this
+enables easier balancing implementation and more efficient range-query support
+without significantly affecting performance due to the increased memory
+usage~\cite{rbt_llh}.
+
+We can generalize XOR linked lists to \textit{XOR trees}. Instead of storing
+\texttt{left}, \texttt{right}, and \texttt{parent} pointers, each node stores
+\texttt{xleft} and \texttt{xright}, which are the XOR between each child and
+the parent addresses. This reduces the memory usage to the two-pointer case
+while maintaining the benefits of having a parent pointer, since given a node
+and one of its children (or its parent), we can traverse the entire tree. Like
+XOR linked lists, the root node stores \texttt{xleft = root $\oplus$ left}, where
+\texttt{root} is the address of the root node and \texttt{left} is the address
+of its left child, saving bit flips. To indicate that a node has no left or right child, it
+stores \texttt{NULL}.
+
+Determining the child of a node requires both the node and its parent:\\
+\texttt{
+get\_left\_child(Node *node, Node *parent) \{
+	\indent return (parent $\oplus$ node->xleft); \\
+\}
+}\\
+Getting a node's parent, however, requires additional work. Given a child $c$ and a
+node $n$, getting $n$'s parent requires we know \textit{which} child (left or
+right) $c$ is. Fortunately, in a binary search tree we store the key $k$ of a node
+in each node, and the nodes are well-ordered by their $k$. Thus, getting the
+parent works as follows:\\
+\texttt{
+get\_parent(Node *n, Node *c) \{\\
+	\indent if(c->k < n->k) return (n->xleft $\oplus$ c);\\
+	\indent else return (n->xright $\oplus$ c);\\
+	\}}\\
+Note that this is not the only way to disambiguate between pointers. In fact,
+it's not strictly necessary to do so because the algorithms can be implemented
+recursively without ever needing to traverse up the tree explicitly. However, providing upwards
+traversal can reduce the complexity of implementation and improve the performance of iteration over
+ranges. Another
+solution to getting the parent node would be to record whether a node is a left
+or right child by storing an extra bit along with the color. We did not
+evaluate this method, as it would increase both writes and bit flips over our method.
+
+\newcommand{\xrbt}{\texttt{xrbt}\xspace}
+\newcommand{\xrbtbig}{\texttt{xrbt-big}\xspace}
+\newcommand{\rbt}{\texttt{rbt}\xspace}
+
+With these helper functions, we implemented both an XOR red black
+tree (\xrbt) and a normal red-black tree (\rbt) using similar algorithms.
+The code for \xrbt was just 20 lines longer, with only a
+minor increase in code complexity. Node size was smaller in \xrbt,
+with a node being 40 bytes instead of 48 bytes as in \rbt. To control for
+the effects of node size on performance and bit flips, we built a variant of
+\xrbt with the same code but with a node size of 48 bytes (\xrbtbig).
+
+
+\paragraph{Generalization} These techniques can generalize beyond a red-black tree. Any ordered
+$k$-ary tree can use XOR pointers in the same way. As discussed above, disambiguating between pointers
+during traversal depends on either additional bits being stored or using an ordering property.
+Either technique can work with arbitrary graph nodes.
+
+\subsection{Stack Frames}
+\label{sec:stack}
+
+Data structure layout and data writes are only some of the writes made by a
+program. Register spills, callee-saved register saving,
+and return addresses pushed during function calls are all writes to memory, and
+if these writes make it to BNVM, they will cause bit flips as well. These writes
+may make it to main memory if the cache is saturated or if the program is
+designed to keep program state in BNVM to enable instantaneous restart after
+power cycles~\cite{Narayanan:asplos12}. Additionally, systems designed for BNVM may run with write-through
+caches to reduce consistency complexity, resulting in execution state reaching
+BNVM.
+
+The exact pattern of stack writes depends on the ABI and the calling convention of a system and
+processor, though we focus on x86-64 Linux systems. When a program calls a function, it
+(potentially) pushes a number of arguments to the stack, followed by a return address.  In the
+called function, callee-saved registers are pushed to the stack, but \emph{only} if they are modified
+during that function's execution. When finished, the callee pops all the saved registers and
+returns.
+
+Our observation is that the order that callee-saved registers are pushed to the
+stack is \textit{not specified}, meaning that two different functions could push
+the same registers in a different order. Secondly, the same callee-saved register
+is less-likely to change drastically in a small amount of code in a tight loop,
+since these registers are typically used for loop counters or bases for
+addressing. Thus, a loop that calls two functions alternately will likely have
+similar or the same values in the callee-saved registers during the invocation
+of both functions.
+If these two functions push the (often unchanged)
+callee-saved registers to the same place both times, fewer bit
+flips will occur than if the functions pushed them in different orders.
+While this is just a simple example,
+such loops that call out to alternating functions with different characteristics can occur, for
+example, when rehashing a table, rebuilding a tree, or reading task items from a linked
+list.
+
+We propose specifying a callee-saved register frame layout that functions adhere
+to, so that the registers are always pushed in the same order. To handle
+variable numbers of arguments, we make use of passing arguments in registers,
+common in many modern ABIs. If a function
+need not push any callee-saved registers, it can still reserve the stack space
+for that frame and then not push anything to save writes. Functions which only
+save a small number of registers can still push them to the correct locations
+within the frame. Finally, if this is standardized, programs need not worry
+about library calls increasing bit flips.
+
+\newcommand{\ffoo}{\texttt{A}\xspace}
+\newcommand{\fbar}{\texttt{B}\xspace}
+For example, if we have two functions \ffoo and \fbar in an ABI where registers
+$e$, $f$, $g$, $h$ are callee-saved, and \ffoo uses $e$ while \fbar uses $g$, then
+traditionally each function would simply push the frame pointer followed by the
+register they wish to save:\\
+
+\begin{minipage}{0.5\columnwidth}
+\texttt{A:\\
+\indent push fp\\
+\indent mov fp $\leftarrow$ sp\\
+\indent push e\\
+\indent ...\\
+\indent pop e\\
+\indent pop fp; ret
+}
+\end{minipage}%
+~
+\begin{minipage}{0.5\columnwidth}
+\texttt{B:\\
+\indent push fp\\
+\indent mov fp $\leftarrow$ sp\\
+\indent push g\\
+\indent ...\\
+\indent pop g\\
+\indent pop fp; ret
+}
+\end{minipage}\\
+
+If $e$ and $g$ are significantly different, then a significant amount of needless
+bit flips could occur if these functions are called often.
+Instead, if we define a layout that functions adhere to for register saving, the
+code would look like:\\
+
+\begin{minipage}{0.5\columnwidth}
+\texttt{A:\\
+\indent push fp\\
+\indent mov fp $\leftarrow$ sp\\
+\indent push e\\
+\indent sub sp, 24\\
+\indent ...\\
+\indent add sp, 24\\
+\indent pop e\\
+\indent pop fp; ret
+}
+\end{minipage}%
+~
+\begin{minipage}{0.5\columnwidth}
+\texttt{B:\\
+\indent push fp\\
+\indent mov fp $\leftarrow$ sp\\
+\indent sub sp, 16\\
+\indent push g\\
+\indent sub sp, 8\\
+\indent ...\\
+\indent add sp, 8\\
+\indent pop g\\
+\indent add sp, 16\\
+\indent pop fp; ret
+}
+\end{minipage}\\
+
+Here the code always pushes the same register to the same place, regardless of
+the registers it needs to save, thereby allowing overwrites by likely similar values.
+While it does add some additional instructions,
+code could instead write registers directly to the stack locations using offset
+style addressing, reducing code size.
+

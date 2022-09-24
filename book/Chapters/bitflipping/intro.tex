@@ -1,0 +1,99 @@
+
+\section{Introduction}
+
+As byte-addressable non-volatile memories (BNVMs) become
+common~\cite{lee_architecting_2009,fox:2001feram,intel3dxpoint}, it is
+increasingly important that systems are optimized to leverage their
+strengths and avoid stressing their weaknesses.  Historically, such
+optimizations have included reducing the number of writes performed, either by
+designing data structures that require fewer writes or by using hardware
+techniques such as caching to reduce writes. However, it is the number of \emph{bits flipped} that
+matter most for BNVMs such as phase-change memory (PCM), \emph{not} the number of words written.
+
+%However, for BNVMs such as
+%phase-change memory (PCM), it is the number of \emph{bits flipped} that matters
+%most, not the number of words written.
+
+BNVMs such as PCM suffer from two problems caused by flipping bits: energy usage
+and cell wear-out.
+As these memory technologies are adopted into longer-term storage solutions and
+battery powered mobile and IoT devices, their costs become dominated by physical
+replacement from wear-out and energy use respectively, so increasing lifetime
+and dropping power consumption are vital optimizations for BNVM.
+Flipping a bit in a PCM consumes
+$15.7\mathit{-}22.5\times$ more power than reading a bit or ``writing''
+a bit that does not actually
+change~\cite{dhiman_pdram:_2009,lee_architecting_2009,xiangyu_dong_nvsim:_2012,qureshi_scalable_2009}.
+Thus, many controllers optimize by only flipping bits when the value being
+written to a cell differs from the old value~\cite{yang:iscas07}.  While this
+approach saves some energy, it cannot eliminate flips required by software to
+update modified data structures. An equally important concern is that PCM has
+limited endurance: cells can only be written a limited number of times before
+they ``wear out''. Unlike flash, however, PCM cells are written individually, so
+it is possible (and even likely) that some cells will be written more than
+others during a given period because of imbalances in values written by
+software. Reducing bit flips, an optimization goal that has yet to be
+sufficiently explored, can thus both save energy and extend the life of BNVM.
+
+%There are optimization
+%opportunities to reduce both wear and energy use at many levels of the stack;
+%however, the exact optimization target from the perspective of software is no
+%longer writes themselves, as was the case in previous technologies, but in
+%the contents of the writes.
+%
+%These memory technologies, with their lower power consumption compared to DRAM,
+%their potential for long-term but low latency persistent data storage, and their
+%densities 
+%yet existing approaches rarely attempt to
+%optimize for flipping as few bits as possible, instead opting to reduce words
+%written. Because it
+%is bit flips that are expensive, however, data structures designed for BNVM must
+%take into account bits flipped by their updates to properly evaluate
+%how they will affect BNVM.
+
+
+%Prior research~\cite{bittman:nvmsa18} has shown that small changes in data
+Previously, we showed that small changes in data
+structures can have large impacts in the bit flips required to
+complete a given set of data structure modifications~\cite{bittman:nvmsa18}.
+While it is possible to
+reduce bits flipped with changes to hardware, we can gain more
+by optimizing compiler constructs and choosing data structures to take advantage
+of semantic information that is not available at other layers of the stack;
+it is critical we design our data structures with this in mind. Successful BNVM-optimized
+systems will need to target new optimizations for BNVM, including bit flip reduction.
+
+We implemented three such
+data structures and evaluated the impact on the number of writes and bit flips,
+demonstrating the effectiveness of designing data structures to minimize bit
+flips.
+%These simple changes can extend the lifetime of BNVMs such as
+%PCM by as much as $3.56\times$ and reduce power consumption by a similar amount,
+These simple changes reduce bit flips by as much as $3.56\times$, and therefore will reduce power
+consumption and extend lifetime by a proportional amount,
+%can extend the lifetime of BNVMs such as
+%PCM by as much as $3.56\times$ and reduce power consumption by a similar amount,
+with no need to modify the hardware in any way.
+Our contributions are:
+\begin{enumerate}
+	\item Implementation of bit flip counting in a full cycle-accurate simulation
+	      environment to study bit
+	      flip behavior.%, that we will make publicly available.
+	\item Empirical evidence that reducing memory writes may not reduce bit flips
+	      proportionally.
+	\item Measurements of the number of bit flips required by operations such as
+	      memory allocation and stack frame use, and suggestions for reducing the
+	      bit flips they require.
+	\item Modification of three data structures (linked lists, hash tables, red-black
+	      trees) to reduce bit flips and evaluation of the effectiveness of the techniques.
+\end{enumerate}
+
+The paper is organized as follows. Section~\ref{sec:background} gives
+background demonstrating how bit flips impact power consumption and
+BNVM lifetime. Section~\ref{sec:datastruct} discusses some techniques for
+reducing bit flips in software, which are evaluated for bit flips
+(Section~\ref{sec:evaluation}) and performance (Section~\ref{sec:perf}).
+Section~\ref{sec:disc} discusses the results, followed by comments on
+future work (Section~\ref{sec:fw}) and a conclusion
+(Section~\ref{sec:conclusion}).
+

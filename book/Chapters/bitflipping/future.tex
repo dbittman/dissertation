@@ -1,0 +1,33 @@
+
+\section{Future Work}
+\label{sec:fw}
+
+Although we covered a range of different data structures, there are many more
+used in storage systems that should be examined, such as
+B-trees~\cite{btree} and
+LSM-trees~\cite{lsmtree}, both to understand their bit flipping behavior as compared to
+other data structures and to examine for potential optimizations. In
+addition to data structures, different algorithms such as sorting can be
+evaluated for bit flips. Though this may come
+down to data movement minimization, there may be optimizations in locality that
+could affect bit flips.
+
+While data structure and algorithm evaluation can provide system designers with
+insights for how to reduce bit flips, examining bit flips in a large system,
+including one that properly implements consistency and our suggested stack frame modifications
+(perhaps through compiler modification),
+would be worthwhile.
+There are a number of BNVM-based key-value stores~\cite{kv1}; comparing them
+for bit flips could demonstrate the benefits of some designs
+over others.
+
+Studying bit flips directly is a good metric for understanding
+power consumption and wear, but a better understanding through the evaluation of
+real BNVM would be illuminating. The power study discussed earlier was
+derived from a number of research papers that give approximate numbers or
+estimates. On a real system, we could \textit{measure} power
+consumption, and cooperation with vendors may enable accurate studies of
+wear caused by bit flips. Additionally, some technologies (\eg, PCM) have a disparity between writing
+a 1 or a 0, something that could be leveraged by software (in cooperation with hardware) to
+further optimize power use.
+

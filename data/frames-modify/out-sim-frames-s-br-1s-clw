@@ -1,0 +1,11 @@
+0 frames-s system.mem_ctrls.bytes_read::total              36992                       # Number of bytes read from this memory
+10000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+20000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+30000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+40000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+50000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+60000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+70000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+80000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+90000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory
+100000 frames-s system.mem_ctrls.bytes_read::total              36928                       # Number of bytes read from this memory

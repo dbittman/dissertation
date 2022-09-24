@@ -1,0 +1,10 @@
+55000 mal system.mem_ctrls.bits_flipped::total               80                       # Number of bits flipped by writes to this memory
+60000 mal system.mem_ctrls.bits_flipped::total             3382                       # Number of bits flipped by writes to this memory
+65000 mal system.mem_ctrls.bits_flipped::total             4694                       # Number of bits flipped by writes to this memory
+70000 mal system.mem_ctrls.bits_flipped::total            14916                       # Number of bits flipped by writes to this memory
+75000 mal system.mem_ctrls.bits_flipped::total            24918                       # Number of bits flipped by writes to this memory
+80000 mal system.mem_ctrls.bits_flipped::total            34914                       # Number of bits flipped by writes to this memory
+85000 mal system.mem_ctrls.bits_flipped::total            44916                       # Number of bits flipped by writes to this memory
+90000 mal system.mem_ctrls.bits_flipped::total            54915                       # Number of bits flipped by writes to this memory
+95000 mal system.mem_ctrls.bits_flipped::total            64917                       # Number of bits flipped by writes to this memory
+100000 mal system.mem_ctrls.bits_flipped::total            74921                       # Number of bits flipped by writes to this memory

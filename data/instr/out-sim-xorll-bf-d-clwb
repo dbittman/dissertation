@@ -1,0 +1,11 @@
+0 xorll system.mem_ctrls.bits_flipped::total               72                       # Number of bits flipped by writes to this memory
+10000 xorll system.mem_ctrls.bits_flipped::total           200563                       # Number of bits flipped by writes to this memory
+20000 xorll system.mem_ctrls.bits_flipped::total           398933                       # Number of bits flipped by writes to this memory
+30000 xorll system.mem_ctrls.bits_flipped::total           599283                       # Number of bits flipped by writes to this memory
+40000 xorll system.mem_ctrls.bits_flipped::total           787794                       # Number of bits flipped by writes to this memory
+50000 xorll system.mem_ctrls.bits_flipped::total           986860                       # Number of bits flipped by writes to this memory
+60000 xorll system.mem_ctrls.bits_flipped::total          1183508                       # Number of bits flipped by writes to this memory
+70000 xorll system.mem_ctrls.bits_flipped::total          1386928                       # Number of bits flipped by writes to this memory
+80000 xorll system.mem_ctrls.bits_flipped::total          1585627                       # Number of bits flipped by writes to this memory
+90000 xorll system.mem_ctrls.bits_flipped::total          1790312                       # Number of bits flipped by writes to this memory
+100000 xorll system.mem_ctrls.bits_flipped::total          1990871                       # Number of bits flipped by writes to this memory

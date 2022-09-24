@@ -1,0 +1,11 @@
+0 frames-s system.mem_ctrls.bits_flipped::total              243                       # Number of bits flipped by writes to this memory
+10000 frames-s system.mem_ctrls.bits_flipped::total           220192                       # Number of bits flipped by writes to this memory
+20000 frames-s system.mem_ctrls.bits_flipped::total           440195                       # Number of bits flipped by writes to this memory
+30000 frames-s system.mem_ctrls.bits_flipped::total           660189                       # Number of bits flipped by writes to this memory
+40000 frames-s system.mem_ctrls.bits_flipped::total           880195                       # Number of bits flipped by writes to this memory
+50000 frames-s system.mem_ctrls.bits_flipped::total          1100192                       # Number of bits flipped by writes to this memory
+60000 frames-s system.mem_ctrls.bits_flipped::total          1320184                       # Number of bits flipped by writes to this memory
+70000 frames-s system.mem_ctrls.bits_flipped::total          1540192                       # Number of bits flipped by writes to this memory
+80000 frames-s system.mem_ctrls.bits_flipped::total          1760187                       # Number of bits flipped by writes to this memory
+90000 frames-s system.mem_ctrls.bits_flipped::total          1980183                       # Number of bits flipped by writes to this memory
+100000 frames-s system.mem_ctrls.bits_flipped::total          2200190                       # Number of bits flipped by writes to this memory
