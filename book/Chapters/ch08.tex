@@ -54,10 +54,24 @@ The object may have a region setup for allocation so that a future application u
 object can easily allocate and free memory when manipulating the object. Finally, the FOT and
 metadata regions start at the top of the object and grow downwards.
 
+\paragraph{Ensuring Base Type Properties}
+
+When accessing persistent or shared data for the first time, it's necessary to specify the type of the data. For
+objects, this means we need to specify the type of the header, as objects are typed by their header (also called the
+object ``base''). While in C the function that gives access to the base returns a \texttt{void *}, the function in Rust
+returns a reference to the specified base type. From there, any other data accessed traverses data structures that use
+the type system. Twizzler invariant pointers implementation in Rust are typed, and the mutability rules ensure that our
+transaction engine properly ensures transactional properties, then any data to which we can get a reference is
+well-typed as long as the header of the object is well-typed.
+
+To ensure this, we encode, in the object's metadata, a pair of 64~bit numbers that refer to a unique ID of the header
+type\sidenote{This is currently allocated manually, though we plan to automatically generate the IDs via procedural
+    macros in the future.} and a version number. When code tries to access the header, we do a one-time check to see if the
+recorded ID and version match the ID and version from the type that we are supposed to return. If they fail to match, we
+can return an error, and if they do match, then we know it's the correct type (up to collisions in the ID space, that is).
 
 \section{Crash Consistency}
 \label{sec:crash}
-
 
 \Twizzler provides primitives for building crash-consistent data structures. At a low level,
 it provides mechanisms for writing back cache-lines, appropriate fences, and basic transactions.
@@ -109,12 +123,28 @@ transactions and cache-line writebacks.
 
 
 \paragraph{Rust Transaction Interface}
-\todo[inline]{something}
 
+The Rust interface to transactions is much safer that the C version, as it actually enforces various rules about type
+safety, aliasing, and mutability. An example transaction block is written like,
+
+\begin{lstlisting}[language=Rust]
+    obj.tx(|tx| {
+        let base = obj.base_mut(tx); // :&mut BaseType
+        base.do_something();
+    });
+\end{lstlisting}
+
+Here we start a transaction and get access to a transaction handle (\texttt{tx}). When we want to get a mutable
+reference to part of the object, we must pass in a transaction handle, and the only way to get a transaction handle is
+via the \texttt{tx} function. Thus we can enforce the aliasing rules for Rust inside the transaction framework.
 
 \section{Memory Safety and Lifetimes}
 
-\todo[inline]{something}
+One final aspect of objects is safety, that is, ensuring proper typing of memory and ensuring that object memory does
+not leave a dangling reference behind. Twizzler accomplishes the general ideas of memory safety via a combination of
+some runtime checks, some kernel support for specifying lifetime relationships between objects, and some language
+support.
+%Notably, using the Rust bindings provides significantly more memory and type safety than the C bindings do.
 
 \subsection{Object Types, Persistence, and Lifetime}
 
@@ -329,3 +359,11 @@ need to count the number of operations \emph{per iteration}, and then tweak the 
 loops to run for several, but a bounded number of, loops. As a result, we can set a maximum log length and allocate it
 statically within the region, instead of having to handle a variable and unbounded number of entries due to either
 internal or external causes.
+
+\begin{chconc}
+    Ensuring that programmers have access to a reasonable programming model that sits atop the operating system
+    abstractions built for it is of utmost importance. Even if the lower levels of the systems provide access to a fast,
+    invariant reference in a global address space that simplifies data models and transformations, programmers still
+    need systems that make some of the harder parts easier. Twizzler provides a set of higher level APIs that enable
+    day-to-day tasks like allocations and ensuring crash consistency are consistently handled by the system.
+\end{chconc}
