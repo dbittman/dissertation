@@ -74,14 +74,14 @@ locality through objects enables these kinds of design that programmers often do
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/objectchain1.pdf}
-    \caption{Using a root object as an index to list multiple data objects that can be viewed logically as a contiguous block of data.}
+    \caption[Chaining objects]{Using a root object as an index to list multiple data objects that can be viewed logically as a contiguous block of data.}
     \label{fig:objchain1}
 \end{SCfigure}
 
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/objectchain2.pdf}
-    \caption{Similar goals as in Figure~\ref{fig:objchain1}, but here we do away with the index object.}
+    \caption[Alternative object chaining]{Similar goals as in Figure~\ref{fig:objchain1}, but here we do away with the index object.}
     \label{fig:objchain2}
 \end{SCfigure}
 \paragraph{Chaining Objects}
@@ -179,7 +179,7 @@ protection bits to further protect objects atop access control mechanisms (simil
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/view}
-    \caption{Layout of a view object. The kernel consults the view object's mapping on page-fault,
+    \caption[Layout of a view object]{Layout of a view object. The kernel consults the view object's mapping on page-fault,
         and maps in the requested objects at the appropriate location in the virtual address space.}
     \label{fig:view}
 \end{SCfigure}
@@ -251,7 +251,7 @@ doesn't require hardware to emit (likely large) addresses for the global address
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/2level}
-    \caption{Two-level translation scheme. The top level maps objects in virtual memory (defined by view
+    \caption[Two-level translation scheme]{Two-level translation scheme. The top level maps objects in virtual memory (defined by view
         objects) to those in object-logical space. The layout of the second level address space is managed
         by the kernel, since it is not user-facing, and the permissions are derived from a security context
         object. The second level maps to physical memory.}

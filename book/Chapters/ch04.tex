@@ -166,7 +166,7 @@ organization and how different parts of the system operate on data objects.
 \begin{SCfigure}[b]
     \centering
     \includegraphics[width=\linewidth]{fig/twz_sys_diag}
-    \caption{\Twizzler system overview. Applications link to \texttt{musl} (a C library),
+    \caption[Twizzler system overview]{\Twizzler system overview. Applications link to \texttt{musl} (a C library),
         \texttt{twix} (our Linux syscall emulation library), and \texttt{libtwz} (our standard
         library). Through \texttt{musl}, they may act on in-memory data with POSIX interfaces,
         though we expect \Twizzler applications to operate directly on in-memory data with

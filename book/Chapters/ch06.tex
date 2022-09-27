@@ -126,7 +126,7 @@ that FOT entry.
 
 \begin{SCfigure}[tb]
     \includegraphics[width=\linewidth]{fig/ptrfot}
-    \caption{Pointer translation via the FOT\@.
+    \caption[FOT translation]{Pointer translation via the FOT\@.
         The pointer and the FOT
         are both contained in the same object (not shown). An FOT entry of $0$ indicates an ``internal''
         pointer.
@@ -183,7 +183,7 @@ origin it does not know.
     int *vptr = ptr_lea(o, hdr->inv_ptr);
     hdr->inv_ptr = ptr_store(o, vptr);
 \end{lstlisting}
-    \caption{Example C code that converts an invariant pointer to a dereferenceable form and back.}
+    \caption[Invariant pointer C example]{Example C code that converts an invariant pointer to a dereferenceable form and back.}
     \label{fig:cex}
 \end{SCfigure}
 
@@ -197,7 +197,7 @@ origin it does not know.
     hdr.inv_ptr.store(vptr);
     // *hdr.inv_ptr is also sufficient for dereference.
 \end{lstlisting}
-    \caption{Example Rust code that converts an invariant pointer to a dereferenceable form and back.}
+    \caption[Invariant pointer Rust example]{Example Rust code that converts an invariant pointer to a dereferenceable form and back.}
     \label{fig:rustex}
 \end{SCfigure}
 
@@ -293,7 +293,7 @@ usable KVS.
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/twzkv}
-    \caption{Cross-object pointers in \nvkv. The index object contains pointers to keys and values,
+    \caption[Cross-object pointers]{Cross-object pointers in \nvkv. The index object contains pointers to keys and values,
         which can reside in any data object. We also support multiple indexes to enable additional
         indexing strategies and access control on discovery.}
     \label{fig:twzkv}
@@ -552,7 +552,7 @@ outgoing references to few objects, this threshold is quickly surpassed.
 \begin{SCfigure}[t]
     \centering
     \includegraphics{genfig/fotoverhead}
-    \caption{Storage overhead of Twizzler compared with PMDK at different object ID sizes. PMDK, or fat-pointer style references have a constant overhead per pointer. Note that Twizzler's object ID size is 128~bits, thus the closest comparison is not baseline PMDK, but instead PMDK~128. In most cases, Twizzler has a better overall storage overhead, except in the pessimistic case where many FOT entries are needed.}
+    \caption[FOT storage overhead]{Storage overhead of Twizzler compared with PMDK at different object ID sizes. PMDK, or fat-pointer style references have a constant overhead per pointer. Note that Twizzler's object ID size is 128~bits, thus the closest comparison is not baseline PMDK, but instead PMDK~128. In most cases, Twizzler has a better overall storage overhead, except in the pessimistic case where many FOT entries are needed.}
     \label{fig:fotoverhead}
 \end{SCfigure}
 
@@ -606,7 +606,7 @@ current systems, which have high-latency for equivalent operations.
 
 \begin{SCtable}
     \centering
-    \caption{Latency of common \Twizzler operations, including pointer loading and storing, and object
+    \caption[\Twizzler primitives latency]{Latency of common \Twizzler operations, including pointer loading and storing, and object
         mapping.
     }
     \begin{minipage}{\linewidth}
@@ -688,7 +688,7 @@ abstraction cost.
 \begin{SCfigure}[t]
     \centering
     \includegraphics{genfig/ycsb}
-    \caption{YCSB throughput, normalized (higher is better). \Twizzler outperforms all other
+    \caption[YCSB throughput]{YCSB throughput, normalized (higher is better). \Twizzler outperforms all other
         variants in all tests.}
     \label{fig:ycsb}
 \end{SCfigure}
@@ -718,7 +718,7 @@ structure like a persistent red-black tree.
 \begin{SCfigure}[t]
     \centering
     \includegraphics{genfig/qlat}
-    \caption{Query latency, normalized (lower is better). \Twizzler maintains a similar level of
+    \caption[Query latency]{Query latency, normalized (lower is better). \Twizzler maintains a similar level of
         performance with the native and LMDB variants, despite comparing \Twizzler's simplistic
         red-black tree index
         implementation with highly optimized B-trees. \Twizzler also significantly outperforms PMDK
@@ -783,7 +783,7 @@ despite the pointer translations, they ran at memory bandwidth (for \NVM).
 \begin{SCfigure}[t]
     \centering
     \includegraphics{genfig/kvs}
-    \caption{Latency of insert and lookup in \nvkv and \unixkv.
+    \caption[Latency of KVS operations]{Latency of insert and lookup in \nvkv and \unixkv.
         An ``(m)'' indicates
         support for multiple data objects. Both \unixkv and \nvkv have similar latencies.}
     \label{fig:kvlat}

@@ -20,7 +20,7 @@ nanosecond-per-node during traversal.
 
 \begin{SCtable}
 	\centering
-	\caption{Performance of XOR linked lists compared with doubly-linked lists.}
+	\caption[XOR and standard linked list performance]{Performance of XOR linked lists compared with doubly-linked lists.}
 	\label{tbl:xorll_perf}
 	\begin{tabular}{c|c c}
 		Operation          & XOR Linked    & Doubly-Linked \\
@@ -71,7 +71,7 @@ only $1.06\times$ for using XOR lists during lookup.
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/xrbt_perf}
-	\caption{Insert latency for XOR red-black trees compared to normal
+	\caption[XOR red-black tree insert latency]{Insert latency for XOR red-black trees compared to normal
 		red-black trees. The label ``a'' shows the cost of the XORs, while ``b''
 		shows the cost of the larger node.}
 	\label{fig:xrbt_perf}
@@ -93,7 +93,7 @@ that there is no significant performance difference between \xrbt and \rbt.
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/xrbt_perf_lookup}
-	\caption{Lookup latency for XOR red-black trees compared to normal
+	\caption[XOR red-black tree lookup latency]{Lookup latency for XOR red-black trees compared to normal
 		red-black trees.}
 	\label{fig:xrbt_perf_lookup}
 \end{SCfigure}

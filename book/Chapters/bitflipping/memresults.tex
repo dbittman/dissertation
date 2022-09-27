@@ -93,7 +93,7 @@ compare variants of a data structure by comparing their slopes. Error bars are
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/xrbt_ex}
-	\caption{A typical result of running a test program with increasing
+	\caption[Typical behavior vs. \texttt{iteration\_count}]{A typical result of running a test program with increasing
 		values of \texttt{iteration\_count}.}
 	\label{fig:xrbt_ex}
 \end{SCfigure}
@@ -124,7 +124,7 @@ better alignment.
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/malloc_bf}
-	\caption{Bit flips due to calls to \malloc. Allocation size of 16 bytes is not
+	\caption[Bit flips from \malloc]{Bit flips due to calls to \malloc. Allocation size of 16 bytes is not
 		shown because it matches with 24 bytes.}
 	\label{fig:malloc_bf}
 \end{SCfigure}
@@ -172,7 +172,7 @@ same amount of memory for both.
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/xorll_bfwr}
-	\caption{Memory characteristics of of XOR linked lists compared to Doubly-Linked
+	\caption[XOR versus standard linked list characteristics]{Memory characteristics of of XOR linked lists compared to Doubly-Linked
 		Lists.}
 	\label{fig:xorll}
 \end{SCfigure}
@@ -203,7 +203,7 @@ repeatedly inserted or removed from the hash table.
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/xht_fw}
-	\caption{Memory characteristics of XOR hash table variants under Zipfian
+	\caption[XOR hash table characteristics]{Memory characteristics of XOR hash table variants under Zipfian
 		workload.}
 	\label{fig:xht_fw}
 \end{SCfigure}
@@ -249,7 +249,7 @@ number of bits flipped, since \xrbt writes fewer bytes but flips more bits than
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/xrbt_fwr}
-	\caption{Memory characteristics of XOR red-black trees compared to normal
+	\caption[XOR red-black trees characteristics]{Memory characteristics of XOR red-black trees compared to normal
 		red-black trees.}
 	\label{fig:xrbt_fwr}
 \end{SCfigure}
@@ -293,7 +293,7 @@ took longer to saturate L2, delaying the effect.
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/cache_comp}
-	\caption{Bits flipped by xrbt and rbt over a varying number of sequential
+	\caption[XOR red-black tree bits flipped]{Bits flipped by XOR red-black trees and standard red-black trees over a varying number of sequential
 		inserts, with and without the L2 cache present.}
 	\label{fig:cache_comp}
 \end{SCfigure}
@@ -307,7 +307,7 @@ size has only short-term effects.
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/cachesz}
-	\caption{Bits flipped by xrbt over a varying number of sequential
+	\caption[XOR red-black tree bits flipped (varying cache)]{Bits flipped by XOR red-black tree over a varying number of sequential
 		inserts, with different sizes for L2.}
 	\label{fig:cachesz}
 \end{SCfigure}
@@ -336,7 +336,7 @@ complexity.
 \begin{SCfigure}
 	\centering
 	\includegraphics[width=\linewidth]{genfig/instr}
-	\caption{Manual instrumentation for counting bit flips (instr) compared to
+	\caption[Instrumentation vs. simulation for bit flips]{Manual instrumentation for counting bit flips (instr) compared to
 		full-system simulation (sim).}
 	\label{fig:instr}
 \end{SCfigure}

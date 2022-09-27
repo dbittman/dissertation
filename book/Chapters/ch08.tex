@@ -41,7 +41,7 @@ the object using this API.
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/typobj}
-    \caption{A typical object layout. The header, contiguous region, and allocation region are all
+    \caption[Typical object layout]{A typical object layout. The header, contiguous region, and allocation region are all
         optional, however most objects will have a header. This object contains a number of internal
         pointers between regions. The metadata region (which includes the FOT) grows downward.}
     \label{fig:typobj}
@@ -99,7 +99,7 @@ crash-consistent manner using the aforementioned primitives, locking, and fencin
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/vpdomains.pdf}
-    \caption{Volatile and persistent domains on Intel CPUs. Once the memory controller has acknowledged the write, the system guarantees persistence of the write.}
+    \caption[Volatile and persistent domains]{Volatile and persistent domains. Once the memory controller has acknowledged the write, the system guarantees persistence of the write.}
     \label{fig:vpdomains}
 \end{SCfigure}
 
@@ -457,7 +457,7 @@ what objects may be accessed from a particular object can be useful to the syste
 \begin{SCfigure}[t]
     \centering
     \includegraphics[width=\linewidth]{genfig/obj_graph.pdf}
-    \caption{Example object graph.}
+    \caption[Example object graph]{Example object graph.}
     \label{fig:ograph}
 \end{SCfigure}
 

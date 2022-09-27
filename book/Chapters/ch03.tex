@@ -28,7 +28,7 @@ computation, hooray---after which the results are serialized and placed back ont
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/cycle.pdf}
-    \caption{The ``standard cycle'' of systems programming. We start with some persisted data, explicitly load it from disk into memory, deserialize it, compute on it, reserialize it, and explicitly store it back to disk. Note that the vast majority of this diagram depicts stuff other than the actual computation. The thick red lines depict persistence boundaries, across which data exists in different contexts and assumed lifetimes.}
+    \caption[The cycle of systems programming]{The ``standard cycle'' of systems programming. We start with some persisted data, explicitly load it from disk into memory, deserialize it, compute on it, reserialize it, and explicitly store it back to disk. Note that the vast majority of this diagram depicts stuff other than the actual computation. The thick red lines depict persistence boundaries, across which data exists in different contexts and assumed lifetimes.}
     \label{fig:cycle}
 \end{SCfigure}
 
@@ -247,7 +247,7 @@ is overloaded, while a separate cloud resource, Carol, is mostly idle.
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/copy}
-    \caption{Rendezvous of data and compute. Solid red arrows are additional
+    \caption[Rendezvous of data and compute]{Rendezvous of data and compute. Solid red arrows are additional
         infrastructure-level tasks that are not fundamental to the requested computation.}
     \label{fig:rpccopy}
 \end{SCfigure}
