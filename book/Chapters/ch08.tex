@@ -71,7 +71,34 @@ recorded ID and version match the ID and version from the type that we are suppo
 can return an error, and if they do match, then we know it's the correct type (up to collisions in the ID space, that is).
 
 \section{The Flipside}
-\todo[inline]{bitflipping}
+
+One aspect of programming for \NVM that is somewhat orthogonal to Twizzler's primary object model is considering what
+effects writes will have to the actual physical media. This kind of consideration is common---we think about block
+layouts and overwrites when considering differences between magnetic disk and SSDs---but for \NVM, we should ask what
+the new device characteristics are, since
+it is important that systems are optimized to leverage their
+strengths and avoid stressing their weaknesses. We typically try to reduce writes to physical media, however with
+\NVM it turns out that the number of \emph{bits flipped} may be the more important metric.
+
+\NVMs such as PCM suffer from both wear and energy use when it must flip a stored bit. Applications such as IoT devices
+cannot tolerate wear out and energy use as easily as other applications, and these devices make good targets for the
+already dense and power efficient \NVM technologies.
+Flipping a bit in PCM cells consumes $15.7\mathit{-}22.5\times$ more power than reading a
+bit~\cite{dhiman_pdram:_2009,lee_architecting_2009,xiangyu_dong_nvsim:_2012,qureshi_scalable_2009}, and causes wear
+(whereas reading does not cause nearly as much wear).
+Thus, controllers can optimize by examining bits to determine which must actually change on a write~\cite{yang:iscas07}.
+Of course, such an optimization is heavily dependent on software, which issues the writes.
+Reducing bit flips, an optimization goal that has yet to be
+sufficiently explored, can thus both save energy and extend the life of \NVM, but we optimize better if we manage to
+design software to reduce bit flips.
+
+We examined a number of different common data structures and examined strategies for how we can reduce bitflips caused
+by data structure updates. This involved taking previously-known tricks like XOR linked lists~\cite{xorll} and
+generalizing them to trees and hash tables, along with choices for bit packing and data layout, and modifying Gem5, a
+system simulator, to count bit flips. We found that we could easily reduce a significant number of bits flipped in the
+data structures we studied with little performance impact. Since the details are not germane to the Twizzler programming
+model, details of our work on bitflipping are included in Appendix~\ref{app:bitflip}.
+
 
 \section{Crash Consistency}
 \label{sec:crash}
@@ -393,7 +420,8 @@ internal or external causes.
 
 \section{Patterns, New and Old}
 
-\todo[inline]{something}
+It's worth taking a look at some patterns and expected software uses of the Twizzler model. In particular, the newly
+enabled optimizations and patterns that emerge from a global address space and a lower level understanding of data relationships.
 
 \subsection{Progressive and Immutable}
 
