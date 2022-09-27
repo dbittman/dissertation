@@ -99,13 +99,13 @@ views ``mesh'' ephemeral threads with persistent data by providing them a contex
 Since view objects are normal \Twizzler objects, they can be persisted, allowing
 us to recover application state after power cycles.
 
-\begin{figure}
+\begin{SCfigure}
     \centering
-    \includegraphics[width=4in]{fig/view2}
+    \includegraphics[width=\linewidth]{fig/view2}
     \caption[View objects in Twizzler]{View objects in \Twizzler. Views manage ephemeral constructs and state, giving threads
         the necessary context to execute and access persistent data.}
     \label{fig:view2}
-\end{figure}
+\end{SCfigure}
 
 
 By coalescing this ephemeral state
