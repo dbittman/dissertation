@@ -107,7 +107,7 @@ be stored within the data itself. Of course, we still need some understanding of
 context-sensitive relationships, for example late-binding of names. We do this via a
 ``two-level'' naming system in which GUIDs are \emph{authoritative} names to which we can bind
 additional names for purposes like local references, changing data identification, and discovery
-(see Sections \ref{sec:implementation} and \ref{sec:latebinding}).
+(see Section~\ref{sec:latebinding}).
 
 Viewing the past through the lens of the present, it was \emph{always} a mistake to entangle the context required to access
 and manipulate data with ephemeral actors.  However, in the days of slow networks, spinning disks and small memories,
@@ -307,8 +307,8 @@ data transfer is minimal---often manifesting as something like a fronted key-val
 code mobility (as it accounts for no change to decoupling later), and requires a myriad of RPC calls
 to implement all the ways a programmer might wish to view data (one need only look at the many S3
 APIs available as an example).
-If we limit ourselves to traditional RPC, any situation (such as the one discussed in
-Section~\ref{sec:example}) that does not fit this pattern either results in expensive data movement
+If we limit ourselves to traditional RPC, any situation (such as the one discussed
+above) that does not fit this pattern either results in expensive data movement
 and complex application logic, or it must be dismissed altogether and the application redesigned.
 By allowing applications to pass data references instead of just values, and by making data
 references a first-class abstraction in the OS and the network, applications become much simpler to

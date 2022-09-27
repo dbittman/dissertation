@@ -153,7 +153,7 @@ persistent objects, and security contexts. A program
 typically executes as a number of threads in a single address space (providing backwards
 compatibility with existing programming models), into which persistent objects are mapped on-demand.
 Instead of providing a process abstraction, \Twizzler provides \emph{views}
-(Section~\ref{sec:view}) of the object space, which formalizes the notion of ephemeral context within our
+(Sections~\ref{sec:view} and~\ref{sec:view_impl}) of the object space, which formalizes the notion of ephemeral context within our
 model by allowing programs to map objects for access,
 and \emph{security contexts} (Section~\ref{sec:sec}) which define a thread's access rights to objects in the system.
 \Twizzler provides invariant pointers (Chapter~\ref{ch:invariant}) in a low-coordination global address space (Chapter~\ref{ch:global}) for

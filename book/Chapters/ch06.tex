@@ -428,7 +428,7 @@ written with \NVM in mind (but this is true regardless of the target OS).
 Our implementation of the LMDB interface
 corroborated our experience from the KVS case study: much of the complexity in storage interfaces
 and implementations comes from the separation between storage and memory. This has been
-studied before (as we will elucidate in Section~\ref{sec:relwork}), but the advent of \NVM changes the game
+studied before (as we discussed in Section~\ref{sec:historical}), but the advent of \NVM changes the game
 significantly by allowing programmers to think directly via in-memory data structures. The result is
 that interfaces like cursors in a KVS become redundant. We implemented to this interface
 for LMDB, but the functions were largely wrappers around storing a pointer

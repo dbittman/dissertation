@@ -275,8 +275,8 @@ delete system call is invoked on it) until after \texttt{B} is fully deleted. An
 to a large (but finite) number of other objects and may also be \emph{untied} at any time. This
 model of specifying object lifetime relative to others is similar to Rust~\cite{rust}, where
 reference lifetime can be named so that the programmer can express lifetimes of objects relative to
-each other. Note that object ties are not related to persistent pointers (discussed in more detail
-in \S~\ref{sec:invariant_pointers}), and instead primarily provide a way to formalize automatic cleanup.
+each other. Note that object ties are not related to invariant pointers (discussed in more detail
+in Chapter~\ref{ch:invariant}), and instead primarily provide a way to formalize automatic cleanup.
 
 
 Object ties provide a convenient mechanism for applications to build large data structures across
@@ -595,10 +595,12 @@ design is a step in the right direction, addressing some of the
 weaknesses of RPC, by making it possible for the system
 to transparently move data.  But, it only takes us halfway: RPC remains
 compute-centric and programmers must indicate
-\emph{where} code should execute.  For example, the optimization
-described in Section~\ref{sec:example} in which Dave (the powerful
-edge device) performs inference locally could not be realized via
-\emph{any} RPC mechanism.  In our system, code (like data) is global
+\emph{where} code should execute.
+%For example, the optimization
+%described in Section~\ref{sec:example} in which Dave (the powerful
+%edge device) performs inference locally could not be realized via
+%\emph{any} RPC mechanism. 
+In our system, code (like data) is global
 and referenceable from anywhere---there would be no reason to provide a
 separate mechanism for specifying function invocations. Instead, we
 place all data \emph{and} code in a single space, allowing code

@@ -87,16 +87,26 @@ for persistent data access, modern hardware provides (and often requires) the us
 hardware that we can leverage for protection and isolation, adding additional ephemeral state.
 
 \subsection{Views}
+\label{sec:view_impl}
 
 \Twizzler defines objects called ``views'', which coalesce the state
 and context necessary to support ephemeral constructs like threads and application instances into
-\Twizzler objects. A significant part of that state is ephemeral virtual address mappings (discussed in Section~\ref{sec:viewmaps}); \Twizzler
+\Twizzler objects. A significant part of that state is ephemeral virtual address mappings (discussed in Section~\ref{sec:view}); \Twizzler
 provides access to persistent objects by mapping them into the virtual address space
 behind-the-scenes (via \libcore). The view object contains structures to define the layout of the
 virtual address space which the kernel reads and uses to program the MMU accordingly. Figure~\ref{fig:view2} shows how
 views ``mesh'' ephemeral threads with persistent data by providing them a context to operate in.
 Since view objects are normal \Twizzler objects, they can be persisted, allowing
 us to recover application state after power cycles.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=4in]{fig/view2}
+    \caption[View objects in Twizzler]{View objects in \Twizzler. Views manage ephemeral constructs and state, giving threads
+        the necessary context to execute and access persistent data.}
+    \label{fig:view2}
+\end{figure}
+
 
 By coalescing this ephemeral state
 into an object, we make it possible for applications to manage it directly with minimal kernel
@@ -107,7 +117,7 @@ increased address space management responsibility for userspace. For example, ex
 and mapping is largely handled without the kernel.
 
 Applications can add objects to a view with the \texttt{view\_set} function. The caller specifies a
-target object and a set of protections (see \S~\ref{sec:invariant_pointers}), and a slot in which to
+target object and a set of protections (see Chapter~\ref{ch:invariant}), and a slot in which to
 map the object. However, applications rarely invoke this function directly---instead,
 \texttt{libtwz} provides a higher-level API to allow applications to operate above the level of
 manually mapping objects. The standard library also provides access to other utility functions for
@@ -162,6 +172,7 @@ created out of objects. Finally, Twizzler supports a \texttt{fork}-like operatio
 view, remapping and applying copy-on-write copy-from operations as needed.
 
 \section{Security}
+\label{sec:sec}
 
 \todo[inline]{Security section}
 \unedit {
