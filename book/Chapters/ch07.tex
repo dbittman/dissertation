@@ -174,26 +174,125 @@ view, remapping and applying copy-on-write copy-from operations as needed.
 \section{Security}
 \label{sec:sec}
 
-\todo[inline]{Security section}
-\unedit {
-    A \textit{capability} is, at its core, an unforgeable token which
-    grants a particular set of rights on an object~\cite{Lampson1973,Landwehr1981,Gong:sigops89}. A
-    given capability must be protected from tampering, accessible only to a process which is authorized
-    to have it, and obtainable only through some secure mechanism. Many of the systems discussed above
-    use capabilities, albeit in different forms. Some are secure because they are stored in-kernel and
-    accessed via indirection (\unix file descriptors), while some are password-based, granting access
-    when the kernel matches the provided password against an ACL. In most cases, however, these systems
-    require secure capability information to be stored, protected, in kernel-only memory. This limits
-    the power of these systems and requires significant kernel involvement whenever a security decision
-    is made.  Instead, \emph{signed} capabilities can be used~\cite{tanenbaum:osr81}, which allow the
-    kernel to verify the contents of a capability without needing to call out to a secure service or
-    trust that it has not been modified.
-    This approach has obvious benefits for distributed systems and for systems with long-life persistent
-    data, but has not seen significant research as an operating systems security concept over the past
-    few decades.
+
+\Twizzler's focus on memory-based objects requires that we design the security model around
+hardware-based enforcement, where the MMU checks
+each access. This design is \emph{inevitable} in a data-centric OS, since the
+kernel is not involved in every memory access. The kernel merely specifies the access rights when
+mapping an object and then relies on the hardware to enforce those rights with a low overhead.
+
+A key design choice we make is \emph{late-binding on security}. Applications
+request access to an object with permissions that they desire;
+if they access the object in only allowed ways (\eg, only reading a read-only
+object), no fault occurs.
+%This differs from current interfaces like \texttt{open} and \texttt{mmap}.
+This is because when we map an object (via a view), the kernel is not immediately involved, and so
+cannot check access rights for a particular access at the time the mapping is setup. Performing an access rights check on
+time of first access does not make sense either, as it associates a specific access (that
+might be allowed) with a permissions error. For example, if a program reads object $A$, and that program is
+allowed to read $A$, it should be allowed to perform the read even if it requested read-write access
+to the object.
+This late-binding enables simpler programs that need not worry about
+elevating access rights through remapping data objects. Programs can make progress without
+knowing in advance the permissions of the objects they might access, thus enabling the reuse of the
+OS's access control mechanism in applications.
+
+Threads run in a security context~\cite{lwc,bittau:nsdi08,elhajj:asplos16}, which
+contains a list of access rights for objects and allows the kernel to determine the access rights of
+programs. Using these contexts, \Twizzler is able to provide
+analogues to groups and owners in \unix while providing more fine-grained access control if
+necessary. Unlike past exploration into security contexts, data-centric OSes offer an
+advantage in simplicity. A security context abstraction in a \unix-like OS needs to
+maintain access rights to a set of fundamentally different things (such as paths, virtual memory
+locations, and system calls). Instead, \Twizzler's security contexts specify access rights to an object
+via IDs instead of virtual addresses.
+This also makes security contexts persistent, allowing us to use them as
+the primary way we assign security roles to threads.
 
 
-}
+\subsection{Security Contexts and Page Tables}
+\label{sec:secimpl}
+Previously, we discussed how view objects allow applications to specify what objects they
+want mapped in, and with what protections. These are merely \emph{requests}, however; of course if
+the thread does not have the appropriate \emph{permissions} the kernel will program the address
+translation hardware appropriately. This presents a problem: since threads can attach to a number of
+different security contexts, the number of different page-table structures that the kernel needs to
+manage grows quickly.
+
+\Twizzler uses Intel's Extended Page Table (EPT) technology\sidenote{AMD has a similar system, but
+    \Twizzler does not support it yet.}, which is part of the virtualization
+extensions. The EPT allows a virtual address to be translated by two separate page tables, and is
+commonly used to virtualize the MMU in virtual machines. The first
+level, using normal MMU page tables, translates a virtual address to an object-logical
+address (typically with second-level address translation this is referred to as the
+``guest-physical'' address), and the second-level translates this to a physical address.
+We discussed this two-level scheme previously in Chapter~\ref{ch:global}, but here we can use the functionality to
+gain security benefits.
+
+Two-level address translation via the EPT enables \Twizzler to split protection \emph{requests}
+and access control permissions. At the top-level, \Twizzler applies the requested protections from
+the view maps without restriction, and programs the EPT to enforce access control derived from
+security context. Splitting protection and access control is what allows applications to simply map
+objects in for whatever access mode they would like without having to worry about first checking
+permissions.
+Furthermore, by separating out the permissions enforcement from ephemeral state and location
+mapping, we reduce the number of page table structures the kernel needs to manage
+from $O\left(n m\right)$ to $O\left(n + m\right)$, where $n$ is the number of views
+and $m$ is the number of security contexts. Views and security contexts can also be switched out
+independently from each other, which more closely fits the semantics of \Twizzler.
+
+Two-level mapping also greatly simplifies the design of the kernel. Since mapping objects to physical memory
+is done at the second level, page eviction is easy---the kernel can simply modify the shared page
+tables stored per-object, which updates the translation for all views and contexts on the system
+(after appropriate coherence, of course). Moving objects between DRAM and \NVM is made easier
+because objects reside in a given location within object-logical space regardless of where they are
+mapped in virtual memory, so the kernel does not need to maintain back pointers to update page table
+structures.
+
+
+\subsection{Virtualization Hardware}
+\Twizzler's use of virtualization hardware for normal operation is a limitation of existing
+processors. Intel does not have a mechanism for using the EPT without switching on the entire
+virtualization system and running in VMX-non-root mode. However, in practice, the additional
+overhead from running with virtualization is negligible because we do not need all the protection of
+a traditional virtual machine and so we can switch much of it off. Because \Twizzler's kernel is its own
+guest, we can avoid much of the overhead introduced by VM exits necessary in lower-trust VM models.
+For example, \Twizzler's kernel is allowed to modify the EPT structures itself, despite being
+virtualized, and modern processors contain extensions that allow the guest to switch out EPTs itself
+and handle EPT faults without triggering a VM exit.
+
+This pairs nicely with using the IOMMU as well---since EPT structures on Intel can be reused in the
+IOMMU, we can apply security contexts to drivers as well, making driver code less of a special case.
+For example, \Twizzler provides a driver model for userspace drivers that allows driver code to
+construct security contexts that explicitly map in only the necessary objects that a device might
+need to access (\eg command queues, data objects, \emph{etc.}). As hardware devices grow in complexity and
+increase their autonomy, treating them as additional computation resources and limiting access to
+objects through mechanisms already in-place for normal applications allows simpler programming of
+advanced hardware devices.
+
+
+
+
+
+\iffalse
+    \unedit {
+        A \textit{capability} is, at its core, an unforgeable token which
+        grants a particular set of rights on an object~\cite{Lampson1973,Landwehr1981,Gong:sigops89}. A
+        given capability must be protected from tampering, accessible only to a process which is authorized
+        to have it, and obtainable only through some secure mechanism. Many of the systems discussed above
+        use capabilities, albeit in different forms. Some are secure because they are stored in-kernel and
+        accessed via indirection (\unix file descriptors), while some are password-based, granting access
+        when the kernel matches the provided password against an ACL. In most cases, however, these systems
+        require secure capability information to be stored, protected, in kernel-only memory. This limits
+        the power of these systems and requires significant kernel involvement whenever a security decision
+        is made.  Instead, \emph{signed} capabilities can be used~\cite{tanenbaum:osr81}, which allow the
+        kernel to verify the contents of a capability without needing to call out to a secure service or
+        trust that it has not been modified.
+        This approach has obvious benefits for distributed systems and for systems with long-life persistent
+        data, but has not seen significant research as an operating systems security concept over the past
+        few decades.
+    }
+\fi
 
 \section{\textsc{unix} Compatibility}
 \label{sec:legacy}
