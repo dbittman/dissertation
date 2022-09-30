@@ -1,7 +1,98 @@
 
 \chapter{Introduction}\label{ch:intro}
 
-The principal hypothesis of this dissertation is that the data-centric model for designing OS abstractions
-is not only viable, but demanded both by software and hardware trends.
+Let's design and build a new operating system.
 
-\section*{Contributions and Signposting}
+\section*{The Problem}
+
+The confluence of several hardware trends---persistent memory moving up the memory hierarchy, faster interconnect
+technologies, and increasing heterogeneity of compute and memory---demands a fundamental shift in how we view
+applications' relationships with hardware and data. As persistence gets closer to compute, the line separating the traditional two-tier
+memory hierarchy of fast, volatile memory and slow, persistent storage begins to blur. As interconnect technologies
+improve, separate computing nodes are drawn closer to each other in latency space, allowing them to more efficiently
+share memory. As computing resources spread out, as we race to place computing units in devices and near memory, and as
+we start seeing different kinds of physical memory on the bus, the traditional host-centric and process-centric models
+of programming give way to models that better express the increasing demands for concurrency and parallelism between
+devices and computers.
+
+Software both drives some of these trends, as it demands increasing throughput and lower latency when processing data,
+but is also affected by the trends, or more specifically, often limited in expressivity to what \emph{abstractions} are
+presented to software by the operating system. The primary goal of a program is to access and operate on data and any
+additional required work that an application must perform enable that goal is overhead, both in terms of performance
+(latency or throughput) but also \emph{complexity}. Applications must routinely engage in, for example, serialization
+when persisting data, marshalling that data across a network, or when sharing data between processes, which not only
+costs CPU time but also programmer time to define and maintain additional data formats. This overhead sources from the
+abstractions and programming model enabled by the operating system, which is sourced from a model of hardware decades
+old. Traditional operating system abstractions and interfaces do not adequately reflect current hardware, the direction hardware is
+heading, nor the demands of software upon those interfaces.
+
+\section*{The Opportunity}
+We have an opportunity to examine hardware trends and evolve operating system design to make the best possible use of
+new technologies and trends. Mere incremental change will not enable the dramatic improvements in performance and
+complexity heralded by these trends, just as SSDs did not reach their full potential\sidenote{And, arguably, have not
+    still.} until they transcended the disk paradigm. Instead, we will discuss and examine a ``clean-slate'' approach to
+operating system design that avoids trying to mold new hardware into some backwards-compatible existing box. Such an
+approach will necessitate examining past research and reconsidering previously impractical ideas while extending those
+ideas for modern software, hardware, and languages. Simultaneously, we must design new abstractions and interfaces that
+expose a programming model that allows applications to center around the data they are accessing while not requiring
+them to twist into knots trying to best utilize modern hardware.
+
+Our focus will be on a \emph{data-centric} approach, in which \emph{data} is the primary citizen instead of the process.
+As we will see, this framing around data forces us to reconsider and reimagine classic systems programming tropes like serialization,
+explicit, course-grained persistence barriers, call-by-small-value RPC, shared memory, and in-memory data structures
+that cannot escape the bounds of a single process. We will define a design space for data-centric operating systems that
+centers around in-memory data in a global address spaces that can be shared across both space and time, whose lifetime
+is disconnected from ephemera like processes, nodes, and virtual address spaces, and which can be operated on,
+persisted, and shared without the overhead of serialization of operating system involvement in the data access path.
+In a world where in-memory data can last forever and move across processes and nodes, the context required to manipulate
+that data is best coupled with the \emph{data} rather than ephemeral constructs.
+Data has always been the focus of programming; it's time our operating system abstractions adequately capture this
+simple fact.
+
+
+\section*{The Implementation}
+
+The principal hypothesis of this dissertation is that the data-centric model for designing operating system abstractions
+is not only viable, but demanded both by software and hardware trends. Examining this hypothesis will require answering
+a number of questions about the design space, the practicality of any implementation of our ideas, and empirical
+measurements of that implementation. To study data-centric operating system design, we have built \emph{Twizzler}, an
+operating system that embodies the ideas presented herein.
+
+Twizzler consists of a standalone kernel built from scratch, a set of userspace libraries for programming memory, and a
+set of applications we wrote and ported for evaluation. It provides a rich environment for programming in-memory data
+structures that can be shared and persisted by presenting data access as memory access within a (very) large global
+address space in which references to \emph{any other piece of data} are efficiently encoded. Traditional operating
+system abstractions reflect the hardware they are designed for, and Twizzler is no different. Twizzler's abstractions
+for data access center around two core concepts: \textbf{remove the kernel from the data path}, and \textbf{enable the
+    construction of in-memory data that is free from ephemeral context}. We will see how these core concepts manifest, both
+in how they enable new ways of building applications and in how they improve performance when accessing data.
+
+\section*{The Claims}
+
+This dissertation, in addition to investigating the aforementioned principal hypothesis, makes the following claims:
+
+\begin{enumerate}
+    \item Retrofitting existing interfaces is insufficient. Instead, the correct approach to reimagining programming in
+          a world of changing memories is to rebuild the operating system from the ground up.
+          Similarly, Backwards compatibility, while important, is not the primary goal of a reimagined operating system.
+          Applications that want to adapt to new hardware trends should get first-class support.
+    \item A global address space of all data is a viable design for long-lived, in-memory data structures, and access to
+          that address space can be done efficiently with little kernel involvement.
+    \item The implementation of references within the global address space matters beyond simple performance tradeoffs.
+          We can
+          encode references within the address space to not only be \emph{invariant}---\ie not based on any local
+          context---but we can also encode them efficiently, despite the address space being large, with less space
+          overhead than alternative approaches.
+\end{enumerate}
+
+We will examine these claims in more detail throughout the following chapters, keeping in mind the goal---that by
+providing in-memory data structures that don't require kernel intervention in the data access path we can center
+programming around data instead of actors. Showing a viable approach to low-coordination global data naming and
+accessing is the primary piece of the puzzle. But after we place this puzzle piece, there is still much work to do---the
+operating system must provide basic services, convenience libraries, interfaces for ensuring safety in
+failure-atomicity and type correctness for persistent data, and (last but \emph{certainly} not least) security. These
+aspects are no less important than the enumerated claims, however we will approach them in such a way that ties
+them back to be fundamentally derived from the core concepts of Twizzler and the claims above.
+
+\section*{The Signposting}
+
