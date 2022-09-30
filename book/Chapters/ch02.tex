@@ -2,7 +2,7 @@
 
 
 \begin{chabstract}
-    The world is changing out from under us!
+    The world is changing around us!
     This chapter introduces the hardware trends that we observe and discusses some of the details behind our expectations of how these trends will pan out. We will discuss persistence,
     including both SSDs and NVM, along with memory disaggregation, interconnect technologies, and device controller complexity.
 \end{chabstract}
@@ -10,6 +10,12 @@
 Operating systems provide abstractions for data access that reflect the hardware for which they are designed. For example, our current I/O interfaces reflect a structure that takes as axiom
 the separation between volatile and persistent data domains. But those assumptions about hardware may become less and less accurate over time, resulting in an increasing impedance mismatch
 between the interfaces provided and the underlying hardware.
+
+\squo{One of the most basic goals is to build up some abstractions in order
+    to make the system convenient and easy to use. Abstractions are fundamental to everything we do in computer science. Abstraction makes
+    it possible to write a large program by dividing it into small and understandable pieces [...] Abstraction is so fundamental that
+    sometimes we forget its importance.}{Operating Systems: Three Easy Pieces~\cite{ostep}}
+
 
 It therefore pays to examine the trends in hardware\sidenote{And software, as we will see in the next chapter.} and reexamine how we expose that hardware to applications. The work presented
 herein starts with the assumption that hardware trends are, at minimum, worth examining to see how we may wish to update our interfaces, however we argue further that the trends and
@@ -19,20 +25,24 @@ first explore some hardware trends, and then, in the next chapter, put those tre
 
 \section{Memory and Compute}
 
-Memory and storage are becoming both closer and further away\sidenote{Bear with me, now!}. Closeness of memory to CPU in latency space has long been a vital part of ensuring speedy
-computation. However, in the constant battle between latency and throughput (and complexity and density), latency often loses. Thus the latencies of DRAM have not seen dramatic reductions
-for some time. Meanwhile, access to \emph{persistent} memory is getting faster---both in latency \emph{and} throughput. Not only are SSDs constantly improving, but so too are the protocols
-they use and the link speeds between them and main memory.
+Memory and storage are getting closer \emph{and} further away\sidenote{Bear with me, now!}. Closeness of memory to CPU in latency space has long been a vital part of ensuring speedy
+computation. However, in the constant battle between latency and throughput (and complexity and density), latency often
+loses, and the latencies of DRAM have not seen dramatic reductions
+for some time. Meanwhile, access to \emph{persistent} memory is getting faster---both in latency \emph{and} throughput.
+Not only are SSDs constantly improving, but so too are the protocols they use and the link speeds between them and main
+memory.
 
-Additionally, we have recently seen commercially available byte-addressable NVM\sidenote{This document will use the acronym NVM to refer to low-latency, directly attached non-volatile
-    memory. If I want to talk about SSDs, I will be explicit.} in a DIMM form-factor. This technology, Intel Optane\sidenote{We will discuss the outcome of Intel's
+Recently, we have also seen commercially available byte-addressable NVM
+%\sidenote{This document will use the acronym NVM to refer to low-latency, directly attached non-volatile
+%    memory. If I want to talk about SSDs, I will be explicit.}
+in a DIMM form-factor. This technology, Intel Optane\sidenote{We will discuss the outcome of Intel's
     ``attempt'' to market this technology later.} (using 3D-Xpoint technology), provides a persistent memory
 with low latency---only $1.5$--$8\times$ the latency of DRAM in most cases~\cite{ucsd_bnvm}---that is accessible from the CPU directly via normal load/store instructions. Direct, low latency
-access to NVM opens the door to building the system around persistent data structures and avoiding serialization (indeed, this is what we will do).
+access to NVM opens the door to building the system around persistent data structures and avoiding serialization\sidenote{Indeed, this is what we will do.}.
 
 We can view the emergence of NVM as an extreme example of the general trend of persistence getting closer to compute. As a result, the relative cost of indirection and kernel involvement in
 the data path is increasing. While before the cost of a system call was significantly less than that of the actual device activity, now we are seeing the cost of device access shrinking to a
-similar magnitude of the cost of a system call, or in the case of NVM, even less.
+similar magnitude of the cost of a system call, or in the case of \NVM, even less.
 
 \subsection{Distribution}
 
@@ -41,9 +51,9 @@ access to this distributed memory. This is, admittedly, as much about software a
 decoupling memory and compute. On a network level, renewed interest in \ac{dsm} is sourced from a combination of several factors:
 
 \begin{enumerate}
-    \item Network speeds are increasing. With technologies like 100 Gig NICs, 10 Tb/s switches, previous limitations on distributed memory sourced from network performance reduce or go away entirely.
+    \item Network speeds are increasing. With technologies like 100 Gig NICs and 10 Tb/s switches, previous limitations on distributed memory sourced from network performance reduce or go away entirely.
     \item Network hardware complexity is increasing. Not only can those switches sustain 10 Tb/s throughput, but they can be programmable, allowing the network much more participation in
-          protocols. Furthermore, we are seeing new protocols like RDMA enabling remote memory access via the network.
+          protocols. Furthermore, we are seeing protocols like RDMA enabling remote memory access via the network.
 \end{enumerate}
 
 However, it isn't just traditional networking behind memory semantics leaking out past a single traditional node. Interconnect technologies like CXL have the potential to upend the
@@ -109,7 +119,7 @@ Traditionally, data is considered to move into main memory for computation by th
 storage to persistent memory (through a disk or SSD controller) or moved out onto the network
 (through a network controller). Figure~\ref{fig:sys_arch} shows a different model, where data is able to more
 fluidly move
-through the system, or even need less movement. With more complex controllers and off-CPU processing, we expect
+through the system, or even needs less movement. With more complex controllers and off-CPU processing, we expect
 non-traditional data paths to become more common. Say, for example, a packet arrives at the NIC
 containing compressed data for GPU processing. A traditional system would move the compressed data
 into main memory, decompress it using the CPU, and move it into GPU memory for processing. Instead,
@@ -125,9 +135,9 @@ the basic ideas of the trends we discussed---individual, higher powered devices,
 possibly each others' memory pools, with possible NVM and fast interconnects that allow addressing control and
 isolation\sidenote{Cache coherence is an issue that we are not explicitly designing for or against. It remains to be
     seen how cache coherence between these devices will play out. Nonetheless, the issues of coherence and failure-atomicity
-    are not lost on me, and we will discuss them in Chapter~\ref{ch:prog}.}. Concretely, we can see this model mapping well to, for example, CXL, and even current PCIe systems (if we squint
-our eyes
-and have perhaps undue faith in the IOMMU). As the trends we observe continue, the inherent concurrency enabled by
+    are not lost on me, and we will discuss them in Chapter~\ref{ch:prog}.}. Concretely, we can see this model mapping well to, for example, CXL, and even current PCIe systems\sidenote{If we squint
+    our eyes
+    and have perhaps undue faith in the IOMMU.}. As the trends we observe continue, the inherent concurrency enabled by
 allowing devices to operate more independently with more ability to share memory without waiting for permission from the
 CPU and the reduced lengths of code paths in processing data points strongly to a model like the one we describe here.
 
@@ -142,7 +152,7 @@ CPU and the reduced lengths of code paths in processing data points strongly to 
 
     \paragraph{Assume data lifetime is disconnected from ephemera} Memory can now be pooled in units outside the
     purview of the CPU. This can happen either in time---data can be persisted, where the CPU loses control over that
-    data when power is cycled---or in space---where data can traverse a network or an interconnect, or be accessed by
+    data when power is cycled---or in space---where data can traverse a network, be accessed by
     multiple devices on an interconnect. While these forms of temporal and spacial sharing have always existed, they
     have either been relegated to ``experts'' in cordoned off low-level areas of the system (drivers and DMA) or have
     been explicitly designed around by, for example, building OS abstractions around an assumed bifurcation of data into

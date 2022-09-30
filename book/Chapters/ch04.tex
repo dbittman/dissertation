@@ -29,6 +29,8 @@ explicit persistence and network activity, and relying heavily on serialization.
 space makes it possible to enable better sharing (both between applications and devices on one machine and between
 nodes), lower overhead computation, and simpler applications.
 
+\squo{Clearly, for
+    computer systems to be interesting, both input and output are required.}{Operating Systems: Three Easy Pieces~\cite{ostep}}
 Fundamentally, data is and has always been the focus of programming. In the past, our abstractions have failed to
 adequately capture this simple fact. But now, as software looks towards more modern programming models and the friction
 between hardware and current models grows, we have an opportunity to reimagine how we structure programs and data.
@@ -57,14 +59,14 @@ requirements set out in the previous chapters.
 \paragraph{Low Kernel Involvement} As we saw earlier, the kernel imposes a heavy overhead on applications that wish to
 access data outside their local context, even in the case of interfaces like \texttt{mmap}, particularly as device
 latency continues to drop. A data-centric OS should, therefore, avoid requiring significant kernel intervention, instead
-preferring to allow applications to access data directly as in-memory data structures (see below). The reduction in
+preferring to allow applications to access data directly as in-memory data structures\sidenote{See below.}. The reduction in
 kernel involvement and responsibility has some wide-reaching effects, namely in what I call ``the death of the process''.
 
 Processes as a first class OS abstraction are, like virtual addresses, unnecessary; a traditional process couples
 threads of control to a virtual address space, a security role, and kernel state.
 %an environment for a set of threads to operate in.
 However, with the kernel removed from
-persistent data access, much of that kernel state (\eg file descriptors) is unnecessary,
+persistent data access, much of that kernel state\sidenote{\Eg file descriptors, file abstractions, \etc.} is unnecessary,
 leading to a decoupling of mechanisms:
 nothing fundamentally connects a virtual address space
 (a piece of ephemeral context used to access data) and a security context (\emph{what} data
@@ -77,7 +79,7 @@ translation and security roles, allowing threads to select one of each as needed
         protection, shared memory, and (in some cases) hierarchical responsibility still have their uses,
         but do not need to be coalesced into a single, rigid abstraction. Their separation would have
         significant effects on the POSIX model, but our model, built from clean abstractions,
-        can make use of gained flexibility (as we will see in Section~\ref{sec:eval}).}.
+        can make use of gained flexibility\sidenote{As we will see in Section~\ref{sec:eval}.}.}.
 \fi
 
 The process abstraction is just one example. Persistent data access and sharing plays a key role in OS
@@ -104,8 +106,8 @@ addressing and data references makes up the bulk of the work presented here, but
 data with a 100\% byte-level copy across nodes and between processes where the pointers \emph{all mean the same thing}.
 
 
-\paragraph{Pointers as a Common Language} Data references are a fundamental part of encoding data relationships (see
-Chapter~\ref{ch:softwaredemands}). When we consider the implication of encoding data references within a truly global
+\paragraph{Pointers as a Common Language} Data references are a fundamental part of encoding data relationships\sidenote{See
+    Chapter~\ref{ch:softwaredemands}.}. When we consider the implication of encoding data references within a truly global
 address space, we find that we can treat references as a \emph{common language}. If all nodes, processes, and devices
 agree not only on names for data but also \emph{how} to name data, they can more easily share data and interoperate. In
 fact, levels of the infrastructure that previously had no view into data relationships can now gain additional insight
@@ -131,8 +133,8 @@ data and it is automatically persisted. However, mere orthogonal persistence mis
 relationship with distribution of memory and applications. In fact, our view is that persistence and distribution are
 two sides of the same coin---we saw previously that both are plagued by the same problems of overhead, and both domains
 are seeing dramatic improvements in performance. Thus, in a data-centric OS, persistence \emph{is} sharing, and the
-problems of persistence (\eg failure atomicity and durability) can be solved in terms of atomicity and transactions (as
-we will discuss in Section~\ref{sec:crash}).
+problems of persistence\sidenote{Including, but not limited to, failure-atomicity and durability.} can be solved in terms of atomicity and transactions\sidenote{As
+    we will discuss in Section~\ref{sec:crash}.}.
 
 \section{Twizzler: A Point in the Design Space}
 
@@ -422,6 +424,7 @@ operating on in-memory data structures without the performance loss and complexi
 
 
 
+
 %The introduction of byte-addressable non-volatile memory presents an outstanding
 %opportunity to rethink the way that OS's handle memory and storage.
 
@@ -468,7 +471,7 @@ The core of \Twizzler's object space design uses concepts
 from Opal~\cite{chase:tocs94}, which used a single virtual
 address space for all processes on a system, making it easier to share
 data between programs. However, Opal was a single-address space OS, which is insufficient for
-a full data-centric system (as we will see below),
+a full data-centric system\sidenote{As we will soon see.},
 and, while it resulted in a speedup of data transfer and sharing as well as interfacing with
 devices, it did not address issues of file storage and name resolution. It also
 still required a file

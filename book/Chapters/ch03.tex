@@ -10,10 +10,13 @@
 At their core, applications perform computation on in-memory data. Yet much application complexity is tied up in the
 infrastructure surrounding that computation, for example, in managing persistent state and in performing serialization.
 Additional work done by the program (or by the operating system on behalf of the program) that is merely in service of
-setting up the computation and not the computation itself is considered \emph{overhead}. It is the goal of this work to
+setting up the computation and not the computation itself is considered \emph{overhead}. Our goal is to
 reduce that overhead in two ways: improving performance and reducing complexity. To do this, we need to understand where
 overhead comes from, which elements are fundamental, and which are not.
 
+\squo{One goal in designing and implementing an operating system is to
+    provide high performance; another way to say this is our goal is to minimize the overheads of the OS. Virtualization and making the system easy
+    to use are well worth it, but not at any cost.}{Operating Systems: Three Easy Pieces~\cite{ostep}}
 \section{The Old Ways and ``Systems Programming''}
 
 Current operating system interfaces are a poor fit for the trends and hardware requirements we discussed last chapter.
@@ -33,8 +36,8 @@ computation, hooray---after which the results are serialized and placed back ont
 \end{SCfigure}
 
 Let's consider the case of from Chapter~\ref{ch:farout} of faster, closer persistence.
-In the past, the time spent in manually loading and unloading
-data, in transforming it between an on-disk form was an acceptable overhead, since the cost to access the disk was slow,
+In the past, the overhead in manually loading and unloading
+data and in transforming it to and from an on-disk form was acceptable, since the cost to access the disk was slow,
 and those explicit load and store disk operations were going to be issued anyway. But when these operations overshadow
 %% TODO cite more examples
 device access time, the overhead quickly becomes unacceptable. As devices become faster and as applications process more
@@ -53,7 +56,7 @@ applications in a traditional \texttt{pipe}line, \etc\sidenote{Those who sit hig
     systems programming here involves just as much serialization and processing work as anywhere else---or else involves
     doing computation directly on C strings, a fate I would not wish upon my worst enemy.
 }. But why do we spend so much time and effort with serialization and explicit I/O? Because the POSIX abstractions
-fundamentally bifurcate our programming model in two:
+fundamentally bifurcate our programming model into two separate \emph{contexts}:
 
 \begin{enumerate}
     \item \textbf{Local Context} contains data that is limited to a single domain, for example in-memory data accessed
@@ -107,7 +110,7 @@ be stored within the data itself. Of course, we still need some understanding of
 context-sensitive relationships, for example late-binding of names. We do this via a
 ``two-level'' naming system in which GUIDs are \emph{authoritative} names to which we can bind
 additional names for purposes like local references, changing data identification, and discovery
-(see Section~\ref{sec:latebinding}).
+\sidenote{See Section~\ref{sec:latebinding}.}.
 
 Viewing the past through the lens of the present, it was \emph{always} a mistake to entangle the context required to access
 and manipulate data with ephemeral actors.  However, in the days of slow networks, spinning disks and small memories,
@@ -124,7 +127,7 @@ Two different nodes that observe the same data reference should agree on what da
 being referred to, and by the same token, an individual node observing two different data references
 should be able to determine if they point to the same data. This asks the question of \emph{how}
 to encode these explicit context-free data references while remaining efficient and avoiding global
-coordination. We will discuss and answer these questions in detail in Chapters~\ref{ch:global} and \ref{ch:invariant}.
+coordination\sidenote{We will discuss and answer these questions in detail in Chapters~\ref{ch:global} and \ref{ch:invariant}.}.
 
 
 \section{Retrofitting POSIX?}
@@ -331,6 +334,13 @@ is to solve the fundamental context problem that motivates serialization now, an
 mixed into serialization at a higher level.
 
 \begin{chconc}[So, What Does This All Mean (part 2)?]
+
+    \squo{In the early days, building computer systems was easy. Why, you ask?
+        Because users didn’t expect much. It is those darned users with their
+        expectations of “ease of use”, “high performance”, “reliability”, etc., that
+        really have led to all these headaches. Next time you meet one of those
+        computer users, thank them for all the problems they have caused.}{Operating Systems: Three Easy Pieces~\cite{ostep}}
+
 
     Software is growing in complexity, software is becoming more and more distributed with higher and higher demand for
     concurrency as it is asked to process more and more data.
