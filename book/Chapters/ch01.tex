@@ -96,3 +96,49 @@ them back to be fundamentally derived from the core concepts of Twizzler and the
 
 \section*{The Signposting}
 
+\noindent\textbf{Chapter~\ref{ch:farout}} discusses, in detail, the hardware trends we are considering and the implications they
+hold, followed by a discussion of how those trends will inform our operating system design work.
+
+\vspace{2em}
+
+\noindent\textbf{Chapter~\ref{ch:softwaredemands}} covers the software demands of hardware and interfaces, primarily focused on
+the overheads that software has to deal with to get around ``the context problem''. We will cover serialization for
+persistence and distribution as well as patterns of RPC.
+
+\vspace{2em}
+
+\noindent\textbf{Chapter~\ref{ch:datacentric}} combines the insights from the previous two chapters and discusses data-centric
+operating system design, introduces Twizzler, and provides an overview of relevant operating system, persistent memory,
+and systems research.
+
+\vspace{2em}
+
+\noindent Following Chapter~\ref{ch:datacentric}, we begin to focus more specifically on the design and implementation choices we
+made for Twizzler, studying them in case studies, performance analysis, and modeling.
+\textbf{Chapter~\ref{ch:global}} covers the design of the global address space in Twizzler, the model of data objects
+Twizzler uses, and models the collision possibility of object IDs within the space. Finally, it discusses how the global
+address space is realized and accessed on existing hardware.
+
+\vspace{2em}
+
+\noindent\textbf{Chapter~\ref{ch:invariant}} discusses how we encode references within the global address space, introduces the
+\emph{foreign object table}, our solution to naming data in an invariant fashion, and performs case-studies on using
+invariant references to build real data structures that serve as a backend to a ported version of SQLite. These software
+are then evaluated for performance and compared to other solutions to persistent memory programming.
+
+\vspace{2em}
+
+\noindent\textbf{Chapter~\ref{ch:twizzler}} enumerates several core aspects of Twizzler as an operating system, such as object
+services, program instancing, threading, security, and \unix compatibility.
+
+\vspace{2em}
+
+\noindent\textbf{Chapter~\ref{ch:prog}} goes over higher level programming concepts, such as failure-atomicity, type safety,
+memory safety, crash consistency, and new programming patterns enabled by Twizzler's object and invariant references
+model.
+
+\vspace{2em}
+
+\noindent\textbf{Chapter~\ref{ch:conclusion}} concludes with a look back on the work presented here and a look to the future for
+operating systems and for Twizzler, and data-centric designs.
+
