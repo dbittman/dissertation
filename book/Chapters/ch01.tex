@@ -1,7 +1,7 @@
 
 \chapter{Introduction}\label{ch:intro}
 
-Let's design and build a new operating system.
+\emph{Let's design and build a new operating system.}
 
 \section*{The Problem}
 
@@ -17,7 +17,7 @@ devices and computers.
 
 Software both drives some of these trends, as it demands increasing throughput and lower latency when processing data,
 but is also affected by the trends, or more specifically, often limited in expressivity to what \emph{abstractions} are
-presented to software by the operating system. The primary goal of a program is to access and operate on data and any
+presented to software by the operating system\sidenote{OS abstractions, the common punching bag among systems.}. The primary goal of a program is to access and operate on data and any
 additional required work that an application must perform enable that goal is overhead, both in terms of performance
 (latency or throughput) but also \emph{complexity}. Applications must routinely engage in, for example, serialization
 when persisting data, marshalling that data across a network, or when sharing data between processes, which not only
@@ -27,12 +27,19 @@ old. Traditional operating system abstractions and interfaces do not adequately 
 heading, nor the demands of software upon those interfaces.
 
 \section*{The Opportunity}
+
+\squo{Two roads diverged in a wood, and I---\\ I took the one less traveled by, \\ And that has made all the difference.}{Robert Frost}
+
 We have an opportunity to examine hardware trends and evolve operating system design to make the best possible use of
 new technologies and trends. Mere incremental change will not enable the dramatic improvements in performance and
-complexity heralded by these trends, just as SSDs did not reach their full potential\sidenote{And, arguably, have not
-    still.} until they transcended the disk paradigm. Instead, we will discuss and examine a ``clean-slate'' approach to
-operating system design that avoids trying to mold new hardware into some backwards-compatible existing box. Such an
-approach will necessitate examining past research and reconsidering previously impractical ideas while extending those
+complexity heralded by these trends, just as SSDs did not reach their full potential
+until they transcended the disk paradigm\sidenote{Arguably, they still haven't. SSDs were, for a long time, treated as
+    ``fast disks'', to the detriment of our storage stacks.}. Instead, we will discuss and examine a ``clean-slate'' approach to
+operating system design that avoids trying to mold new hardware into some backwards-compatible existing
+box\sidenote{Imagine if we tried to access, say, persistent RAM with interfaces designed for magnetic tape! \emph{Stares
+        straight into the camera.}}. Such an
+approach will necessitate examining past research and reconsidering previously impractical ideas\sidenote{Knowledge
+    derives from experience of the world, but what if that world were to change?} while extending those
 ideas for modern software, hardware, and languages. Simultaneously, we must design new abstractions and interfaces that
 expose a programming model that allows applications to center around the data they are accessing while not requiring
 them to twist into knots trying to best utilize modern hardware.
@@ -40,10 +47,11 @@ them to twist into knots trying to best utilize modern hardware.
 Our focus will be on a \emph{data-centric} approach, in which \emph{data} is the primary citizen instead of the process.
 As we will see, this framing around data forces us to reconsider and reimagine classic systems programming tropes like serialization,
 explicit, course-grained persistence barriers, call-by-small-value RPC, shared memory, and in-memory data structures
-that cannot escape the bounds of a single process. We will define a design space for data-centric operating systems that
+that cannot escape the bounds of a single process\sidenote{See Chapter~\ref{ch:softwaredemands}.}. We will define a design space for data-centric operating systems that
 centers around in-memory data in a global address spaces that can be shared across both space and time, whose lifetime
 is disconnected from ephemera like processes, nodes, and virtual address spaces, and which can be operated on,
-persisted, and shared without the overhead of serialization of operating system involvement in the data access path.
+persisted, and shared without the overhead of serialization of operating system involvement in the data access
+path\sidenote{See Chapter~\ref{ch:datacentric}.}.
 In a world where in-memory data can last forever and move across processes and nodes, the context required to manipulate
 that data is best coupled with the \emph{data} rather than ephemeral constructs.
 Data has always been the focus of programming; it's time our operating system abstractions adequately capture this
@@ -77,12 +85,12 @@ This dissertation, in addition to investigating the aforementioned principal hyp
           Similarly, Backwards compatibility, while important, is not the primary goal of a reimagined operating system.
           Applications that want to adapt to new hardware trends should get first-class support.
     \item A global address space of all data is a viable design for long-lived, in-memory data structures, and access to
-          that address space can be done efficiently with little kernel involvement.
+          that address space can be done efficiently with little kernel involvement\sidenote{See Chapter~\ref{ch:global}.}.
     \item The implementation of references within the global address space matters beyond simple performance tradeoffs.
           We can
           encode references within the address space to not only be \emph{invariant}---\ie not based on any local
           context---but we can also encode them efficiently, despite the address space being large, with less space
-          overhead than alternative approaches.
+          overhead than alternative approaches\sidenote{See Chapter~\ref{ch:invariant}.}.
 \end{enumerate}
 
 We will examine these claims in more detail throughout the following chapters, keeping in mind the goal---that by
@@ -90,11 +98,15 @@ providing in-memory data structures that don't require kernel intervention in th
 programming around data instead of actors. Showing a viable approach to low-coordination global data naming and
 accessing is the primary piece of the puzzle. But after we place this puzzle piece, there is still much work to do---the
 operating system must provide basic services, convenience libraries, interfaces for ensuring safety in
-failure-atomicity and type correctness for persistent data, and (last but \emph{certainly} not least) security. These
+failure-atomicity and type correctness for persistent data, and (last but \emph{certainly} not least)
+security\sidenote{See Chapters~\ref{ch:twizzler} and~\ref{ch:prog}.}. These
 aspects are no less important than the enumerated claims, however we will approach them in such a way that ties
 them back to be fundamentally derived from the core concepts of Twizzler and the claims above.
 
 \section*{The Signposting}
+
+\squo{“Being lost is not a matter of knowing where you are. It's a matter of knowing where you aren't.”}{
+    \emph{The Phantom Tollbooth}, Norton Juster}
 
 \noindent\textbf{Chapter~\ref{ch:farout}} discusses, in detail, the hardware trends we are considering and the implications they
 hold, followed by a discussion of how those trends will inform our operating system design work.
@@ -102,7 +114,8 @@ hold, followed by a discussion of how those trends will inform our operating sys
 \vspace{2em}
 
 \noindent\textbf{Chapter~\ref{ch:softwaredemands}} covers the software demands of hardware and interfaces, primarily focused on
-the overheads that software has to deal with to get around ``the context problem''. We will cover serialization for
+the overheads that software has to deal with to get around ``the context problem''. We will cover
+serialization\sidenote{\emph{``Boo''ing sounds}.} for
 persistence and distribution as well as patterns of RPC.
 
 \vspace{2em}
@@ -142,3 +155,9 @@ model.
 \noindent\textbf{Chapter~\ref{ch:conclusion}} concludes with a look back on the work presented here and a look to the future for
 operating systems and for Twizzler, and data-centric designs.
 
+
+\chendsep
+
+Twizzler is open-source and can be found at \url{twizzler.io}\sidenote{You can tell that it's a noteworthy project
+    because the \href{https://mail.gnu.org/archive/html/config-patches/2019-09/msg00001.html}{GNU config.sub file recognizes
+        it}.}.
