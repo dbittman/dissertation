@@ -1,6 +1,7 @@
 
 \chapter{Conclusion}\label{ch:conclusion}
 
+\emph{Let's talk about this operating system we just designed and built.}
 
 \section{To Look Ahead}
 
@@ -8,6 +9,19 @@
     ``To look ahead,'' said he.
 }{\emph{The Hobbit}, J.R.R Tolkien}
 
+
+We stand before a crossroads. Before us is a convergence of trends, a great upset within the memory hierarchy, faster
+and smarter networks and interconnects, the disaggregation of compute, and the
+ever increasing demands for concurrency and performance from software. The friction to reexamine our models and evolve
+our operating systems is low---provided we can produce a compelling reason for developers to invest in new ways of programming.
+Do we take the easy route, like so many times before, and try to shoehorn new technologies into existing interfaces, or
+do we take a step towards a model that expresses a data-centric view and better fits with hardware trends and the goals
+of software? For us, the answer is clear\sidenote{It's the second thing.}.
+
+So, what happens next? There are two aspects of the future I want to discuss with respect to Twizzler---the future of
+the model we discussed and its resilience, and future research directions for Twizzler.
+
+\subsection{Future Models}
 
 It really does appear, in hindsight, as if operating system interfaces plunged fully and purposefully into the endless maw of
 complexity. However, the decisions over the years were not made with the foresight required to predict what criticisms
@@ -17,45 +31,62 @@ among new hardware and software characteristics. That said, I have made some att
 may be useful beyond \emph{specific} hardware and instead is modeled after patterns:
 
 \begin{enumerate}
-    \item abstraction of physical memory, support for different kinds
-    \item low level pointers, high level language
-    \item small kernel, pushing infra into userspace, replacable
-    \item global space that supports both devices and nodes
+    \item Instead of focusing specifically on NVM DIMMs, we have designed our object model around the idea of a
+          heterogeneous memory system in general. Should future kinds of memory be adopted, and mix-and-matched, or should
+          NUMA become more common, our model built for understanding data movement within physical memory as a first-class
+          operation will be able to adapt.
+    \item Instead of trying to be doctrinaire at a low-level and limit our invariant references to the semantics of a
+          single language, we provide a ``lowest common denominator'' in our implementation of references, and allow
+          additional metadata to be stored in the FOT should richer semantics need additional storage. As a result, we can not
+          only support languages of today, but also future languages and runtimes that may wish for a richer model.
+    \item The Twizzler kernel is small, largely because most functionality is pushed into userspace. Thus, not only can
+          we more easily modularize, update, and replace components, but those components are closer to applications and can
+          be communicated with more easily.
+    \item The design of our global address space is not limited to exist within a single machine, it is large enough
+          that huge numbers of computers can interact with it wih low coordination. Should the size need to increase, we can
+          do so with an application-agnostic procedure. Finally, the address space is usable both by multiple
+          independent nodes, but also components within the nodes, enabling hardware devices to operate independently.
 \end{enumerate}
 
+\subsection{Future Research}
+
+\squo{I hope that we continue with exploration.}{Margaret H. Hamilton}
 
 A common saying asserts that a dissertation describes completed work, and thus any discussion of future work should reflect
 the nature that the work is completed. Yet I would be remiss if I didn't adequately convey that the nature of an
-operating system does not include completeness.
+operating system does not include completeness, and for a research operating system, that means there are always future
+research directions we can explore. Here are a few.
 
+\paragraph{Compiler Support}
+\Twizzler's clean-slate \NVM abstraction reopens the possibility of coevolving OSes, compilers and
+languages, and hardware.
+Standardized OS support for cross-object pointers provides a stationary target for both
+compilers and hardware to design towards, whereas application-specific solutions do not.
+\Twizzler's pointer translation functions are simple enough to be emitted by a compiler. We plan
+to explore adding basic compiler support for C and C++ to automatically interoperate with
+\Twizzler so that persistent pointers are even more transparent to the compiler. Better still,
+we would like to study additional language-level support for persistent pointers, including type
+and lifetime annotations (such as the ones supported in Rust~\cite{rust}) for additional semantics the
+compiler can make use of when emitting code that operates directly on persistent data
+structures.
 
+\paragraph{Hardware Support}
+Hardware support, too, can be helpful in improving the performance of our pointer translations.
+With \Twizzler providing a common framework, we can clearly state our needs to hardware. For
+example, hardware accelerated FOT access would improve the performance in pointer-heavy data
+structures. Segmentation support, allowing us to assign page-tables for each object and load
+them in as needed, would dramatically speedup memory mapping (and move memory management closer
+to the semantics of our programming model). Finally, first-class support for abstracting
+physical memory---a necessary feature for efficiently moving data around in a heterogeneous
+memory hierarchy in the face of numerous devices---would simplify the design of the kernel
+because we would not need to invoke the entirety of the virtualization hardware. We are
+interested in exploring modifications to RISC-V to better support \Twizzler.
 
+\paragraph{Higher Level Programming Models}
 
-\unedit{
-    \paragraph{Compiler and Hardware Support.}
-    \Twizzler's clean-slate \NVM abstraction reopens the possibility of coevolving OSes, compilers and
-    languages, and hardware.
-    Standardized OS support for cross-object pointers provides a stationary target for both
-    compilers and hardware to design towards, whereas application-specific solutions do not.
-    \Twizzler's pointer translation functions are simple enough to be emitted by a compiler. We plan
-    to explore adding basic compiler support for C and C++ to automatically interoperate with
-    \Twizzler so that persistent pointers are even more transparent to the compiler. Better still,
-    we would like to study additional language-level support for persistent pointers, including type
-    and lifetime annotations (such as the ones supported in Rust~\cite{rust}) for additional semantics the
-    compiler can make use of when emitting code that operates directly on persistent data
-    structures.
-
-    Hardware support, too, can be helpful in improving the performance of our pointer translations.
-    With \Twizzler providing a common framework, we can clearly state our needs to hardware. For
-    example, hardware accelerated FOT access would improve the performance in pointer-heavy data
-    structures. Segmentation support, allowing us to assign page-tables for each object and load
-    them in as needed, would dramatically speedup memory mapping (and move memory management closer
-    to the semantics of our programming model). Finally, first-class support for abstracting
-    physical memory---a necessary feature for efficiently moving data around in a heterogeneous
-    memory hierarchy in the face of numerous devices---would simplify the design of the kernel
-    because we would not need to invoke the entirety of the virtualization hardware. We are
-    interested in exploring modifications to RISC-V to better support \Twizzler.
-
+The programming model we discussed in Chapter~\ref{ch:prog} provides a number of basic operations on objects, but one
+could imagine a higher level model. By leveraging Rust's semantics, we can imagine ... \todo[inline]{more here}
+\iffalse
 
     \paragraph{Security.} Although we discussed the \Twizzler security model briefly,
     there is still much to do. The current model provides access control, a basic ability to
@@ -96,19 +127,17 @@ operating system does not include completeness.
     benefits afforded by kernel-bypass networking frameworks while still using traditional socket
     interfaces.
 
+\fi
 
-    \paragraph{Alternative Block Storage Technologies.}
+\paragraph{Alternative Block Storage Technologies.}
 
-    Our work meshes well with key-value SSDs, which extend the NVMe
-    specification to include \texttt{put} and \texttt{get} operations. This would allow us to store and
-    retrieve parts of objects based on their names rather than block addresses, thus greatly
-    simplifying the storage system of the OS because it removes the need for a filesystem. \Twizzler
-    uses a userspace pager design for moving data between memory and indirectly-accessible storage;
-    providing a more ``native'' interface for object-based storage will greatly improve the performance
-    of this system. We have prototype KVSSDs, and are in the process of implementing support for them in
-    \Twizzler.
-
-}
+Our work meshes well with key-value SSDs, which extend the NVMe
+specification to include \texttt{put} and \texttt{get} operations. This would allow us to store and
+retrieve parts of objects based on their names rather than block addresses, thus greatly
+simplifying the storage system of the OS because it removes the need for a filesystem. \Twizzler
+uses a userspace pager design for moving data between memory and indirectly-accessible storage;
+providing a more ``native'' interface for object-based storage will greatly improve the performance
+of this system.
 
 
 
@@ -118,9 +147,32 @@ operating system does not include completeness.
     ``Looking behind,'' said he.
 }{\emph{The Hobbit}, J.R.R Tolkien}
 
+Let's return to the principal hypothesis I put forward in Chapter~\ref{ch:intro}.
 
+\begin{quotation}
+    \noindent The principal hypothesis is that the data-centric model
+    for designing operating system abstractions is not only viable, but demanded both by software and hardware trends.
+\end{quotation}
 
+In Chapter~\ref{ch:farout} and~\ref{ch:softwaredemands} we discussed the trends in hardware and software that led to
+the above statement, putting together the primary arguments that, (1) hardware is pushing us towards having in-memory
+data structures escape their traditional confinement, (2) software overheads induced by the context problem and
+operating system involvement are too high for modern hardware, (3) a data-centric model addresses the problems we have
+discussed via a method of progamming and storing data that requires no serialization and enables direct access and
+sharing. We also discussed why retrofitting is insufficient, covering Claim 1 from Chapter~\ref{ch:intro}.
 
+\squo{“The most important reason for going from one place to another is to see what's in between.”}{\emph{The Phantom
+        Tollbooth}, Norton Juster}
+In Chapter~\ref{ch:datacentric} we discussed some details of the data-centric viewpoint, followed by elucidating
+Twizzler's place in the design space. Chapters~\ref{ch:global} and Chapter~\ref{ch:invariant} covered the global address
+space and references within that space, going into detail with case studies, performance analysis, and modeling to
+establish the viability of the model in terms of usability, performance overhead, and space overhead, thus covering the
+remaining Chapter~\ref{ch:intro} Claims.
+
+Chapters~\ref{ch:twizzler} and~\ref{ch:prog} wrap up by discussing operating system services and implementation, and
+programming model details. Discussing details like failure-atomicity in allocation, persistence, durability, and
+crash-recovery is vital, as it establishes where the complexity in the system still remains, despite many things getting
+easier.
 
 
 \section{Final Remarks}
@@ -130,3 +182,37 @@ operating system does not include completeness.
     Now the family is parted,\\
     Will it be complete one day?\\
 }{\emph{Will the Circle be Unbroken}, Ada R. Habershon}
+
+
+Operating systems must evolve to support future trends in memory hierarchy
+organization. Failing to evolve will relegate new technology to
+outdated access models, preventing it from reaching full potential,
+and making it difficult for OSes to evolve in the
+future. \Twizzler shows a way forward: an
+OS designed around new hardware trends and software demands that provides
+new, efficient, and easy to use semantics for direct access to memory in a global address space.
+\Twizzler will give us a system from which
+we can build a full \NVM-based OS around a data-centric design and explore the future of applications, OSes, and
+processor design on a new memory hierarchy.
+
+Overall, we have shown that invariant pointers in \Twizzler allow programmers to easily build
+composable and extensible applications with low overhead
+by removing the kernel from persistent data access paths,
+thereby improving the flexibility and performance.
+Our simpler programming model improved performance despite the (small)
+pointer translation overhead.
+Our programming model is easy to work with
+compared to existing systems, and we were able to both quickly prototype real
+applications with advanced access control features and port existing software (SQLite).
+
+But those aren't the real lessons. Instead, consider how much of the operating system was under review after asking a
+simple question, ``what if the lifetime of in-memory data extends beyond the ephemera?'' This question was at the heart
+of this research, and led to all the work herein. It's not tied to a specific idea about persistent
+memory\sidenote{Though I won't deny that NVM kicked it off.} or networking, but about programming, applications, and
+data. Reconsidering core ideas in programming and operating systems can lead to dramatic shifts in our understanding and
+designs. If we do not take the plunge by calling into question core beliefs and make moves towards building new things,
+we will be forever mired in the cage of our outdated systems. But there is hope---not from Twizzler alone, but from all
+the operating systems research that has been recently exploding. It's an exciting time, and I cannot wait for the next
+new operating system that upsets the norm.
+
+\squo{``It's a magical world, Hobbes, ol' buddy... Let's go exploring!''}{Calvin, \emph{Calvin and Hobbes}, Bill Watterson}
