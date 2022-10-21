@@ -10,9 +10,9 @@
 The confluence of several hardware trends---persistent memory moving up the memory hierarchy, faster interconnect
 technologies, and increasing heterogeneity of compute and memory---demands a fundamental shift in how we view
 applications' relationships with hardware and data. As persistence gets closer to compute, the line separating the traditional two-tier
-memory hierarchy of fast, volatile memory and slow, persistent storage begins to blur. As interconnect technologies
-improve, separate computing nodes are drawn closer to each other in latency space, allowing them to more efficiently
-share memory. As computing resources spread out, as we race to place computing units in devices and near memory, and as
+memory hierarchy of fast, volatile memory and slow, persistent storage begins to blur. Meanwhile, interconnect technologies
+are improving, causing separate computing nodes to be drawn closer to each other in latency space, allowing them to more efficiently
+share memory. Computing resources are spreading out, as we race to place computing units in devices and near memory, and as
 we start seeing different kinds of physical memory on the bus, the traditional host-centric and process-centric models
 of programming give way to models that better express the increasing demands for concurrency and parallelism between
 devices and computers.
@@ -21,11 +21,10 @@ Software both drives some of these trends, as it demands increasing throughput a
 but is also affected by the trends, or more specifically, often limited in expressivity to what \emph{abstractions} are
 presented to software by the operating system\sidenote{OS abstractions, the common punching bag among systems.}. The primary goal of a program is to access and operate on data and any
 additional required work that an application must perform enable that goal is overhead, both in terms of performance
-(latency or throughput) but also \emph{complexity}. Applications must routinely engage in, for example, serialization
-when persisting data, marshalling that data across a network, or when sharing data between processes, which not only
-costs CPU time but also programmer time to define and maintain additional data formats. This overhead sources from the
-abstractions and programming model enabled by the operating system, which is sourced from a model of hardware decades
-old. Traditional operating system abstractions and interfaces do not adequately reflect current hardware, the direction hardware is
+(latency or throughput) but also \emph{complexity}. Applications must routinely pay significant overhead costs that
+ultimately sources from the abstractions and programming model enabled by the operating system, which is in turn sourced
+from a model of hardware decades old.
+Traditional operating system abstractions and interfaces do not adequately reflect current hardware, the direction hardware is
 heading, nor the demands of software upon those interfaces.
 
 \section*{The Opportunity}
@@ -47,12 +46,12 @@ expose a programming model that allows applications to center around the data th
 them to twist into knots trying to best utilize modern hardware.
 
 Our focus will be on a \emph{data-centric} approach, in which \emph{data} is the primary citizen instead of the process.
-As we will see, this framing around data forces us to reconsider and reimagine classic systems programming tropes like serialization,
-explicit, course-grained persistence barriers, call-by-small-value RPC, shared memory, and in-memory data structures
+As we will see, this framing around data forces us to reconsider and reimagine classic systems programming tropes like
+explicit, course-grained persistence barriers, call-by-small-value RPC, shared memory, serialization, and in-memory data structures
 that cannot escape the bounds of a single process\sidenote{See Chapter~\ref{ch:softwaredemands}.}. We will define a design space for data-centric operating systems that
 centers around in-memory data in a global address spaces that can be shared across both space and time, whose lifetime
 is disconnected from ephemera like processes, nodes, and virtual address spaces, and which can be operated on,
-persisted, and shared without the overhead of serialization of operating system involvement in the data access
+persisted, and shared without the overhead of operating system involvement in the data access
 path\sidenote{See Chapter~\ref{ch:datacentric}.}.
 In a world where in-memory data can last forever and move across processes and nodes, the context required to manipulate
 that data is best coupled with the \emph{data} rather than ephemeral constructs.

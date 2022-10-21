@@ -23,7 +23,7 @@ overhead comes from, which elements are fundamental, and which are not.
 
 Current operating system interfaces are a poor fit for the trends and hardware requirements we discussed last chapter.
 File \texttt{read} and \texttt{write} interfaces, originally designed for sequential media and later expanded for
-block-based media, require significant kernel involvement and serialization, violating both the requirement to reduce
+block-based media, require significant kernel involvement and often serialization, violating both the requirement to reduce
 kernel involvement, and the need to reduce code paths around accessing data. Figure~\ref{fig:cycle} shows a fairly
 common data path for an application that operates on (and perhaps mutates) some persistent data. First the data is
 loaded explicitly into memory, either in a streaming fashion or as a whole file, followed by the application manually
@@ -57,7 +57,7 @@ applications in a traditional \texttt{pipe}line, \etc\sidenote{Those who sit hig
     who has actually had the misfortune of parsing the output of even a moderatly complex \unix tool can realize that
     systems programming here involves just as much serialization and processing work as anywhere else---or else involves
     doing computation directly on C strings, a fate I would not wish upon my worst enemy.
-}. But why do we spend so much time and effort with serialization and explicit I/O? Because the POSIX abstractions
+}. But why do we often spend so much time and effort with serialization and explicit I/O? Because the POSIX abstractions
 fundamentally bifurcate our programming model into two separate \emph{contexts}:
 
 \begin{enumerate}
@@ -139,6 +139,8 @@ approach might look like. For example, the problem of direct access might be sol
 problem of global references could be solved by traditional pointer swizzling built atop \texttt{mmap}, \etc. We could
 even combine this with RDMA to gain a \ac{dsm} model.
 
+Let's first consider the use of \texttt{mmap} to provide an interface for \NVM before looking more broadly at
+persistence in general.
 The \texttt{mmap} system call attempts to hide storage behind a memory interface through hidden
 data copies. But, with \NVM, these copies are wasteful, and \texttt{mmap} still has significant kernel
 involvement and the need for explicit \texttt{msync} calls. ``Direct Access'' (DAX)
@@ -163,7 +165,9 @@ understanding how the PMDK abstractions interact with the POSIX ones. Instead, o
 build legacy support atop new abstractions (as we will see in Section~\ref{sec:legacy}), and avoid falling back to legacy
 models for persistent data access.
 
-Additionally, models that layer \NVM programming atop existing interfaces often fail to facilitate effective persistent data sharing and
+Even without \NVM, we have similar problems. Our goal of programming with memory semantics on in-memory data structures
+leads to many of the same arguments as above.
+Additionally, models that layer new models atop existing interfaces often fail to facilitate effective persistent data sharing and
 protection.  PMDK, for example, makes design choices that limit
 scalability, since its
 data objects are not self-contained and do not have a large enough ID space, resulting
@@ -196,8 +200,8 @@ programmer to decouple an application by explicitly separating the
 computational endpoint or \emph{location} where a function is invoked
 from the location where the function executes.  As a consequence, they are
 well-suited to a relatively narrow set of use cases in which
-function arguments (which flow from invoker to executor) and
-returns (which flow back) must be serialized and sent in their
+function arguments, which flow from invoker to executor, and
+returns, which flow back, must be serialized and sent in their
 entirety, and hence are small, and in which reference data must be
 located on the executor.
 
@@ -331,7 +335,7 @@ really care about the data they are passing, they just worry about protocol head
 are problems that we can (and regularly do) solve at the language level.
 
 And furthermore, there is nothing fundamentally tying these elements to the idea of global context and references, so
-even if they weren't concerns at all, we would still need to serialize data as it moves across contexts. Our approach
+even if they weren't concerns at all, we would still often need to serialize data as it moves across contexts. Our approach
 is to solve the fundamental context problem that motivates serialization now, and solve the smaller problems that got
 mixed into serialization at a higher level.
 

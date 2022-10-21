@@ -13,7 +13,7 @@
 \end{chabstract}
 
 Operating systems provide abstractions for data access that reflect the hardware for which they are designed. For example, our current I/O interfaces reflect a structure that takes as axiom
-the separation between volatile and persistent data domains. But those assumptions about hardware may become less and less accurate over time, resulting in an increasing impedance mismatch
+the separation between volatile and persistent data domains. Any assumptions we make about hardware, however, may become less accurate over time, resulting in an increasing impedance mismatch
 between the interfaces provided and the underlying hardware.
 
 \squo{One of the most basic goals is to build up some abstractions in order
@@ -23,8 +23,8 @@ between the interfaces provided and the underlying hardware.
 
 
 It therefore pays to examine the trends in hardware\sidenote{And software, as we will see in the next chapter.} and reexamine how we expose that hardware to applications. The work presented
-herein starts with the assumption that hardware trends are, at minimum, worth examining to see how we may wish to update our interfaces, however we argue further that the trends and
-opportunities we are presented with demand a full scale revolution in how programming models are designed, and in the design of operating systems that wish to support these new models. Let's
+herein starts with the assumption that hardware trends are, at minimum, worth examining to see how we may wish to update our interfaces. We argue further that the trends and
+opportunities we are presented with demand a full scale revolution in how programming models are designed, and in the design of operating systems that wish to support new models. Let's
 first explore some hardware trends, and then, in the next chapter, put those trends in the context of the software that we wish to better support.
 
 
@@ -85,7 +85,8 @@ increased density and lower cost per byte. Having larger memories means a few th
 \begin{enumerate}
     \item Some nodes may have wasted memory as workloads come and go. This ties in with the above points about
           disaggregated memory---sharing unused memory is more cost effective, since unused RAM is wasted RAM.
-    \item Memory can have an induced-demand effect. Similar to building additional lanes on highways just increases
+          %TODO: cite
+    \item Memory can have an induced-demand effect. Similar to how building additional lanes on highways just increases
           traffic, making more memory available can cause additional memory traffic since working sets can be larger.
     \item In-memory sharing can increase. With significantly larger memories, applications can take advantage by not
           writing intermediate results to storage, and instead can write to shared memory, even large intermediate results.
@@ -177,7 +178,7 @@ CPU and the reduced lengths of code paths in processing data points strongly to 
     We call an operating system that meets both of the above requirements
     \emph{data-centric}, as opposed to current OSes, which are \emph{process-centric}.
     Facilitating
-    operations by applications on in-memory data structures is the primary functions of a data-centric OS,
+    operations by applications on in-memory data structures is the primary function of a data-centric OS,
     which tries to avoid interposing on such operations, preferring instead to intervene only when
     necessary to ensure properties such as security and isolation. To meet both of these requirements
     a data-centric OS must provide effective abstractions for identifying data independent

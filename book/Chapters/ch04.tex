@@ -18,7 +18,7 @@ what hardware is trending to provide nor does it provide adequate abstractions f
 low overhead. Meanwhile, the increasing heterogeneity of our computing environments---different kinds of memory
 at different distances, specialized computing devices, near-storage compute, and remote computation---force us into a
 corner when trying to use current operating system abstractions to model what is, in essence, a global environment of computation and
-data. It is vital that operating systems evolve to provide new abstractions that are a clean-break---they must make the
+data. It is vital that operating systems evolve to provide new abstractions---they must make the
 best possible use of hardware trends to provide a programming model that aligns with software's demands for low-overhead
 computation. Mere incremental change is insufficient for enabling dramatic improvements in performance and complexity.
 
@@ -50,8 +50,8 @@ new hardware, and we should support those applications with better fitting progr
 
 \section{A Design Space}
 
-A data-centric operating system in which in-memory data is the primary citizen still leaves a large design space for how
-we might accomplish such a thing. Indeed, the remainder of this dissertation will be focused mostly on our design and
+The idea of a data-centric operating system in which in-memory data is the primary citizen still leaves a large space for how
+we might actually design such a system. Indeed, the remainder of this dissertation will be focused mostly on our design and
 implementation choices, the rationale for those choices, and empirical evaluation. However, it is still worth taking a
 minute to discuss the design space we are in and nail down what it means to design a data-centric OS that meets the
 requirements set out in the previous chapters.
@@ -60,7 +60,7 @@ requirements set out in the previous chapters.
 access data outside their local context, even in the case of interfaces like \texttt{mmap}, particularly as device
 latency continues to drop. A data-centric OS should, therefore, avoid requiring significant kernel intervention, instead
 preferring to allow applications to access data directly as in-memory data structures\sidenote{See below.}. The reduction in
-kernel involvement and responsibility has some wide-reaching effects, namely in what I call ``the death of the process''.
+kernel involvement and responsibility has some wide-reaching effects, which we call ``the death of the process''.
 
 Processes as a first class OS abstraction are, like virtual addresses, unnecessary; a traditional process couples
 threads of control to a virtual address space, a security role, and kernel state.
@@ -94,9 +94,9 @@ the programming model should get first-class OS support.
 
 
 \paragraph{In-memory Data Structures and Global Addressing}
-The need to place in-memory data structures front and center sources from both the desire to reduce serialization
+The need to place in-memory data structures front and center comes from both the desire to reduce serialization
 overhead (Chapter~\ref{ch:softwaredemands}) but also to allow better sharing and direct use of distributed or persistent
-memory (Chapter~\ref{ch:farout}). However, as we discussed, the virtual address space does \emph{not} work for this
+memory (Chapter~\ref{ch:farout}). As we discussed, the virtual address space does \emph{not} work for this
 purpose\sidenote{We will discuss single address space operating systems later in this chapter.} as it is ephemeral.
 Furthermore, sharing data with not just other applications but other nodes and devices demands a large and global
 address space of data to avoid the context problem. But
@@ -128,11 +128,11 @@ language between the OS, the network, and applications, we can move this infrast
 out of the application and back \emph{into the infrastructure} where it belongs.
 
 \paragraph{Persistence is Sharing} In Chapter~\ref{ch:farout} we discussed how persistence is getting closer to compute
-(in multiple ways). A natural approach would be to focus on \emph{orthogonal persistence}, in which applications write
+in multiple ways. A natural approach would be to focus on \emph{orthogonal persistence}, in which applications write
 data and it is automatically persisted. However, mere orthogonal persistence misses out on a more fundamental
-relationship with distribution of memory and applications. In fact, our view is that persistence and distribution are
+relationship with distribution of memory and applications. Our view is that persistence and distribution are
 two sides of the same coin---we saw previously that both are plagued by the same problems of overhead, and both domains
-are seeing dramatic improvements in performance. Thus, in a data-centric OS, persistence \emph{is} sharing, and the
+are seeing dramatic improvements in performance. In a data-centric OS, persistence \emph{is} sharing, and the
 problems of persistence\sidenote{Including, but not limited to, failure-atomicity and durability.} can be solved in terms of atomicity and transactions\sidenote{As
     we will discuss in Section~\ref{sec:crash}.}.
 
@@ -152,8 +152,8 @@ enable us to build an efficient implementation of a modern approach to programmi
 \Twizzler is a stand-alone kernel and userspace runtime that provides execution support
 for programs. It provides, as first-class abstractions, a notion of threads, address spaces,
 persistent objects, and security contexts. A program
-typically executes as a number of threads in a single address space (providing backwards
-compatibility with existing programming models), into which persistent objects are mapped on-demand.
+typically executes as a number of threads in a single address space, providing backwards
+compatibility with existing programming models, into which persistent objects are mapped on-demand.
 Instead of providing a process abstraction, \Twizzler provides \emph{views}
 (Sections~\ref{sec:view} and~\ref{sec:view_impl}) of the object space, which formalizes the notion of ephemeral context within our
 model by allowing programs to map objects for access,
@@ -435,12 +435,12 @@ operating on in-memory data structures without the performance loss and complexi
 is shaped by fundamental OS
 research~\cite{corbato_introduction_1965,chase:tocs94,k42,engler:sosp95,Kaashoek,engler1995avm,engler1995exterminate},
 which,
-while approaching similar topics described in
+while approaching similar topics as we described
 previously, often did not consider all design
-requirements we discussed simultaneously, nor did they have a picture of hardware trends that we do today, resulting in an incomplete picture.
+requirements we discussed simultaneously, nor did they have a view of hardware trends that we do today, resulting in an incomplete picture.
 Recent research on building in-memory persistent data structures~\cite{volos:asplos11,coburn:asplos11,condit:sosp09,debnath:vldb10,lu:tos16,hu:atc17},
 often focuses on building data structures that
-provide failure atomicity and consistency for just persistence.
+provide failure atomicity and consistency for only persistence.
 In contrast, we explore how hardware trends affect programming models and OS abstractions on the whole.
 We draw from recent work on providing OS support for \NVM systems~\cite{caulfield:micro10}, as these align well with
 in-memory sharing data structures, and work
@@ -598,7 +598,7 @@ behind the illusion that all data is in memory. Since these systems present mere
 through memory, they can be broken up into how they provide that illusion. AS/400, while presenting
 a single-level store interface for data access and manipulation, requires explicit OS calls to
 ensure persistence of data, while the others provide implicit persistence~\cite{dearli:cs94}.
-Hardware indicates that explicit OS calls to persist data is unacceptable
+Hardware trends indicate that explicit OS calls to persist data are unacceptable
 due to their latency. The other systems follow different strategies for implementing implicit
 persistence, including checkpoints to disk in EROS and completely invisible persistence in
 Grasshopper. Both of these approaches are inappropriate for a data-centric system, since consistency must be more
@@ -633,7 +633,7 @@ Exokernel~\cite{engler:sosp95}, and Multikernel~\cite{baumann:sosp09}:
           thread scheduling, process separation, and message passing primitives. It allows userspace
           servers to implement most of the OS functionality applications require. While this is
           advantageous in moving kernel functionality into userspace, it often does so by
-          message-passing. With \NVM, we have the ability to do IPC on persistent objects through
+          message-passing. We have the ability to do IPC on persistent objects through
           shared memory, so our systems should rely on this approach instead. Additionally, message
           passing in microkernels typically involves numerous kernel invocations, which hamper
           persistent and distributed data access.
@@ -648,7 +648,7 @@ Exokernel~\cite{engler:sosp95}, and Multikernel~\cite{baumann:sosp09}:
           to applications presents an unnecessary complexity for persistent data access, and the lack
           of abstraction for hardware is similarly costly for security and ease of system programming.
 
-    \item The \emph{Multikernel} approach considers each NUMA domain or each individual core as a
+    \item The \emph{Multikernel} approach~\cite{baumann:sosp09} considers each NUMA domain or each individual core as a
           separate system running a full kernel, with little shared state between instances. While
           this approach has merit for the distributed nature of a single machine, it does not consider
           how shared-memory access to persistent memory could improve application and system design
@@ -660,16 +660,16 @@ Exokernel~\cite{engler:sosp95}, and Multikernel~\cite{baumann:sosp09}:
 \end{itemize}
 
 \subsubsection{Access Control and Capability Systems}
-Our discussion thus far has not fully addressed the issue of \emph{data protection}, which, in a world
+Our discussion thus far has not fully addressed the issue of \emph{data protection}. In a world
 where hardware devices are free to act on shared global memory with the autonomy that we predict
-here, is a significant issue from the perspective of operating system design. So far, the hardware
+here, protecting data is a significant issue from the perspective of operating system design. So far, the hardware
 solutions available to us for implementing access to shared memory enable
 protection as well though the IOMMU, whose original design was to both protect memory from hardware
 and enable full device virtualization~\cite{markuze2016true}. We can leverage this hardware to apply
 security enforcement as well as a coordinated mapping of objects within a fault zone.
 
-While the enforcement is done through hardware, not the operating system (a necessary consequence of
-removing the kernel from the data path), we can still separate mechanism and policy. The users
+While the enforcement is done through hardware, not the operating system\sidenote{A necessary consequence of
+    removing the kernel from the data path!}, we can still separate mechanism and policy. The users
 and system make the policy, while the operating system interprets the policy, verifies it against a
 set of requirements and properties, and then programs the hardware to enforce the guarantees. This
 means the kernel must have a way of verifying access control to an object during a fault. We look to

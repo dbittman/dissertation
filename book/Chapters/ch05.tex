@@ -13,20 +13,20 @@ Constructing a global address space of all data means that any piece of data mus
     to name a piece of data is disconnected from the \emph{rights} to access that data. Furthermore, \emph{discovery} of a
     name can also limit an application's ability to name data in practice, even if in theory it can name any data in the
     address space. These topics will be discussed further in Section~\ref{sec:sec}.}, namable from any
-context. As such, any identification of data will need fairly long names if it is to contain all data within a (possibly
-large) system. It is important to note here that I am using the term ``name'' to refer some an authoritative naming
-system within which each piece of data has a single, unique name. I am not talking about, for example, C strings or a
+context. As such, any identification of data will need fairly long names if it is to contain all data within a possibly
+large system. It is important to note here that I am using the term ``name'' to refer to a single unique identity
+within a global, authoritative naming scheme. I am not talking about, for example, C strings or a
 path. In addition to naming data, a global address space will need a mechanism to ensure that names are in fact unique.
 
 \section{Memory Objects}
 To address these problems, \Twizzler organizes data into \emph{objects}. Each object is
 identified by a unique 128~bit \emph{object ID}.
 Objects provide contiguous regions of memory that organize
-semantically related data with similar lifetime and permissions.
+semantically related data with similar lifetimes and permissions.
 Applications access objects via
 mapping services (discussed later in this chapter) by mapping each object into a contiguous range
 in the address space, though the address space itself may be densely or sparsely mapped.
-Objects can be anywhere from 4~KiB (the size of a page) to 1~GiB; the upper bound on object size is
+Objects can be anywhere from 4~KiB, the size of a page, to 1~GiB; the upper bound on object size is
 an implementation choice, and not fundamental to the design.
 
 %TODO maybe move this elsewhere
@@ -47,7 +47,7 @@ different access permissions can span multiple objects with references between t
 
 Via objects, we gain a mechanism to name data. Since objects have a maximum size, we can simply index into them at a
 byte level and form a name of a piece of data within object $X$ as a tuple of $(X, n)$ for an $n$ byte offset into the
-object. If all object IDs are unique (which we will discuss later in this chapter), then the tuple fits our requirement
+object. If all object IDs are unique, which we will discuss later in this chapter, then the tuple fits our requirement
 for an authoritative name.
 
 One might question the decision to name data via a byte offset instead of a richer set of semantics. Our reasoning is
@@ -137,7 +137,7 @@ guaranteed to suffer hardware errors that flip bits\sidenote{Take DRAM bit error
     for example.} in that time frame, and so an ID space collision is dramatically more likely to be
 sourced from a hardware malfunction\sidenote{This is a common comparison when considering
     probability of a randomized computer process~\cite{hollingsworth:ssr97}.}. Further, the ID space
-could be expanded to 256~bits, which would dramatically reduce the collision chances.
+could be expanded to 256~bits, which would dramatically reduce the chances of collision.
 
 The reliance on randomized ID allocation is the primary reason we chose to make our object ID space
 so much larger than some previous approaches~\cite{pmdk,pmdk-pointers}. Consider that if $N = 2^{64}$
@@ -163,8 +163,8 @@ hardware that we can leverage for protection and isolation, adding additional ep
 address spaces are the only method for applications to access memory. Thus Twizzler uses virtual memory hardware to
 provide a data object access mechanism to programs.
 
-\Twizzler defines objects called ``views'', which (among other things, see Chapter~\ref{ch:twizzler}) define the current
-layout of the virtual address space. Twizzler
+\Twizzler defines objects called ``views'', which define the current
+layout of the virtual address space\sidenote{Among other things, see Chapter~\ref{ch:twizzler}.}. Twizzler
 provides access to data objects by mapping them into the virtual address space
 behind-the-scenes (via \libcore). The view object contains structures to define the layout of the
 virtual address space which the kernel reads and uses to program the MMU accordingly.
@@ -175,8 +175,8 @@ applications map objects, they update the view to specify that that object shoul
 a specific location. On a page-fault, the kernel reads the view and maps the object at the requested
 location. The view object is laid out like a page-table, where each entry in the table corresponds
 to a slot in the virtual address space. Each table entry contains an object ID and requested
-protection bits to further protect objects atop access control mechanisms (similar to
-\texttt{PROT\_*} in \texttt{mmap}).
+protection bits to further protect objects atop access control mechanisms, similar to
+\texttt{PROT\_*} in \texttt{mmap}.
 
 \begin{SCfigure}
     \centering
@@ -188,8 +188,8 @@ protection bits to further protect objects atop access control mechanisms (simil
 
 When a page-fault occurs, the fault handler tries to handle the fault by either doing copy-on-write,
 checking permissions, or by trying to map an object into a slot if the view object requested one.
-If it cannot handle the fault (due to a protection error or an empty entry in the view
-object), it elevates the fault to userspace where \libcore handles it, possibly by killing the
+If it cannot handle the fault, \eg due to a protection error or an empty entry in the view
+object, it elevates the fault to userspace where \libcore handles it, possibly by killing the
 thread, or possibly by mapping an object if the slot is ``on-demand''. This is similar to userspace
 paging systems~\cite{l4,accetta:usenix86s}. When the kernel
 maps an object into a slot, it updates the address space's page-tables appropriately.
@@ -211,9 +211,9 @@ have the ability to transfer large chunks of objects to, from, and around memory
 handle access to different \emph{types} of memory, preferably in a way that is largely transparent to
 applications.
 
-It's important to note that here when I am talking about \emph{hardware}, I am drawing an important distinction between
-the software (or firmware) running on a hardware device, and the hardware itself. The former am I grouping in with
-software in general, as in the limit, we want that software (or firmware) to interact with data and other applications
+It's important to note that here when I'm talking about \emph{hardware}, I am drawing an important distinction between
+the software (or firmware) running on a hardware device, and the hardware itself. The former I'm grouping in with
+software in general, as in the limit, we want that software or firmware to interact with data and other applications
 just as any other piece of software might. By contrast, the hardware is the substrate upon which the software runs.
 Hence while software sees and interacts with a global address space, the hardware sees but wires coming out to
 electrically interact with other components.
@@ -234,15 +234,15 @@ be able to support data shared between threads, potentially mapped into the thre
 in different places.
 Our design must support appropriate abstractions for both software and hardware,
 allowing software to name data while providing hardware and
-the operating system with the ability to move that data in, out of, and around physical memory, preferably with
+the operating system with the ability to move that data into, out of, and around physical memory, preferably with
 compatibility for
 existing hardware functionality.
 
 We use an additional abstraction that sits underneath the global address space---a \emph{logical address space}. The
 logical address spaces allows hardware to address data without needing knowledge of the data's physical location. Today,
 hardware must worry about emitting loads and stores to physical memory, but in a world of heterogeneous physical memory,
-the location of data is likely to change overtime. Ideally, this movement will be transparent to software (with the
-exception of setting policy), but for hardware, it cannot be. Requiring hardware to access a global object space through a $\langle \mathit{object},
+the location of data is likely to change overtime. Ideally, this movement will be transparent to software, with the
+exception of setting policy, but for hardware, it cannot be. Requiring hardware to access a global object space through a $\langle \mathit{object},
     \mathit{offset} \rangle$ tuple is unnecessary overhead and complexity---hardware need only ever
 access the ``working set'' of objects currently undergoing computation. Thus, the logical address space
 maps objects within it to physical memory pages, managed by the
@@ -266,8 +266,8 @@ While SASOSes are not a viable solution to the problem of persistent pointers, t
 directly connected, reducing the cost of invalidation and coordination of an address space.
 Additionally, this address space is \emph{intermediate} and hidden from programs---a virtual
 address is translated to the logical object space, after which the address is translated to a
-physical location (shown in Figure~\ref{fig:twolevel}) by a second address translation. The result is that all devices
-(including the lower level parts of the CPU) can share a single map of current objects in the logical object space. We
+physical location (shown in Figure~\ref{fig:twolevel}) by a second address translation. The result is that all devices,
+including the lower level parts of the CPU, can share a single map of current objects in the logical object space. We
 implement this on current x86 hardware via a combination of the IOMMU and the Extended Page Tables, and will discuss
 this in more detail and how we use it to enhance security and low level kernel implementation in Chapter~\ref{ch:twizzler}.
 

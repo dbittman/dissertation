@@ -9,7 +9,7 @@
 
 Last chapter, we discussed how we can name any piece of data within the global address space using a tuple of object ID
 and offset. However, with a large object ID space and an offset value, the tuple is quite big (192~bits). If we want to
-encode a reference to a piece of data, any pointers needs to encode all that information. But our current virtual
+encode a reference to a piece of data, any pointer needs to encode all that information. But our current virtual
 address pointers are 64~bits wide, so we would be increasing our overhead over virtual addresses by a factor of 3.
 Instead, Twizzler uses an \emph{invariant pointer} abstraction that reduces overhead and maintains pointer sizes at
 64~bits while making it possible to refer to any data in the global address space (thus, these pointers are inherently
@@ -31,8 +31,8 @@ The authoritative name for a piece of data as defined in the previous chapter is
 
 To efficiently encode this tuple, we use indirection through a per-object \textit{foreign
     object table} (FOT), located at a known offset within each object. The FOT is an array of entries
-that each stores an object ID (or a name that resolves into an object ID, as we will see
-below) and flags. An invariant pointer is thus a tuple,
+that each stores an object ID, or a name that resolves into an object ID, as we will see
+below, and flags. An invariant pointer is thus a tuple,
 \begin{equation*}
     \left(
     \eqnmarkbox[NavyBlue]{f}{f}
@@ -52,7 +52,7 @@ and an FOT entry is also a tuple,
 \annotate[yshift=-0.2em]{below}{fl}{Flags for this FOT entry}
 
 The invariant pointer tuple is encoded into 64~bits by placing $f$ into the upper 24~bits and placing $N$ into the lower
-bits, and the FOT entry tuple is 256~bits wide. When
+bits, and the FOT entry tuple is 256~bits wide.
 We can then recover the original tuple by performing an FOT lookup. For example, if we have an invariant pointer in
 object $O$, the lookup is:
 
@@ -142,10 +142,11 @@ in-object string table that contains a name\sidenote{The name pointer is packed 
 %object ID.
 Names enable late-binding~\cite{daley:cacm68}, a
 vital aspect of systems, allowing references to objects which change over time, \eg shared library versions.
-Names are passed to a \textit{resolving} function (specified in the FOT entry).
+Names are passed to a \textit{resolving} function, specified in the FOT entry.
 Allowing a program to specify how its names are resolved
-increases the flexibility of the system beyond supporting \unix paths. \Twizzler
-provides a default name resolver that uses \unix-like paths.% for ease of development of simpler applications.
+increases the flexibility of the system beyond supporting \unix paths.
+%\Twizzler
+%provides a default name resolver that uses \unix-like paths.% for ease of development of simpler applications.
 
 The implementation of naming is orthogonal to \Twizzler's design. We
 allow a range of name resolution methods within the system stack
@@ -174,6 +175,20 @@ origin it does not know.
 
 
 \begin{SCfigure}
+    \begin{lstlisting}[language=Rust]
+    struct Hdr {
+        inv_ptr: IPtr<i32>,
+    }
+
+    let vptr = hdr.inv_ptr.lea();
+    hdr.inv_ptr.store(vptr);
+    // *hdr.inv_ptr is also sufficient for dereference.
+\end{lstlisting}
+    \caption[Invariant pointer Rust example]{Example Rust code that converts an invariant pointer to a dereferenceable form and back.}
+    \label{fig:rustex}
+\end{SCfigure}
+
+\begin{SCfigure}
     \hspace*{-2.6cm}
     \begin{lstlisting}[language=C]
     struct Hdr {
@@ -187,19 +202,6 @@ origin it does not know.
     \label{fig:cex}
 \end{SCfigure}
 
-\begin{SCfigure}
-    \begin{lstlisting}[language=Rust]
-    struct Hdr {
-        inv_ptr: IPtr<i32>,
-    }
-
-    let vptr = hdr.inv_ptr.lea();
-    hdr.inv_ptr.store(vptr);
-    // *hdr.inv_ptr is also sufficient for dereference.
-\end{lstlisting}
-    \caption[Invariant pointer Rust example]{Example Rust code that converts an invariant pointer to a dereferenceable form and back.}
-    \label{fig:rustex}
-\end{SCfigure}
 
 For an example in the C API, shown in Figure~\ref{fig:cex}, if we have
 an object ($o$), and a structure in
@@ -270,12 +272,12 @@ microbenchmarks, are evaluated for performance in Section~\ref{sec:perf}, but le
 
 We implemented a multi-threaded hash-table based \ac{kvs}, called \nvkv, to
 study cross-object pointers and our late-binding of access control.
-Our KVS supports insert, lookup, and delete of values by key (both of arbitrary size), and hands
+Our KVS supports insert, lookup, and delete of values by key, both of arbitrary size, and hands
 out direct pointers to persistent data during lookup. During insert, it copies data into a data
-region before indexing the inserted key and value. We built \nvkv in multiple phases to study how
-our system handles changing requirements.
-
-We built \nvkv in roughly 250 lines of C\@. Handing
+region before indexing the inserted key and value.
+%We built \nvkv in multiple phases to study how
+%our system handles changing requirements.
+We built \nvkv in roughly 250 lines of C\@, in multiple phases to study how our system handles changing requirements. Handing
 out direct pointers into data was trivial to implement with cross-object pointers, requiring
 only a call to \texttt{ptr\_lea} during lookup. The initial implementation maintains two
 objects, one for data and one for the index.  The complexity typically involved when storing both
@@ -392,7 +394,7 @@ functionality for free.
 Another advantage of \nvrbt is reduced support code compared to \unixrbt; \unixrbt needed
 code to manage and grow files and mappings, while we implemented \nvrbt as simple data structure code
 with \Twizzler managing that complexity. The additional error handling code and pointer
-validity checks in \unixrbt (handled automatically in \Twizzler) increased development time
+validity checks in \unixrbt---handled automatically in \Twizzler---increased development time
 and implementation complexity.
 
 
@@ -527,7 +529,7 @@ between the number of pointers and the number of FOT entries is application depe
 applications will have a large number of references within a small number of objects or will have a
 lot of intra-object references, and thus will have a small overhead factor, while another
 application may have a large number of outgoing references per object. Anecdotally, the former has
-been far more common, which makes sense---objects are an projection of logical locality into an ID
+been far more common, which makes sense---objects are a projection of logical locality into an ID
 space, and thus an application with a large overhead factor is, inherently, structuring its data
 without significant locality.
 
