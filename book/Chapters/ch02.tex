@@ -85,9 +85,8 @@ increased density and lower cost per byte. Having larger memories means a few th
 \begin{enumerate}
     \item Some nodes may have wasted memory as workloads come and go. This ties in with the above points about
           disaggregated memory---sharing unused memory is more cost effective, since unused RAM is wasted RAM.
-          %TODO: cite
-    \item Memory can have an induced-demand effect. Similar to how building additional lanes on highways just increases
-          traffic, making more memory available can cause additional memory traffic since working sets can be larger.
+    \item Memory can have an induced-demand effect. Similar to how building additional lanes on highways often just increases
+          traffic~\cite{traffic}, making more memory available can cause additional memory traffic since working sets can be larger.
     \item In-memory sharing can increase. With significantly larger memories, applications can take advantage by not
           writing intermediate results to storage, and instead can write to shared memory, even large intermediate results.
 \end{enumerate}
