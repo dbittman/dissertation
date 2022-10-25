@@ -85,7 +85,14 @@ interested in exploring modifications to RISC-V to better support \Twizzler.
 \paragraph{Higher Level Programming Models}
 
 The programming model we discussed in Chapter~\ref{ch:prog} provides a number of basic operations on objects, but one
-could imagine a higher level model. By leveraging Rust's semantics, we can imagine ... \todo[inline]{more here}
+could imagine a higher level model. Implementing Rust APIs for more complex transactional semantics on shared objects
+would allow programmers to easily express atomic operations. A higher level framework that has awareness of application
+semantics via the FOT can perform optimizations on behalf of the application that would traditionally be difficult to
+implement, \eg semantics-aware prefetching and caching in cooperation with the network, enabled by inspecting the FOT. A
+framework that also has knowledge of operations that an application may perform on an object could then perform
+different distribution and coherence strategies for CRDT~\cite{shapiro2011comprehensive} objects than for immutable or
+arbitrarily-mutable objects.
+
 \iffalse
 
     \paragraph{Security.} Although we discussed the \Twizzler security model briefly,
@@ -213,6 +220,6 @@ data. Reconsidering core ideas in programming and operating systems can lead to 
 designs. If we do not take the plunge by calling into question core beliefs and make moves towards building new things,
 we will be forever mired in the cage of our outdated systems. But there is hope---not from Twizzler alone, but from all
 the operating systems research that has been recently exploding. It's an exciting time, and I cannot wait for the next
-new operating system that upsets the norm.
+new operating system that asks ``what if things could be better''.
 
 \squo{``It's a magical world, Hobbes, ol' buddy... Let's go exploring!''}{Calvin, \emph{Calvin and Hobbes}, Bill Watterson}

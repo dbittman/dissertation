@@ -158,7 +158,7 @@ A key primitive in \Twizzler is the \texttt{thread-sync} system call. This call 
 words of memory simultaneously. Multi-word thread-sync is necessary to support
 \texttt{select(2)}-like or \texttt{poll(2)}-like operations in a system where all data access is
 done with memory semantics. \Twizzler's standard library exposes an API for event handling that uses
-multi-world thread-sync, where objects may expose a set of ``events'' that can be triggered and waited for. This is
+multi-word thread-sync, where objects may expose a set of ``events'' that can be triggered and waited for. This is
 used in numerous places to implement event handling for multiple communications streams implemented
 in objects.
 
@@ -232,7 +232,7 @@ gain security benefits.
 Two-level address translation via the EPT enables \Twizzler to split protection \emph{requests}
 and access control permissions. At the top-level, \Twizzler applies the requested protections from
 the view maps without restriction, and programs the EPT to enforce access control derived from
-security context. Splitting protection and access control is what allows applications to simply map
+security context. Splitting protection and access control is what allows applications to map
 objects in for whatever access mode they would like without having to worry about first checking
 permissions.
 Furthermore, by separating out the permissions enforcement from ephemeral state and location

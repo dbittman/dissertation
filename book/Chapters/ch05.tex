@@ -66,7 +66,7 @@ the kernel to operate on objects instead of byte ranges dramatically simplifies 
 services to operate on whole objects at a time. One can think of this as the same underlying reason that virtual memory
 mappings operate on pages and not on bytes.
 
-Another major purpose of objects is in allowing the programmer to use a direct, logical expression of locality.
+Objects additionally enable the programmer to implement a direct, logical expression of locality.
 The ability to group data as either semantically related, access-rights-equivalent, or as ``likely to be used at the
 same time'' is fundamental to systems design. Programmers often group data for performance reasons like improving cache
 hit rate, or choose explicitly to \emph{separate} items to avoid false sharing. Providing a logical expression of
@@ -99,7 +99,7 @@ Since the minimum object's \emph{physical} size is 4~KiB, the overhead of having
 \section{Object IDs}
 
 We already discussed above that object IDs are 128~bits in size, but we should take a moment to discuss this choice,
-along with how IDs are allocated. One aspect of our global address space I haven't touched on is coordination on IDs---that is,
+along with how IDs are allocated. One aspect of our global address space we haven't discussed is coordination on IDs---that is,
 when creating a new object, we must assign it an ID. Where does that ID come from?
 
 One solution is via a centralized mechanism---some server hands out IDs when asked. The trouble here is scalability:
@@ -173,7 +173,7 @@ Figure~\ref{fig:view} shows how view objects lay out the address space of any th
 that particular view. View objects are manipulated by userspace and interpreted by the kernel. When
 applications map objects, they update the view to specify that that object should be addressable at
 a specific location. On a page-fault, the kernel reads the view and maps the object at the requested
-location. The view object is laid out like a page-table, where each entry in the table corresponds
+location. The view object is laid out like a page table, where each entry in the table corresponds
 to a slot in the virtual address space. Each table entry contains an object ID and requested
 protection bits to further protect objects atop access control mechanisms, similar to
 \texttt{PROT\_*} in \texttt{mmap}.
@@ -192,7 +192,7 @@ If it cannot handle the fault, \eg due to a protection error or an empty entry i
 object, it elevates the fault to userspace where \libcore handles it, possibly by killing the
 thread, or possibly by mapping an object if the slot is ``on-demand''. This is similar to userspace
 paging systems~\cite{l4,accetta:usenix86s}. When the kernel
-maps an object into a slot, it updates the address space's page-tables appropriately.
+maps an object into a slot, it updates the address space's page tables appropriately.
 
 Note that the use of virtual memory hardware and temporary object mapping into an ephemeral space does not mean that we
 aren't using a global address space. In fact, in the next section we'll discuss \emph{another} non-global address space
