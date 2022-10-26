@@ -51,7 +51,7 @@ returns an object ID\@. The caller can specify two policy-level pieces of inform
 \emph{lifetime} and its \emph{backing-type}. The lifetime may be either \emph{persistent} or \emph{volatile}, and the
 backing type may be any type of physical memory available on the system (or a default). The kernel must adhere to the
 semantics of persistence or volatility, but may choose any backing type it likes that implements the lifetime
-requirements\sidenote{Even storing persistent objects in DRAM and flushing them to stable storage.}---the supplied
+requirements\sidenote{Even storing persistent objects in DRAM and flushing them to stable storage---see below.}---the supplied
 backing type is merely a hint. In addition to the policy information, the caller may supply a copy-from (see above) list
 that will fill the new object with data before returning. If the list is empty, the created object contains all zeroed
 memory, and any areas not covered by the copy-from list will be zeroed.
@@ -76,6 +76,15 @@ requests and awaiting responses\sidenote{The pager also gets a ``pager to kernel
     queue pair.}. The pager can then handle paging requests and coordinate with the kernel on eviction. Drivers can be
 handled in userspace in Twizzler, so storage device drivers can be implemented as part of the pager via shared libraries
 for modularity.
+
+The userspace pager is also how we can enable persistence and sharing without needing \NVM. Not only can the kernel
+issue requests to the pager to flush pages to stable storage like a traditional microkernel might be architected, but
+we can enable applications to communicate with the pager to provide requests and hints as to ordering for flushes.
+Applications can then communicate some transactional semantics to the pager to allow for optimizations. Other strategies
+are also available, such as using the higher bandwidth of modern SSDs to persist full application state checkpoints at
+high granularity~\cite{tsalapatis:sosp21}, or persisting objects in a similar way. In all cases, however, the pager can
+provide mechanisms for the kernel to evict, and for applications to persist, data to stable storage, while maintaining a
+flexible strategy for doing so that can make use of application semantics to optimize.
 
 \section{Dealing with Ephemera}
 
