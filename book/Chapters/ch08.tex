@@ -16,7 +16,7 @@ enforce such things.
 
 \section{Object Layout}
 Recall that objects are, fundamentally, a ``bag of bytes'', all identified via an ID and an offset, with some areas
-pre-defined (the FOT, for example).
+pre-defined, for example, the FOT.
 Objects in Twizzler often have a header at the object's base, the contents of which depend on what
 the object contains. Often these headers have pointers to other data in the object, and describe the
 type of the object. For example, in our evaluation we implement a red-black tree in an object. The
@@ -25,10 +25,10 @@ headers at the object's base gives applications a ``starting point'' that they c
 accessing object data. Twizzler provides a dedicated function to get a pointer to an object's
 header, called \texttt{obj\_base}.
 
-Note that the base address of an object is \emph{not} at offset 0, but instead one page up, so that we
-can still trap NULL pointers. If this were not the case, a pointer value of 0 would still be a valid
+Note that the base address of an object is \emph{not} at offset $0$, but instead one page up, so that we
+can still trap NULL pointers. If this were not the case, a pointer value of $0$ would still be a valid
 pointer, and we want to remain backwards compatible with the assumption that a NULL pointer has
-integer value 0. The bottom page of an object is unmapped by Twizzler, allowing NULL pointer
+integer value $0$. The bottom page of an object is unmapped by Twizzler, allowing NULL pointer
 dereferences to be trapped by the kernel.
 
 While objects are flat, contiguous regions of memory, different applications may want to organize
@@ -49,7 +49,7 @@ the object using this API.
 
 Figure~\ref{fig:typobj} shows a typical object in Twizzler. The NULL page is always present to trap
 NULL pointers, and is followed by a header. The application setting up this object may have a region
-of some contiguous data (such as some strings, or an array), and may point to it from the header.
+of some contiguous data, such as some strings, or an array, and may point to it from the header.
 The object may have a region setup for allocation so that a future application using this
 object can easily allocate and free memory when manipulating the object. Finally, the FOT and
 metadata regions start at the top of the object and grow downwards.
@@ -57,11 +57,11 @@ metadata regions start at the top of the object and grow downwards.
 \paragraph{Ensuring Base Type Properties}
 
 When accessing persistent or shared data for the first time, it's necessary to specify the type of the data. For
-objects, this means we need to specify the type of the header, as objects are typed by their header (also called the
-object ``base''). While in C the function that gives access to the base returns a \texttt{void *}, the function in Rust
+objects, this means we need to specify the type of the header, as objects are typed by their header, also called the
+object ``base''. While in C the function that gives access to the base returns a \texttt{void *}, the function in Rust
 returns a reference to the specified base type. From there, any other data accessed traverses data structures that use
-the type system. Twizzler invariant pointers implementation in Rust are typed, and the mutability rules ensure that our
-transaction engine properly ensures transactional properties, then any data to which we can get a reference is
+the type system. Twizzler's invariant pointers' Rust implementation is typed, and the mutability rules ensure that our
+transaction engine properly ensures transactional properties, so any data to which we can get a reference is
 well-typed as long as the header of the object is well-typed.
 
 To ensure this, we encode, in the object's metadata, a pair of 64~bit numbers that refer to a unique ID of the header
@@ -180,7 +180,7 @@ Since views are persistent objects, all objects mapped during a thread's executi
 power cycles, and are mapped back in. The thread is then started at a special \texttt{\_resume}
 entry point, allowing the program to handle the power failure in an application-specific manner.  Of
 course, \emph{volatile} objects will be lost when power resumes, and thus any attempted access to
-these objects will result in an exception. Thus applications that wish to resume after power failure
+these objects will result in an exception. Applications that wish to resume after power failure
 will need to be aware of and handle this. We do not wish to prescribe any restrictions
 here---applications that want to place their heap in volatile memory for performance or security
 reasons should be allowed to. We expect higher level support for applications to manage persistent
@@ -222,7 +222,7 @@ amounts of data.
 
 By default, objects are persistent and live in kernel-managed \NVM unless they are marked as
 volatile. If an object is volatile, it has a limited lifetime that is related to the power state of
-the machine---as soon as power is lost (or the system is rebooted) all volatile objects disappear.
+the machine---as soon as power is lost or the system is rebooted all volatile objects disappear.
 Note that \Twizzler removes the distinction between volatile and persistent objects for how
 applications \emph{access} data, relying on higher-level language or library support and application
 support for dealing with the limited lifetime of volatile objects.
@@ -233,7 +233,7 @@ power state), while the ``persistent'' property indicates that the object will e
 explicitly deleted. Objects can also be long-lived or ephemeral independent of their persistence
 property, since we use the term ``ephemeral'' to describe information, data, or state that has a
 finite lifetime and is expected to ``go away''. While all volatile objects are ephemeral, the
-reverse is not true---we may place ephemeral data in a persistent object to allowed for recovery
+reverse is not true---we may place ephemeral data in a persistent object to allow for recovery
 after an unexpected power cycle. The ``persistent'' property of an object is a recorded piece
 of information that the kernel associates with an object, but there is no such information for ephemeral
 versus long-lived. Instead, we provide a mechanism for specifying a logical lifetime of objects
@@ -262,7 +262,7 @@ relative to one another with a mechanism called \emph{ties}, which we will discu
 \fi
 
 %An example of ephemeral data is temporary application data like a stack or a heap.
-Applications in \Twizzler also have some lifetime; an application's job is typically to operate on
+Applications in \Twizzler also have a lifetime; an application's job is typically to operate on
 some persistent data while performing some computation before eventually exiting. Such an
 application will likely use volatile objects to represent temporary computation state (\eg the
 stack and heap, which are ephemeral). However, just assigning an object as volatile is insufficient
@@ -297,8 +297,8 @@ by assigning a lifetime to objects that is more expressive than simply ``volatil
 In \Twizzler, object lifetime is expressed through \emph{ties}.
 An object can be tied to another by invoking a system call that tells the kernel that
 object \texttt{A} is tied to object \texttt{B}, after which the lifetime of \texttt{A} is
-guaranteed to be at least that of \texttt{B}. The kernel will not fully delete object \texttt{A} (even if the
-delete system call is invoked on it) until after \texttt{B} is fully deleted. An object may be tied
+guaranteed to be at least that of \texttt{B}. The kernel will not fully delete object \texttt{A}, even if the
+delete system call is invoked on it, until after \texttt{B} is fully deleted. An object may be tied
 to a large (but finite) number of other objects and may also be \emph{untied} at any time. This
 model of specifying object lifetime relative to others is similar to Rust~\cite{rust}, where
 reference lifetime can be named so that the programmer can express lifetimes of objects relative to
@@ -342,7 +342,7 @@ present, so tying a volatile object to a persistent object is somewhat dangerous
 \subsection{Safe Allocation}
 
 As we discussed above, an object may optionally have a region within which we rely on an object memory allocator to
-organize memory. However, when objects may persist or be shared, there are some additional hazards to consider.
+organize memory. However, when objects may be persisted or shared, there are some additional hazards to consider.
 
 \begin{enumerate}
     \item \textbf{Crash Consistent}: The allocator must allow for power interruptions or application failures, and so
@@ -420,7 +420,7 @@ controlled by the allocator implementation, and can be made $O(1)$.
 For any internal operation, we count the number of items it has to add to the log, \eg, if we remove a region from the
 free list, split it, and add one part to the free list, how many log records are created by those list operations.
 Since those are fixed operations, we can count the total number statically. If, however, an allocator custodial function
-run an unspecified number of times, we cannot be sure ahead of time how many operations it will perform (\eg, merging
+runs an unspecified number of times, we cannot be sure ahead of time how many operations it will perform (\eg, merging
 nodes in a list depends on the number of mergeable pairs, which depends on the length of the list). For these
 operations, we define a maximum allowed number of log entries, and break out of loops early if we run out. Thus we only
 need to count the number of operations \emph{per iteration}, and then tweak the maximum log entries to allow most such

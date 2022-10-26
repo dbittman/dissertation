@@ -12,7 +12,7 @@ data it needs to by multiplexing the various pieces of hardware in the system. T
 leans towards a lighter hand---more like a microkernel---than, \eg, \unix.
 
 Twizzler is started via a bootloader that loads the kernel and an initial ramdisk (initrd) into memory. The initrd is a
-simple tar file containing an initial set of memory objects to load. One of these is the init program, which is stared
+simple tar file containing an initial set of memory objects to load. One of these is the init program, which is started
 by the kernel, and is the only executable that the kernel itself loads. After initializing the system, the kernel starts
 the init program, which initialized the rest of userspace, including logging, paging, and devices, before starting a shell.
 
@@ -140,8 +140,8 @@ improving the ability of threads to pick up where they left off. Additionally, v
 facilitate the sharing of address spaces between threads, since they can both synchronize on
 modifying a given view object and need not duplicate information. Note that the particular contents
 of a view object are system-specific. On virtual memory systems, one of their jobs is to manage
-ephemeral virtual mappings, while on other architectures their jobs may be to manage, \eg, segment
-tables. However, in all cases, views provide a mechanism for managing ephemeral state while
+ephemeral virtual mappings, while on other architectures one of their jobs may be to manage, \eg, segment
+tables. In all cases, views provide a mechanism for managing ephemeral state while
 providing enough context for threads to execute.
 
 \subsection{Threads}
@@ -203,8 +203,8 @@ programs. Using these contexts, \Twizzler is able to provide
 analogues to groups and owners in \unix while providing more fine-grained access control if
 necessary. Unlike past exploration into security contexts, data-centric OSes offer an
 advantage in simplicity. A security context abstraction in a \unix-like OS needs to
-maintain access rights to a set of fundamentally different things (such as paths, virtual memory
-locations, and system calls). Instead, \Twizzler's security contexts specify access rights to an object
+maintain access rights to a set of fundamentally different things, such as paths, virtual memory
+locations, and system calls. Instead, \Twizzler's security contexts specify access rights to an object
 via IDs instead of virtual addresses.
 This also makes security contexts persistent, allowing us to use them as
 the primary way we assign security roles to threads.
@@ -219,13 +219,13 @@ translation hardware appropriately. This presents a problem: since threads can a
 different security contexts, the number of different page-table structures that the kernel needs to
 manage grows quickly.
 
-\Twizzler uses Intel's Extended Page Table (EPT) technology\sidenote{AMD has a similar system, but
-    \Twizzler does not support it yet.}, which is part of the virtualization
+\Twizzler uses Intel's Extended Page Table (EPT) technology\sidenote{Other architectures (and AMD) have similar systems, but
+    \Twizzler does not support them yet.}, which is part of the virtualization
 extensions. The EPT allows a virtual address to be translated by two separate page tables, and is
 commonly used to virtualize the MMU in virtual machines. The first
 level, using normal MMU page tables, translates a virtual address to an object-logical
-address (typically with second-level address translation this is referred to as the
-``guest-physical'' address), and the second-level translates this to a physical address.
+address, typically with second-level address translation this is referred to as the
+``guest-physical'' address, and the second-level translates this to a physical address.
 We discussed this two-level scheme previously in Chapter~\ref{ch:global}, but here we can use the functionality to
 gain security benefits.
 
@@ -243,8 +243,7 @@ independently from each other, which more closely fits the semantics of \Twizzle
 
 Two-level mapping also greatly simplifies the design of the kernel. Since mapping objects to physical memory
 is done at the second level, page eviction is easy---the kernel can simply modify the shared page
-tables stored per-object, which updates the translation for all views and contexts on the system
-(after appropriate coherence, of course). Moving objects between DRAM and \NVM is made easier
+tables stored per-object, which updates the translation for all views and contexts on the system after appropriate coherence. Moving objects between DRAM and \NVM is made easier
 because objects reside in a given location within object-logical space regardless of where they are
 mapped in virtual memory, so the kernel does not need to maintain back pointers to update page table
 structures.
@@ -253,7 +252,7 @@ structures.
 \subsection{Virtualization Hardware}
 \Twizzler's use of virtualization hardware for normal operation is a limitation of existing
 processors. Intel does not have a mechanism for using the EPT without switching on the entire
-virtualization system and running in VMX-non-root mode. However, in practice, the additional
+virtualization system and running in VMX-non-root mode. In practice, the additional
 overhead from running with virtualization is negligible because we do not need all the protection of
 a traditional virtual machine and so we can switch much of it off. Because \Twizzler's kernel is its own
 guest, we can avoid much of the overhead introduced by VM exits necessary in lower-trust VM models.
@@ -294,20 +293,20 @@ advanced hardware devices.
     }
 \fi
 
-\section{\textsc{unix} Compatibility}
+\section{POSIX Compatibility}
 \label{sec:legacy}
 
 Twizzler provides a compatibility framework for POSIX applications. C applications link to a forked version of \texttt{musl}~\cite{musl}, a
 C library written for Linux. We have modified \texttt{musl} to emit function calls to a library we wrote called
 \texttt{Twix} instead of directly issuing system calls. The calls into \texttt{twix} are then handled by emulating their
 Linux syscall behavior. For example, our implementation of \texttt{write(2)} allows us to create pseudo-terminal objects
-that are shared between applications and a terminal emulator (that is hooked up to the serial port). Thus applications
+that are shared between applications and a terminal emulator that is hooked up to the serial port. Thus applications
 can call \texttt{printf} to get their messages out to wider society. Rust applications do not need as much of a compatibility layer, both because we can modify
 Rust's standard library more easily, and because Rust is not as tied to POSIX as C is.
 
 \subsection{Porting to Twizzler}
 
-In general, porting in \Twizzler is straight-forward. We have a collection of tools that provide a
+Porting in \Twizzler is straight-forward. We have a collection of tools that provide a
 framework for compiling software using the \Twizzler toolchain against other ported software and
 libraries. Since we have chosen \texttt{musl} as our standard C library, many applications work
 already with minor changes. However, it is often the case that applications require
@@ -322,7 +321,7 @@ provides, since they still operate on persistent data with a POSIX model, howeve
 porting these tools was not to improve their performance, it was to provide a somewhat familiar
 environment for users.
 
-Of course, perfect emulation of a Linux kernel is a huge effort, and it is not the primary goal of
+Perfect emulation of a Linux kernel is a huge effort, and it is not the primary goal of
 our research. As a result, not all system calls are implemented and Linux features like
 \texttt{procfs} are lacking. This means that some programs may require features that are not yet
 implemented, and therefore require modifications to \texttt{twix} to run. However, as we continue to

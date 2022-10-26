@@ -66,14 +66,14 @@ compilers and hardware to design towards, whereas application-specific solutions
 to explore adding basic compiler support for C and C++ to automatically interoperate with
 \Twizzler so that persistent pointers are even more transparent to the compiler. Better still,
 we would like to study additional language-level support for persistent pointers, including type
-and lifetime annotations (such as the ones supported in Rust~\cite{rust}) for additional semantics the
+and lifetime annotations, such as the ones supported in Rust~\cite{rust}, for additional semantics the
 compiler can make use of when emitting code that operates directly on persistent data
 structures.
 
 \paragraph{Hardware Support}
 Hardware support, too, can be helpful in improving the performance of our pointer translations.
 With \Twizzler providing a common framework, we can clearly state our needs to hardware. For
-example, hardware accelerated FOT access would improve the performance in pointer-heavy data
+example, hardware accelerated FOT access would improve the performance of pointer-heavy data
 structures. Segmentation support, allowing us to assign page-tables for each object and load
 them in as needed, would dramatically speedup memory mapping (and move memory management closer
 to the semantics of our programming model). Finally, first-class support for abstracting
@@ -157,7 +157,7 @@ of this system.
 Let's return to the principal hypothesis I put forward in Chapter~\ref{ch:intro}.
 
 \begin{quotation}
-    \noindent The principal hypothesis is that the data-centric model
+    \noindent The data-centric model
     for designing operating system abstractions is not only viable, but demanded both by software and hardware trends.
 \end{quotation}
 
@@ -193,7 +193,7 @@ easier.
 
 Operating systems must evolve to support future trends in memory hierarchy
 organization. Failing to evolve will relegate new technology to
-outdated access models, preventing it from reaching full potential,
+outdated access models, preventing it from reaching its full potential,
 and making it difficult for OSes to evolve in the
 future. \Twizzler shows a way forward: an
 OS designed around new hardware trends and software demands that provides
@@ -206,11 +206,11 @@ Overall, we have shown that invariant pointers in \Twizzler allow programmers to
 composable and extensible applications with low overhead
 by removing the kernel from persistent data access paths,
 thereby improving the flexibility and performance.
-Our simpler programming model improved performance despite the (small)
+Our simpler programming model improved performance despite the small
 pointer translation overhead.
 Our programming model is easy to work with
 compared to existing systems, and we were able to both quickly prototype real
-applications with advanced access control features and port existing software (SQLite).
+applications with advanced access control features and port existing software, such as SQLite.
 
 But those aren't the real lessons. Instead, consider how much of the operating system was under review after asking a
 simple question, ``what if the lifetime of in-memory data extends beyond the ephemera?'' This question was at the heart
@@ -219,7 +219,7 @@ memory\sidenote{Though I won't deny that NVM kicked it off.} or networking, but 
 data. Reconsidering core ideas in programming and operating systems can lead to dramatic shifts in our understanding and
 designs. If we do not take the plunge by calling into question core beliefs and make moves towards building new things,
 we will be forever mired in the cage of our outdated systems. But there is hope---not from Twizzler alone, but from all
-the operating systems research that has been recently exploding. It's an exciting time, and I cannot wait for the next
+the operating systems research that has exploded onto the scene. It's an exciting time, and I cannot wait for the next
 new operating system that asks ``what if things could be better''.
 
 \squo{``It's a magical world, Hobbes, ol' buddy... Let's go exploring!''}{Calvin, \emph{Calvin and Hobbes}, Bill Watterson}
