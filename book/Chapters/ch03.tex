@@ -53,7 +53,7 @@ between those formats.
 
 If we look closely, the cycle in Figure~\ref{fig:cycle} can represent more than just processing files. It works
 equally well for receiving data from a network and sending back a response (microservices and servers in general), for
-applications in a traditional \texttt{pipe}line, \etc\sidenote{Those who sit high atop their \unix throne claim that text is a universal communication language. Yet anyone
+applications in a traditional \texttt{pipe}line, \etc\sidenote[][-1.5in]{\footnotesize Those who sit high atop their \unix throne claim that text is a universal communication language. Yet anyone
     who has actually had the misfortune of parsing the output of even a moderatly complex \unix tool can realize that
     systems programming here involves just as much serialization and processing work as anywhere else---or else involves
     doing computation directly on C strings, a fate I would not wish upon my worst enemy.
@@ -111,8 +111,8 @@ references are independent of context (\eg process) that operates on them, and r
 be stored within the data itself. Of course, we still need some understanding of
 context-sensitive relationships, for example late-binding of names. We do this via a
 ``two-level'' naming system in which GUIDs are \emph{authoritative} names to which we can bind
-additional names for purposes like local references, changing data identification, and discovery
-\sidenote{See Section~\ref{sec:latebinding}.}.
+additional names for purposes like local references, changing data identification, and discovery.
+%\sidenote{See Section~\ref{sec:latebinding}.}.
 
 Viewing the past through the lens of the present, it was \emph{always} a mistake to entangle the context required to access
 and manipulate data with ephemeral actors.  However, in the days of slow networks, spinning disks and small memories,
