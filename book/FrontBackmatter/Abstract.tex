@@ -11,7 +11,31 @@
 
 \chapter*{Abstract}
 
-\todo[inline]{actually write this section lol}
+Operating systems are built and designed around two driving forces: the capabilities of hardware, and the demands of
+software. Yet traditional\sidenote{Read: old.} operating systems and programming models have inertia, resulting
+in new hardware being shoehorned into old interfaces. As a result, programmers are limited in their ability to express
+the important parts of their programs due to the layers of compatibility and overhead thrust upon them, despite their
+persistent demands for higher throughput and lower latency. Operating system abstractions must evolve into the modern day.
+
+We stand before an opportunity to study on how a confluence of trends may shift programming models away from a
+traditional, process-centric view point towards a \emph{data-centric} one, in which \emph{data} is the primary citizen
+of the system. This opportunity arises from trends in hardware---the increasing speed of interconnect and a collapsing of
+the memory hierarchy caused by remote memory and persistent memory---and software---as our programs demand further
+scalability, distribution, and raw speed. Merely relying on decades old abstractions and incremental change will
+relegate novel hardware of the last decade to a fate of access via interfaces designed for tape and spinning rust.
+
+This dissertation presents an alternative, where we build a new programming model designed around a disconnect from the
+traditional bifurcation of the memory hierarchy, one where we assume that data is fundamental and compute is ephemeral.
+This data-centric approach reframes the goals of the operating system and enables us to re-imagine classic systems
+programming techniques into a model that \emph{facilitates} data sharing instead of hindering\sidenote{\Eg making shared
+    data difficult via complex
+    persistence management, rigid RPC data models, serialization, \etc.} it. We will cover the motivation and hardware trends
+that lead to our design, define a design space based on those trends, and finally discuss Twizzler, a point in that
+design space that exemplifies the ideals we will discuss. We will evaluate Twizzler with case-studies that demonstrate
+system behavior, and efficacy and useability of our programming models, done by building several new pieces of software
+for Twizzler. These, along with ported larger applications, are used to demonstate the performance of Twizzler and its
+programming model, often showing performance increase just due to simplification of software layers.
+
 \vfill
 
 
