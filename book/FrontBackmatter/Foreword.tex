@@ -19,8 +19,8 @@ have. Any researcher knows that one doesn't start a research expedition with a f
 in-mind; instead, that narrative grows and changes dramatically with each success, but more importantly with each
 failure. And while I'd like the narrative---the \emph{story}---of the work herein to contain not just the sapling that is the
 product of my time at UCSC, but also the dead branches that I've pruned along the way, such story telling would distract
-from the scientific communication of this work. But I'd like to expose some of that more accurate but no less ``true''
-story here. Briefly, of course.
+from the scientific communication of this work. But I'd like to expose a sample of that more accurate but no less ``true''
+story here.
 
 \squo{Audiences know what to expect, and that is all that they are prepared to believe in.}
 {\emph{Rosencrantz and Guildenstern Are Dead}, Tom Stoppard}
@@ -38,19 +38,20 @@ exciting new technology of byte-addressable non-volatile memory (NVM). It has si
 scope, but at the time, that limitation allowed me to get started. We hadn't yet figured out the ``big picture'' words
 to use to describe what we were trying to do, instead we presented the work as a straight-forward design to improve
 performance for applications on NVM. It seemed like the perfect time, with Intel releasing 3D-Xpoint memory, and the
-interest in NVM exploding. All I had to do was build a whole OS. Easy, right?
+interest in NVM exploding. All I had to do was build an operating system to manifest the designs we'd been whiteboarding.
 
-Of course not! I started by prototyping the ideas inside FreeBSD, modifying the kernel to act like we wanted it to. This
+I started by prototyping the ideas inside FreeBSD, modifying the kernel to act like we wanted it to. This
 was largely a dead end, since we rapidly ran into walls trying to force a \unix kernel to be something it wasn't. The
-FreeBSD prototype was superceded with a custom kernel and grew into the main Twizzler OS that is presented herein. It
-needed to be reworked and redesinged several times, as we ran into issues getting things like backwards compatibility,
-security, \etc to work.
+FreeBSD prototype was superceded with a custom kernel and grew into the main Twizzler operating system that is presented herein. It
+needed to be reworked and redesinged several times, each time leading to me pulling long nights programming and writing.
+But, in the end, the system worked, despite us not yet having the right words to describe it.
 
 Since I mentioned failure earlier, let's talk about publications. It took us \emph{years} to get Twizzler published in a
 conference. Along the way we had two workshop publications, but the rejection notifications from conferences were, shall
-we say, starting to get to me. Fortunately I had supportive professors who showed me their ``co-CVs'', containing lists of
+we say, starting to get to me. Fortunately, I had supportive professors who showed me their ``co-CVs'', containing lists of
 rejected publications. I started keeping one as well. This is all to say---if you're a student, and you are struggling
-to get work published: we have all been there, and (despite how some program committees behave) we are rooting for you.
+to publish: we have all been there\sidenote{Anyone who claims to know, in full, what they are doing is a \emph{liar}.}, and (despite how some program committees behave) we are rooting for you.
+Maybe one day our academic publishing system will function well.
 
 I've also had blessings in disguise. As I said earlier, the initial writings on Twizzler framed the work nearly
 exclusively around NVM and performance (``getting the kernel out of the way'').
@@ -62,9 +63,19 @@ while we built it for NVM at the start, it is actually quite generalizable to la
 technical design work for Twizzler wasn't lost during this rethinking of the narrative.
 
 The research process is labyrinthian, and never ending.
-The work presented here is distilled into a story that is, in my opinion, straight-forward and compelling. But the
+The snapshot of work presented here is distilled into a story that is, in my opinion, straight-forward and compelling. But the
 road to get here was long, filled with pot holes, dead ends, and complete reimaginings. I hope you enjoy reading it as
 much as I have enjoyed making this crazy idea a reality.
 
+\newcommand{\heart}{\ensuremath\heartsuit}
+\begin{center}
+    \heart \,
+    \heart \,
+    \heart \,
+\end{center}
+
+{
+\hfill \emph{Daniel Bittman}
+}
 \endgroup
 
