@@ -61,7 +61,7 @@ decoupling memory and compute. On a network level, renewed interest in \ac{dsm} 
           protocols. Furthermore, we are seeing protocols like RDMA enabling remote memory access via the network.
 \end{enumerate}
 
-However, it isn't just traditional networking behind memory semantics leaking out past a single traditional node. Interconnect technologies like CXL have the potential to upend the
+It isn't just traditional networking in which memory semantics are leaking out past a single traditional node. Interconnect technologies like CXL have the potential to upend the
 traditional view of ``CPU attached to memory with peripheral devices'' as the fundamental concept of a node. These trends mirror the persistence trends above---things that were traditionally far away (other nodes' memories) are getting closer in a logical space, and
 things that were close (local DRAM and storage) can be more efficiently shared.
 
@@ -88,7 +88,7 @@ increased density and lower cost per byte. Having larger memories means a few th
     \item Memory can have an induced-demand effect. Similar to how building additional lanes on highways often just increases
           traffic~\cite{traffic}, making more memory available can cause additional memory traffic since working sets can be larger.
     \item In-memory sharing can increase. With significantly larger memories, applications can take advantage by not
-          writing intermediate results to storage, and instead can write to shared memory, even large intermediate results.
+          writing intermediate results to storage, and instead can write to shared memory.
 \end{enumerate}
 
 \subsection{The Heterogeneity of Memory}
@@ -106,8 +106,8 @@ of data between regions of physical memory is now semantically meaningful and ma
 evictions, \etc. Interacting devices, therefore, must coordinate on a shared mapping of logical data to physical data,
 as the physical data might move between kinds of memory. One could easily argue that this heterogeneity is not actually
 new---with NUMA, we see many of the same problems. I agree! However, the correct solution is to design around a
-fundamentally heterogeneous memory system and build into core abstractions the concepts of data movement across physical
-memory. Such a model is not only useful for the advent of NVM on the memory bus, but future additions of different kinds
+fundamentally heterogeneous memory system and build the concepts of data movement across physical
+memory into the core abstractions. Such a model is not only useful for the advent of NVM on the memory bus, but future additions of different kinds
 of memory as well.
 
 \section{Some Kind of Model}
@@ -140,7 +140,7 @@ the basic ideas of the trends we discussed---individual, higher powered devices,
 possibly each others' memory pools, with possible NVM and fast interconnects that allow addressing control and
 isolation\sidenote{Cache coherence is an issue that we are not explicitly designing for or against. It remains to be
     seen how cache coherence between these devices will play out. Nonetheless, the issues of coherence and failure-atomicity
-    are not lost on me, and we will discuss them in Chapter~\ref{ch:prog}.}. Concretely, we can see this model mapping well to, for example, CXL, and even current PCIe systems\sidenote{If we squint
+    are not lost on us, and we will discuss them in Chapter~\ref{ch:prog}.}. Concretely, we can see this model mapping well to, for example, CXL, and even current PCIe systems\sidenote{If we squint
     our eyes
     and have perhaps undue faith in the IOMMU.}. As the trends we observe continue, the inherent concurrency enabled by
 allowing devices to operate more independently with more ability to share memory without waiting for permission from the

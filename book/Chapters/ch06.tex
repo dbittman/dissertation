@@ -218,7 +218,7 @@ framework with more complexity.
 
 Writing a cross-object pointer is simple as well, as shown in Figure~\ref{fig:cex}.
 If \texttt{vptr} will form a cross-object pointer, an FOT entry will be added to $o$ if
-needed, and the returned value of \texttt{ptr\_store} will be n invariant
+needed, and the returned value of \texttt{ptr\_store} will be an invariant
 pointer to the object pointed to by \texttt{vptr} for storage in $o$. Doing a
 similar operation on \unix would require manual pointer serialization.
 Optimizations like those discussed above can
@@ -681,7 +681,7 @@ and SQL-LMDB used \texttt{mmap} to access data.
 We ran each on the same hardware and normalized the results.
 
 
-Figure~\ref{fig:ycsb} shows the three variants' throughput under standard YCSB
+Figure~\ref{fig:ycsb} shows the three variants' (and baseline) throughput under standard YCSB
 workloads. The performance improvement of the LMDB and \Twizzler variants over SQL-Native is
 likely due to handing SQLite direct pointers to data. However, in the \Twizzler
 case we get an additional benefit of operating on data structures directly while LMDB has an

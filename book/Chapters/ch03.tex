@@ -28,7 +28,7 @@ kernel involvement, and the need to reduce code paths around accessing data. Fig
 common data path for an application that operates on (and perhaps mutates) some persistent data. First the data is
 loaded explicitly into memory, either in a streaming fashion or as a whole file, followed by the application manually
 deserializing it into an in-memory form. Once this is done, the program may commence its actual purpose---to perform
-computation, hooray---after which the results are serialized and placed back onto disk with an explicit store operation.
+computation---after which the results are serialized and placed back onto disk with an explicit store operation.
 
 \begin{SCfigure}
     \centering
@@ -37,7 +37,7 @@ computation, hooray---after which the results are serialized and placed back ont
     \label{fig:cycle}
 \end{SCfigure}
 
-Let's consider the case of from Chapter~\ref{ch:farout} of faster, closer persistence.
+Let's consider the case from Chapter~\ref{ch:farout} of faster, closer persistence.
 In the past, the overhead in manually loading and unloading
 data and in transforming it to and from an on-disk form was acceptable, since the cost to access the disk was slow,
 and those explicit load and store disk operations were going to be issued anyway. But when these operations overshadow
@@ -172,7 +172,7 @@ protection.  PMDK, for example, makes design choices that limit
 scalability, since its
 data objects are not self-contained and do not have a large enough ID space, resulting
 in the need to coordinate object IDs across machines, a problem we will explore in detail in Chapter~\ref{ch:global}. For the same reason,
-although single-address space OSes~\cite{chase:tocs94} somewhat address requirement R1, they do
+although single-address space OSes~\cite{chase:tocs94} somewhat address our requirements, they do
 not consider both requirements at once, nor do they provide an effective and scalable solution to
 long-term data references due to that same coordination complexity (as we will discuss in Section~\ref{sec:historical}).
 
@@ -217,7 +217,7 @@ forms of middleware~\cite{eisenbud16,katran,tibco,kreps11,mq}. These
 extra indirection layers make the execution endpoint abstract, but at
 the cost of increased latency and added system complexity. Moreover,
 we argue that such systems do not address the fundamental problem,
-which is \emph{we need a more general mechanism for module
+which is that \emph{we need a more general mechanism for module
     composition in distributed systems}.
 
 \subsection*{Motivating Example}

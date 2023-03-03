@@ -9,7 +9,7 @@
 
 The confluence of several hardware trends---persistent memory moving up the memory hierarchy, faster interconnect
 technologies, and increasing heterogeneity of compute and memory---demands a fundamental shift in how we view
-applications' relationships with hardware and data. As persistence gets closer to compute, the line separating the traditional two-tier
+applications' relationships with hardware and data. As persistence gets closer to compute in latency space, the line separating the traditional two-tier
 memory hierarchy of fast, volatile memory and slow, persistent storage begins to blur. Meanwhile, interconnect technologies
 are improving, causing separate computing nodes to be drawn closer to each other in latency space, allowing them to more efficiently
 share memory. Computing resources are spreading out, as we race to place computing units in devices and near memory, and as
@@ -47,7 +47,7 @@ them to twist into knots trying to best utilize modern hardware.
 
 Our focus will be on a \emph{data-centric} approach, in which \emph{data} is the primary citizen instead of the process.
 As we will see, this framing around data forces us to reconsider and reimagine classic systems programming tropes like
-explicit, course-grained persistence barriers, call-by-small-value RPC, shared memory, serialization, and in-memory data structures
+explicit, coarse-grained persistence barriers, call-by-small-value RPC, shared memory, serialization, and in-memory data structures
 that cannot escape the bounds of a single process\sidenote{See Chapter~\ref{ch:softwaredemands}.}. We will define a design space for data-centric operating systems that
 centers around in-memory data in a global address spaces that can be shared across both space and time, whose lifetime
 is disconnected from ephemera like processes, nodes, and virtual address spaces, and which can be operated on,
@@ -83,7 +83,7 @@ This dissertation, in addition to investigating the aforementioned principal hyp
 \begin{enumerate}
     \item Retrofitting existing interfaces is insufficient. Instead, the correct approach to reimagining programming in
           a world of changing memories is to rebuild the operating system from the ground up.
-          Similarly, Backwards compatibility, while important, is not the primary goal of a reimagined operating system.
+          Similarly, backwards compatibility, while important, is not the primary goal of a reimagined operating system.
           Applications that want to adapt to new hardware trends should get first-class support.
     \item A global address space of all data is a viable design for long-lived, in-memory data structures, and access to
           that address space can be done efficiently with little kernel involvement\sidenote{See Chapter~\ref{ch:global}.}.

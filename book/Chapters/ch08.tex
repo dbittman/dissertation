@@ -347,7 +347,7 @@ organize memory. However, when objects may be persisted or shared, there are som
 \begin{enumerate}
     \item \textbf{Crash Consistent}: The allocator must allow for power interruptions or application failures, and so
           all operations must be failure-atomic.
-    \item \textbf{Leaked Memory}: Say we allocate some memory from an object, and let's consider the interface described
+    \item \textbf{Leaked Memory}: Say we allocate some memory from an object. Let's consider the interface described
           by \texttt{malloc} and \texttt{free}. We can imagine a situation where an application allocates some memory, but
           before we manage to store the pointer anywhere, the power is reset. Or, alternatively, after a node is removed from,
           say, a list, but before the call to \texttt{free} is made, the power dies. In both cases the memory is leaked, and

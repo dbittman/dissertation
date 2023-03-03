@@ -60,7 +60,7 @@ creation.
 
 \subsection{Deletion}
 
-Objects may be be deleted via the \texttt{delete} system call.
+Objects may be deleted via the \texttt{delete} system call.
 Like \unix's \texttt{unlink}, objects are reference counted, where a reference refers to a mapping
 in an address space. Once the reference count reaches zero, the object may be deleted. During
 deletion, an object may be optionally marked as ``hidden'', causing new mapping requests for this
@@ -307,7 +307,7 @@ advanced hardware devices.
 
 Twizzler provides a compatibility framework for POSIX applications. C applications link to a forked version of \texttt{musl}~\cite{musl}, a
 C library written for Linux. We have modified \texttt{musl} to emit function calls to a library we wrote called
-\texttt{Twix} instead of directly issuing system calls. The calls into \texttt{twix} are then handled by emulating their
+\texttt{twix} instead of directly issuing system calls. The calls into \texttt{twix} are then handled by emulating their
 Linux syscall behavior. For example, our implementation of \texttt{write(2)} allows us to create pseudo-terminal objects
 that are shared between applications and a terminal emulator that is hooked up to the serial port. Thus applications
 can call \texttt{printf} to get their messages out to wider society. Rust applications do not need as much of a compatibility layer, both because we can modify

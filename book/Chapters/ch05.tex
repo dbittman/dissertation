@@ -12,7 +12,7 @@
 Constructing a global address space of all data means that any piece of data must be, in principle\sidenote{The ability
     to name a piece of data is disconnected from the \emph{rights} to access that data. Furthermore, \emph{discovery} of a
     name can also limit an application's ability to name data in practice, even if in theory it can name any data in the
-    address space. These topics will be discussed further in Section~\ref{sec:sec}.}, namable from any
+    address space. These topics will be discussed further in Section~\ref{sec:sec}.}, nameable from any
 context. As such, any identification of data will need fairly long names if it is to contain all data within a possibly
 large system. It is important to note here that I am using the term ``name'' to refer to a single unique identity
 within a global, authoritative naming scheme. I am not talking about, for example, C strings or a
@@ -60,7 +60,7 @@ mention its intended use by hardware devices.
 
 \paragraph{Objects Express Locality}
 The primary reason that Twizzler organizes the global address space into objects instead of simply providing a large,
-192~bit address space for all data is that it is useful to chunk the address space. We will see one major application of
+192~bit\sidenote{This number comes from the object ID size (128~bits) plus 64~bits (for alignment) of an offset into an object.} address space for all data is that it is useful to chunk the address space. We will see one major application of
 chunking in the next chapter (invariant pointers), but there are several other reasons we use objects. First, allowing
 the kernel to operate on objects instead of byte ranges dramatically simplifies the implementation and allows APIs and
 services to operate on whole objects at a time. One can think of this as the same underlying reason that virtual memory
@@ -200,7 +200,7 @@ aren't using a global address space. In fact, in the next section we'll discuss 
 that we make use of. Instead, think of these address spaces as implementation quirks for specific hardware. On x86, the
 use of virtual addressing is all but required---if we had other hardware and addressing designs, we would have a
 different layer here for providing actual object access. Finally, applications can ignore most of the \libcore mapping
-stuff, since they still talk about data via the object ID and offset tuple.
+work, since they still talk about data via the object ID and offset tuple.
 
 \section{A Logical Address Space}
 
@@ -240,7 +240,7 @@ compatibility for
 existing hardware functionality.
 
 We use an additional abstraction that sits underneath the global address space---a \emph{logical address space}. The
-logical address spaces allows hardware to address data without needing knowledge of the data's physical location. Today,
+logical address space allows hardware to address data without needing knowledge of the data's physical location. Today,
 hardware must worry about emitting loads and stores to physical memory, but in a world of heterogeneous physical memory,
 the location of data is likely to change overtime. Ideally, this movement will be transparent to software, with the
 exception of setting policy, but for hardware, it cannot be. Requiring hardware to access a global object space through a $\langle \mathit{object},
