@@ -6,7 +6,7 @@
 \let\cleardoublepage\relax
 \chapter*{Foreword}
 
-\todo[inline]{actually write this section lol}
+%\squo{You don’t learn about the important things in life from fabricated stories.}{Disco Elysium}
 
 \squo{BASHIR: Out of all the stories you told me---which ones were true, and which ones weren't?\\
     GARAK: My dear doctor! They're \emph{all} true.\\
@@ -14,15 +14,16 @@
     GARAK: \emph{Especially} the lies.
 }{Star Trek: Deep Space Nine}
 
-\squo{All this happened, more or less.}{\emph{Slaughterhouse-Five}, Kurt Vonnegut}
+This dissertation presents a narrative. That narrative is, at time of writing, the best understanding of the work that I
+have. Any researcher knows that one doesn't start a research expedition with a fully formed understanding of a narrative
+in-mind; instead, that narrative grows and changes dramatically with each success, but more importantly with each
+failure. And while I'd like the narrative---the \emph{story}---of the work herein to contain not just the sapling that is the
+product of my time at UCSC, but also the dead branches that I've pruned along the way, such story telling would distract
+from the scientific communication of this work. But I'd like to expose some of that more accurate but no less ``true''
+story here. Briefly, of course.
 
 \squo{Audiences know what to expect, and that is all that they are prepared to believe in.}
 {\emph{Rosencrantz and Guildenstern Are Dead}, Tom Stoppard}
-
-%\squo{You don’t learn about the important things in life from fabricated stories.}{Disco Elysium}
-
-\paragraph{The Honest Narrative}todo
-
 
 One might well question the logic behind prefacing this disseratation with a refutation of its presented narrative.
 However, I think it's important to consider what effect a work may have upon a reader. In particular, if even one
@@ -30,13 +31,40 @@ student reads these chapters and comes away with a belief that the scientific pr
 process) is linear and \emph{not} an experience of one feeling their way through a dark labyrinth, then I will have been
 negligent in my duty to help future students and avoid harming them.
 
-\paragraph{The Pandemic}
+\squo{All this happened, more or less.}{\emph{Slaughterhouse-Five}, Kurt Vonnegut}
 
-todo
-\squo{``I wish it need not have happened in my time,'' said Frodo.
-    ``So do I,'' said Gandalf, ``and so do all who live to see such times. But that is not for them to decide. All we have
-    to decide is what to do with the time that is given us.''}{\emph{The Lord of the Rings}, J.R.R. Tolkien}
+Twizzler started as a combination of two things: my love for hacking kernels, and an idea for a new OS focused on the
+exciting new technology of byte-addressable non-volatile memory (NVM). It has since grown well beyond that limited
+scope, but at the time, that limitation allowed me to get started. We hadn't yet figured out the ``big picture'' words
+to use to describe what we were trying to do, instead we presented the work as a straight-forward design to improve
+performance for applications on NVM. It seemed like the perfect time, with Intel releasing 3D-Xpoint memory, and the
+interest in NVM exploding. All I had to do was build a whole OS. Easy, right?
 
+Of course not! I started by prototyping the ideas inside FreeBSD, modifying the kernel to act like we wanted it to. This
+was largely a dead end, since we rapidly ran into walls trying to force a \unix kernel to be something it wasn't. The
+FreeBSD prototype was superceded with a custom kernel and grew into the main Twizzler OS that is presented herein. It
+needed to be reworked and redesinged several times, as we ran into issues getting things like backwards compatibility,
+security, \etc to work.
+
+Since I mentioned failure earlier, let's talk about publications. It took us \emph{years} to get Twizzler published in a
+conference. Along the way we had two workshop publications, but the rejection notifications from conferences were, shall
+we say, starting to get to me. Fortunately I had supportive professors who showed me their ``co-CVs'', containing lists of
+rejected publications. I started keeping one as well. This is all to say---if you're a student, and you are struggling
+to get work published: we have all been there, and (despite how some program committees behave) we are rooting for you.
+
+I've also had blessings in disguise. As I said earlier, the initial writings on Twizzler framed the work nearly
+exclusively around NVM and performance (``getting the kernel out of the way'').
+Looming on the horizon, however, was the growing certainty that NVM (or,
+at least, 3D-Xpoint) would \emph{not} soon deliver on its promises. Looking back, we got lucky. We were forced to
+rethink the narrative, to look at the forest instead of the trees, and I think the work is much stronger as a result. We
+were able to generalize. In fact, one of the benefits to the design presented in Chapter~\ref{ch:invariant} is that,
+while we built it for NVM at the start, it is actually quite generalizable to larger contexts, and so much of the
+technical design work for Twizzler wasn't lost during this rethinking of the narrative.
+
+The research process is labyrinthian, and never ending.
+The work presented here is distilled into a story that is, in my opinion, straight-forward and compelling. But the
+road to get here was long, filled with pot holes, dead ends, and complete reimaginings. I hope you enjoy reading it as
+much as I have enjoyed making this crazy idea a reality.
 
 \endgroup
 
