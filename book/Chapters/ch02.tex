@@ -156,7 +156,6 @@ CPU and the reduced lengths of code paths in processing data points strongly to 
     \paragraph{Remove the kernel from the data access path} The cost of system calls is too large relative to device
     access to justify their use in the data path. We must provide lightweight, direct, memory-style access for
     programs to operate on data.
-    %% TODO expand this
 
     \paragraph{Assume data lifetime is disconnected from ephemera} Memory can now be pooled in units outside the
     purview of the CPU. This can happen either in time---data can be persisted, where the CPU loses control over that
