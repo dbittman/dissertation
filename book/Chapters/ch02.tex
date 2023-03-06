@@ -189,37 +189,7 @@ CPU and the reduced lengths of code paths in processing data points strongly to 
 
 
 
-    %% This section will discuss the trends of moving persistence closer to computation, or moving
-    %computation closer to persistence. Key points: memory lifetime, and removing the kernel from data
-    %path (more broadly, facilitating direct access to persistent data and reducing the lengths of code paths).
-
-
-
-    %\section{Memory Distribution}
-
-    % This section will cover how memory semantics are spreading out, with things like RDMA and CXL. Key
-    % points: memory semantics spreading out, but having to keep tabs on latency. From another
-    % perspective, this is disaggregated computing. Want to avoid costs that increase code path length.
-
-    %\section{Memory Capacity}
-
-    % This section will discuss the increasing size of memory (both from DRAM and NVM). Key points:
-    % memory cost and power, larger memory means more in-memory sharing.
-
-    %\section{Increasing Hardware Complexity and Performance}
-
-    % This section argues that controllers are increasing in complexity and offload capabilities. Thus
-    % we are getting closer and closer to treating a single node as a distributed system. Additionally,
-    % increasing interconnect speeds make memory distribution easier, and things like
-    % paxos-in-the-switch can improve coordination at-scale.
-
     \paragraph{Why Now?}
-
-    %\todo[inline]{This will take some strong arumentation.}
-
-    %It is natural at this point to wonder, ``why now? The memory hierarchy has \emph{always} been changing.'' This is true,
-    %dear reader---indeed, where \emph{was} Gondor when the Westfold fell? And where \emph{is} Gandalf, for I \emph{much}
-    %desire to speak with him.
 
     It is natural at this point to wonder, ``why now? The memory hierarchy has \emph{always} been changing.'' This is true,
     but there are a few unique elements to the recent changes we are seeing. First, the placement of NVM directly on the
@@ -231,17 +201,4 @@ CPU and the reduced lengths of code paths in processing data points strongly to 
     hierarchy has always been changing, but our interfaces have not kept pace. It is time for a revolution, designed for
     new hardware and, as we'll see in the next chapter, informed by software.
 
-    %% TODO add: it's a good time, lots of renewed interest, OS research is popping off
-
 \end{chconc}
-
-\iffalse
-    \begin{chconc}
-        This chapter covered the core hardware trends we are concerned with: faster persistent memory, faster and more flexible
-        interconnects, larger memories, and more interest in distributed memory and compute. These trends point to a
-        fundamental shift towards a \emph{data-centric} model, in which the data's the thing, and enabling efficient
-        computation is the central goal. To this end, the OS has to get out of the way and we need to minimize code paths
-        surrounding the computation that just waste time. The next chapter will put these ideas into context for what
-        software is demanding from hardware and from interfaces.
-    \end{chconc}
-\fi
