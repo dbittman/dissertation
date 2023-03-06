@@ -33,17 +33,17 @@ first explore some hardware trends, and then, in the next chapter, put those tre
 Memory and storage are getting closer \emph{and} further away\sidenote{Bear with me, now!}. Closeness of memory to CPU in latency space has long been a vital part of ensuring speedy
 computation. However, in the constant battle between latency and throughput (and complexity and density), latency often
 loses, and the latencies of DRAM have not seen dramatic reductions
-for some time. Meanwhile, access to \emph{persistent} memory is getting faster---both in latency \emph{and} throughput.
-Not only are SSDs constantly improving, but so too are the protocols they use and the link speeds between them and main
+for some time. Meanwhile, access to \emph{persistent} memory is getting faster in latency \emph{and} throughput.
+Not only are SSDs improving, but so too are the protocols they use and the link speeds between them and main
 memory~\cite{xu:systor15,lee:atc19}.
 
 Recently, we have also seen commercially available byte-addressable \NVM
 %\sidenote{This document will use the acronym NVM to refer to low-latency, directly attached non-volatile
 %    memory. If I want to talk about SSDs, I will be explicit.}
-in a DIMM form-factor. This technology, Intel Optane\sidenote{We will discuss the outcome of Intel's
+in a DIMM form-factor. This technology, Intel Optane\sidenote[][-8mm]{\footnotesize We will discuss the outcome of Intel's
     ``attempt'' to market this technology later.} (using 3D-Xpoint technology), provides a persistent memory
-with low latency---only $1.5$--$8\times$ the latency of DRAM in most cases~\cite{ucsd_bnvm}---that is accessible from the CPU directly via normal load/store instructions. Direct, low latency
-access to NVM opens the door to building the system around persistent data structures and avoiding serialization\sidenote{Indeed, this is what we will do.}.
+with low latency---only $1.5$--$8\times$ the latency of DRAM in most cases~\cite{ucsd_bnvm}---that is accessible from the CPU via normal load/store instructions. Direct, low latency
+access to NVM opens the door to building systems around persistent data structures and avoiding serialization\sidenote{Indeed, this is what we will do.}.
 
 We can view the emergence of NVM as an extreme example of the general trend of persistence getting closer to compute. As a result, the relative cost of indirection and kernel involvement in
 the data path is increasing. While before the cost of a system call was significantly less than that of the actual device activity, now we are seeing the cost of device access shrinking to a
@@ -56,8 +56,10 @@ access to this distributed memory. This is, admittedly, as much about software a
 decoupling memory and compute. On a network level, renewed interest in \ac{dsm} is sourced from a combination of several factors:
 
 \begin{enumerate}
-    \item Network speeds are increasing. With technologies like 100 Gig NICs and 10 Tb/s switches, previous limitations on distributed memory sourced from network performance reduce or go away entirely.
-    \item Network hardware complexity is increasing. Not only can those switches sustain 10 Tb/s throughput, but they can be programmable, allowing the network much more participation in
+    \item Network speeds are continuing to increase. With technologies like 100~Gigabit NICs and 10~Tb/s switches,
+          previous limitations on distributed memory that arise from network performance reduce or go away entirely.
+    \item Network hardware complexity is increasing. Not only can those switches sustain 10~Tb/s of throughput, but they
+          can also be programmable, allowing the network to have much more participation in
           protocols. Furthermore, we are seeing protocols like RDMA enabling remote memory access via the network.
 \end{enumerate}
 
@@ -69,7 +71,7 @@ Finally, improved fabrication techniques and shrinking feature
 sizes means hardware controllers are increasing in complexity, offering more autonomy from the CPU,
 off-CPU processing capabilities, and better parallelism. Hardware interfaces reflect the controller
 complexity expected of devices; for example, AHCI controllers improved request queuing over ATA, and DMA
-allows hardware to copy data directly to and from memory independent from the CPU. NVMe
+allows hardware to copy data directly to and from memory independently from the CPU. NVMe
 expands the responsibility of controllers again, adding deeper and parallel command queues, requiring
 devices to multiplex requests themselves and allowing them to exploit the parallelism of access
 available in SSDs. We expect these trends to continue, resulting in more programmable hardware
@@ -107,14 +109,15 @@ evictions, \etc. Interacting devices, therefore, must coordinate on a shared map
 as the physical data might move between kinds of memory. One could easily argue that this heterogeneity is not actually
 new---with NUMA, we see many of the same problems. I agree! However, the correct solution is to design around a
 fundamentally heterogeneous memory system and build the concepts of data movement across physical
-memory into the core abstractions. Such a model is not only useful for the advent of NVM on the memory bus, but future additions of different kinds
-of memory as well.
+memory into the core abstractions. Such a model is not only useful for the advent of NVM on the memory bus, but it
+also covers future additions of different kinds
+of memory as well as subsuming the NUMA model.
 
 \section{Some Kind of Model}
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/gen_sys_diag}
-    \caption[Expected hardware system architecture]{Our expected system architecture. Solid black lines indicate data paths. Dashed lines and boxes indicate potential dedicated paths.}
+    \caption[Expected hardware system architecture]{Our expected system architecture. Solid black lines show data paths. Dashed lines and boxes show potential dedicated paths.}
     \label{fig:sys_arch}
 \end{SCfigure}
 
@@ -157,7 +160,7 @@ CPU and the reduced lengths of code paths in processing data points strongly to 
 
     \paragraph{Assume data lifetime is disconnected from ephemera} Memory can now be pooled in units outside the
     purview of the CPU. This can happen either in time---data can be persisted, where the CPU loses control over that
-    data when power is cycled---or in space---where data can traverse a network, be accessed by
+    data when power is cycled---or in space---where data can traverse a network, or be accessed by
     multiple devices on an interconnect. While these forms of temporal and spacial sharing have always existed, they
     have either been relegated to ``experts'' in cordoned off low-level areas of the system (drivers and DMA) or have
     been explicitly designed around by, for example, building OS abstractions around an assumed bifurcation of data into
@@ -226,7 +229,7 @@ CPU and the reduced lengths of code paths in processing data points strongly to 
     But, more fundamentally, this thesis argues that our data-centric model was \emph{always} the correct model. We just
     have an opportunity to realize it, and modern hardware has the ability to make it efficient and scalable. The memory
     hierarchy has always been changing, but our interfaces have not kept pace. It is time for a revolution, designed for
-    upcoming hardware and, as we'll see in the next chapter, informed by software.
+    new hardware and, as we'll see in the next chapter, informed by software.
 
     %% TODO add: it's a good time, lots of renewed interest, OS research is popping off
 
