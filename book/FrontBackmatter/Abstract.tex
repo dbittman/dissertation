@@ -13,23 +13,40 @@
 
 Operating systems are built and designed around two driving forces: the capabilities of hardware, and the demands of
 software. Yet traditional\sidenote{Read: old.} operating systems and programming models have inertia, resulting
-in new hardware being shoehorned into old interfaces. As a result, programmers are limited in their ability to express
+in interfaces for new hardware following the designs of existing interfaces. As a result, programmers are limited in their ability to express
 the important parts of their programs due to the layers of compatibility and overhead thrust upon them, despite their
 persistent demands for higher throughput and lower latency. Operating system abstractions must evolve into the modern day.
-
-We stand before an opportunity to study on how a confluence of trends may shift programming models away from a
-traditional, process-centric view point towards a \emph{data-centric} one, in which \emph{data} is the primary citizen
-of the system. This opportunity arises from trends in hardware---the increasing speed of interconnect and a collapsing of
-the memory hierarchy caused by remote memory and persistent memory---and software---as our programs demand further
-scalability, distribution, and raw speed. Merely relying on decades old abstractions and incremental change will
+Merely relying on decades old abstractions and incremental change will
 relegate novel hardware of the last decade to a fate of access via interfaces designed for tape and spinning rust.
 
-This dissertation presents an alternative, where we build a new programming model designed around a disconnect from the
-traditional bifurcation of the memory hierarchy, one where we assume that data is fundamental and compute is ephemeral.
-This data-centric approach reframes the goals of the operating system and enables us to re-imagine classic systems
-programming techniques into a model that \emph{facilitates} data sharing instead of hindering\sidenote{\Eg making shared
-    data difficult via complex
-    persistence management, rigid RPC data models, serialization, \etc.} it. We will cover the motivation and hardware trends
+We stand before an opportunity to study how a confluence of trends may shift programming models away from a
+traditional, process-centric view point towards a \emph{data-centric} one, in which \emph{data} is the primary citizen
+of the system.
+This opportunity arises from trends in hardware that directly impact how we view the data access path and the
+responsibilities of the operating system and the kernel.
+The increasing speed of interconnect technologies draws computing nodes closer together in latency space,
+increasing the efficiency and useability of shared memory. Persistence, traditionally trapped low in the memory
+hierarchy, is leaking upward, as access speeds for persistent devices increase\sidenote{This includes new technologies
+    like byte-addressible non-volatile memory DIMMs, but also improvements in SSD performance and interfaces.}. As a result,
+the overhead of the traditional kernel-driven data access path begins to dominate the cost of accessing persistent data.
+Finally, the increasing heterogeneity and disaggregation of compute and memory devices demands increased data and
+compute mobility, as software demands continued scalability, distribution, and raw speed.
+
+%This opportunity arises from trends in hardware---the increasing speed of interconnect and a collapsing of
+%the memory hierarchy caused by remote memory and persistent memory---and software---as our programs demand further
+%scalability, distribution, and raw speed.
+% add calls back to why this is data centric, why these trends lead us to data-centrism
+
+This dissertation presents a new, data-centric operating system and programming model designed around the trends above.
+The data-centric approach reframes the goals of the operating system and enables us to re-imagine classic systems
+programming techniques into a model that \emph{facilitates} data sharing instead of hindering it. For example, classical
+systems programming models and techniques tend to involve significant complexity and overhead in dealing with data persistence and
+sharing, such as expensive coarse-grained persistence operations, rigid RPC data models, and serialization. In contrast,
+our data-centric approach gets the kernel out of the way of the data access path, makes data mobile through invariant
+references whose meaning does not change depending on address space or machine\sidenote{In contrast to virtual memory,
+    whose references only have meaning inside a single address space.}, and thus removes the need for serialization.
+
+We will cover the motivation and hardware trends
 that lead to our design, define a design space based on those trends, and finally discuss Twizzler, a point in that
 design space that exemplifies the ideals we will discuss. We will evaluate Twizzler with case-studies that demonstrate
 system behavior, and efficacy and useability of our programming models, done by building several new pieces of software
