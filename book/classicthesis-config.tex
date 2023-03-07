@@ -159,7 +159,7 @@
 
 
 \PassOptionsToPackage{margincaption,rightcaption,ragged,wide,centerbody}{sidecap}
-\RequirePackage{./sidecap}
+\RequirePackage{./packages/sidecap}
 \sidecaptionvpos{figure}{t}
 \sidecaptionvpos{table}{t}
 
@@ -174,7 +174,7 @@
 % ********************************************************************
 % Her Majesty herself
 % ********************************************************************
-\usepackage{classicthesis}
+\usepackage{./packages/classicthesis}
 
 
 % ********************************************************************
@@ -265,7 +265,6 @@
 % Using different fonts
 % ********************************************************************
 %\usepackage[oldstylenums]{kpfonts} % oldstyle notextcomp
-% TODO should we use osf?
 %\usepackage[osf]{libertinus}
 %\usepackage[light,condensed,math]{iwona}
 %\renewcommand{\sfdefault}{iwona}
@@ -281,7 +280,6 @@
 %\usepackage[libertine]{newtxmath}
 
 
-% TODO use euler-digits (and in matplotlibrc)?
 \iffalse
   \usepackage{unicode-math}
   \unimathsetup{math-style=ISO, partial=upright, nabla=upright}
@@ -349,7 +347,7 @@
 
 
 \edef\sidecaptionsep{\the\marginparsep}
-\usepackage{sidenotes}
+\usepackage{./packages/sidenotes}
 
 
 
@@ -370,15 +368,7 @@
 
 \newcommand{\unedit}[1]{{\leavevmode\color{red}#1}}
 
-%%%%%%
-% TODO: get rid of these
-\newcommand{\observe}[2]{{\leavevmode\color{red}#2}}
-\newcommand{\observation}[1]{{\leavevmode\color{red}#1}}
-\newcommand{\observations}[1]{{\leavevmode\color{red}#1}}
-\makeatletter
-\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{\ref{#1}}\@footnotemark}
-\makeatother
-%%%%%%
+
 
 \newcommand{\libcore}{\texttt{libtwz}\xspace}
 
@@ -423,5 +413,5 @@
 
 \newcommand{\quo}[2]{\noindent\textit{#1} \begin{flushright}---#2\end{flushright}}
 \newcommand{\squo}[2]{\graffito{\noindent\textit{#1} \begin{flushright}---#2\end{flushright}}}
-\usepackage{listings-rust}
+\usepackage{./packages/listings-rust}
 \newcommand{\heart}{\ensuremath\heartsuit}

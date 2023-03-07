@@ -2,7 +2,7 @@
 \chapter{The Demands of Software}\label{ch:softwaredemands}
 
 \squo{“So many things are possible as long as you don't know they're impossible.”
-}{\emph{The Phantom Tollbooth}, Norton Juster}
+}{\emph{The Phantom Tollbooth},\\Norton Juster}
 \begin{chabstract}
     This chapter will focus on software, the needs of software we must address, and the perspective of systems
     programming, putting the hardware trends we spoke of last chapter into context. We will discuss the problem of
@@ -18,13 +18,13 @@ overhead comes from, which elements are fundamental, and which are not.
 
 \squo{One goal in designing and implementing an operating system is to
     provide high performance; another way to say this is our goal is to minimize the overheads of the OS. Virtualization and making the system easy
-    to use are well worth it, but not at any cost.}{Operating Systems: Three Easy Pieces~\cite{ostep}}
+    to use are well worth it, but not at any cost.}{Operating Systems:\\Three Easy Pieces~\cite{ostep}}
 \section{The Old Ways and ``Systems Programming''}
 
 Current operating system interfaces are a poor fit for the trends and hardware requirements we discussed last chapter.
 File \texttt{read} and \texttt{write} interfaces, originally designed for sequential media and later expanded for
 block-based media, require significant kernel involvement and often serialization, violating both the requirement to reduce
-kernel involvement, and the need to reduce code paths around accessing data. Figure~\ref{fig:cycle} shows a fairly
+kernel involvement, and the need to reduce the length of code paths around accessing data. Figure~\ref{fig:cycle} shows a fairly
 common data path for an application that operates on (and perhaps mutates) some persistent data. First the data is
 loaded explicitly into memory, either in a streaming fashion or as a whole file, followed by the application manually
 deserializing it into an in-memory form. Once this is done, the program may commence its actual purpose---to perform
@@ -39,13 +39,13 @@ computation---after which the results are serialized and placed back onto disk w
 
 Let's consider the case from Chapter~\ref{ch:farout} of faster, closer persistence.
 In the past, the overhead in manually loading and unloading
-data and in transforming it to and from an on-disk form was acceptable, since the cost to access the disk was slow,
+data and in transforming it to and from an on-disk form was acceptable, since the cost to access the disk was high,
 and those explicit load and store disk operations were going to be issued anyway. But when these operations overshadow
 %% TODO cite more examples
 device access time, the overhead quickly becomes unacceptable. As devices become faster and as applications process more
 and more data, we find that more and more of our processing time is spent here. Applications can spend as much as 70\% of the processing
 time~\cite{trims} deserializing and loading data into main memory at request time. Reducing this overhead would save
-both in program time but also in \emph{programmer} time. Simplifying applications by removing the need for serialization
+both in program time but also in \emph{programmer} time. Simplifying applications by removing serialization
 helps programmers by removing the need to maintain multiple data formats and the transformation code to move data
 between those formats.
 
