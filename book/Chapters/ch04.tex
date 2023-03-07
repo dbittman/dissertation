@@ -30,12 +30,14 @@ space makes it possible to enable better sharing (both between applications and 
 nodes), lower overhead computation, and simpler applications.
 
 \squo{Clearly, for
-    computer systems to be interesting, both input and output are required.}{Operating Systems: Three Easy Pieces~\cite{ostep}}
+    computer systems to be interesting, both input and output are required.}{Operating Systems:\\Three Easy
+    Pieces~\cite{ostep}}
+
 Fundamentally, data is and has always been the focus of programming. In the past, our abstractions have failed to
 adequately capture this simple fact. But now, as software looks towards more modern programming models and the friction
 between hardware and current models grows, we have an opportunity to reimagine how we structure programs and data.
 It is a convenient time to make a break, when the impedance is low---software will need to change to take advantage of
-new hardware, and we should support those applications with better fitting programming models.
+new hardware, and we should support those applications with better fitting models.
 
 
 % TODO
@@ -139,14 +141,15 @@ problems of persistence\sidenote{Including, but not limited to, failure-atomicit
 \section{Twizzler: A Point in the Design Space}
 
 The consequences of meeting the requirements of these hardware and software trends
-define a bounded design space for data-centric OSes that we layed out above. We have
+define a bounded design space for data-centric operating systems that we layed out above. We have
 chosen a point in that space and built \Twizzler, our approach to providing
 applications with efficient and effective access to new, ``far out'' memory hierarchies.
 The core philosophy of \Twizzler is that \textbf{any context necessary to interpret some data must be stored with that
     data}.
 In the
 following chapters we will discuss our design choices, including our global address space, invariant pointers, and
-Twizzler OS services and libraries, and see how this philosophy, when combined with the ideas behind a data-centric OS,
+Twizzler OS services and libraries, and see how this philosophy, when combined with the ideas behind a data-centric
+operating system,
 enable us to build an efficient implementation of a modern approach to programming model design.
 
 \Twizzler is a stand-alone kernel and userspace runtime that provides execution support
@@ -598,8 +601,8 @@ behind the illusion that all data is in memory. Since these systems present mere
 through memory, they can be broken up into how they provide that illusion. AS/400, while presenting
 a single-level store interface for data access and manipulation, requires explicit OS calls to
 ensure persistence of data, while the others provide implicit persistence~\cite{dearli:cs94}.
-Hardware trends indicate that explicit OS calls to persist data are unacceptable
-due to their latency. The other systems follow different strategies for implementing implicit
+Hardware trends indicate that explicit kernel calls to persist data are unacceptable
+due to their latency\sidenote{And implicit kernel-provided persistence without application control can result in hazards~\cite{crotty22-mmap}.}. The other systems follow different strategies for implementing implicit
 persistence, including checkpoints to disk in EROS and completely invisible persistence in
 Grasshopper. Both of these approaches are inappropriate for a data-centric system, since consistency must be more
 fine-grained than checkpoints, and require \emph{some} application involvement.
@@ -616,7 +619,7 @@ we would like to avoid. Secondly, the management cost of persisting the virtual 
 outweigh the benefits; since pointers are stored directly, changing the address space (and
 therefore updating all pointers associated with deleted or moved objects) becomes intractable.
 Opal, in addition, still required a filesystem, which is a needless layer of abstraction handled
-within the operating system. Other
+within the OS. Other
 SASOSs~\cite{roscoe:osr94,heiser:scse9314,miller:osr00} also do not take into account \NVM, and so
 do not address the issues described above.
 HYDRA~\cite{wulf:cacm74} also provides similar location independent pointer references, but these
@@ -640,20 +643,20 @@ Exokernel~\cite{engler:sosp95}, and Multikernel~\cite{baumann:sosp09}:
 
     \item \emph{Exokernels} avoid as much operating system abstraction as possible, choosing instead
           to only handle the bare minimum responsibilities needed for securely multiplexing in-kernel.
-          Exokernels typically involve a user-space \textit{library operating system} (libos) that
-          provide other functionality. Unlike the microkernel approach, these often involve
+          Exokernels typically involve a user-space \textit{library operating system} (\texttt{libos}) that
+          provides other functionality. Unlike the microkernel approach, these often involve
           procedure-based IPC~\cite{lauer:osr79,engler:sosp95} and present raw \emph{physical}
           resources to userspace instead of virtualized ones. While the reduced level of message
           passing is advantageous in our expected architecture, the direct presentation of physical resources
           to applications presents an unnecessary complexity for persistent data access, and the lack
           of abstraction for hardware is similarly costly for security and ease of system programming.
 
-    \item The \emph{Multikernel} approach~\cite{baumann:sosp09} considers each NUMA domain or each individual core as a
-          separate system running a full kernel, with little shared state between instances. While
+    \item The \emph{Multikernel} approach~\cite{baumann:sosp09} considers each NUMA domain or each individual core as
+          separate and running a full kernel, with little shared state between instances. While
           this approach has merit for the distributed nature of a single machine, it does not consider
-          how shared-memory access to persistent memory could improve application and system design
-          and performance. We plan to take this approach into consideration in our design.
-          Furthermore, our above observations suggest that the multikernel approach does not go far
+          how access to persistent, shared memory could improve application and system design
+          and performance. We take this approach into consideration in our design.
+          However, our above observations suggest that the multikernel approach does not go far
           enough---\emph{every} programmable device in this system needs to be treated as a separate
           system instance. Finally, multikernels do not address making hardware see a uniform
           object space, nor do they address the problem of invariant pointers in a global address space.
@@ -662,7 +665,7 @@ Exokernel~\cite{engler:sosp95}, and Multikernel~\cite{baumann:sosp09}:
 \subsubsection{Access Control and Capability Systems}
 Our discussion thus far has not fully addressed the issue of \emph{data protection}. In a world
 where hardware devices are free to act on shared global memory with the autonomy that we predict
-here, protecting data is a significant issue from the perspective of operating system design. So far, the hardware
+here, protecting data is a significant issue from the perspective of OS design. So far, the hardware
 solutions available to us for implementing access to shared memory enable
 protection as well though the IOMMU, whose original design was to both protect memory from hardware
 and enable full device virtualization~\cite{markuze2016true}. We can leverage this hardware to apply
@@ -670,7 +673,7 @@ security enforcement as well as a coordinated mapping of objects within a fault 
 
 While the enforcement is done through hardware, not the operating system\sidenote{A necessary consequence of
     removing the kernel from the data path!}, we can still separate mechanism and policy. The users
-and system make the policy, while the operating system interprets the policy, verifies it against a
+and system make the policy, while the OS interprets the policy, verifies it against a
 set of requirements and properties, and then programs the hardware to enforce the guarantees. This
 means the kernel must have a way of verifying access control to an object during a fault. We look to
 capability systems for solutions due to their common use in single-level stores and SASOSs, and
