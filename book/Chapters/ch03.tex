@@ -52,8 +52,8 @@ between those formats.
 \subsection{The Context Problem}
 
 If we look closely, the cycle in Figure~\ref{fig:cycle} can represent more than just processing files. It works
-equally well for receiving data from a network and sending back a response (microservices and servers in general), for
-applications in a traditional \texttt{pipe}line, \etc\sidenote[][-1.5in]{\footnotesize Those who sit high atop their \unix throne claim that text is a universal communication language. Yet anyone
+equally well for receiving data from a network and sending back a response (microservices and servers in general), or for
+applications in a traditional \texttt{pipe}line, \etc\sidenote[][-1in]{\footnotesize Those who sit high atop their \unix throne claim that text is a universal communication language. Yet anyone
     who has actually had the misfortune of parsing the output of even a moderatly complex \unix tool can realize that
     systems programming here involves just as much serialization and processing work as anywhere else---or else involves
     doing computation directly on C strings, a fate I would not wish upon my worst enemy.
@@ -91,7 +91,7 @@ This is illustrated in how data relationships are typically handled, either:
           the ephemeral process abstraction. These references cannot be reliably shared between
           applications and across nodes which do not have the context necessary to interpret them.
     \item \textbf{Implicit.} Many data relationships are implicit in applications.
-          Although there is a relationship between \texttt{/etc/shadow} and \texttt{/etc/passwd},
+          Although there is a relationship between the \unix files \texttt{/etc/shadow} and \texttt{/etc/passwd},
           it is not explicit. This limits interoperability between programs, prevents
           relationship discovery, and results in a brittle environment if these files are
           moved or replaced.
@@ -111,7 +111,8 @@ references are independent of context (\eg process) that operates on them, and r
 be stored within the data itself. Of course, we still need some understanding of
 context-sensitive relationships, for example late-binding of names. We do this via a
 ``two-level'' naming system in which GUIDs are \emph{authoritative} names to which we can bind
-additional names for purposes like local references, changing data identification, and discovery.
+additional names for purposes like local references, changing data identification, and discovery\sidenote{We will
+    discuss these in more detail in Chapter~\ref{ch:invariant}.}.
 %\sidenote{See Section~\ref{sec:latebinding}.}.
 
 Viewing the past through the lens of the present, it was \emph{always} a mistake to entangle the context required to access
@@ -149,16 +150,17 @@ fails to address the problem of global context and in-memory data structures for
 Operating on persistent data through \texttt{mmap} requires the programmer to
 use either fixed virtual addresses, which presents an infeasible coordination problem
 as we scale across machines and is fundamentally unportable, or virtual addresses directly, which are ephemeral and require the
-context of the process that created them.
+context of the process that created them\sidenote{These issues don't even touch the high kernel
+    involvement, in-kernel coordination, and failure-atomicity hazards present when using \texttt{mmap}~\cite{crotty22-mmap}.}.
 
 Attempting to shoehorn \NVM programming atop POSIX interfaces (including \texttt{mmap}) results in
 complexity that arises from combining multiple partial solutions. Given some feature desired by an
 application, the \NVM framework can provide an integrated solution that meshes
 well with the existing support for persistent data structure manipulation and access, or it can
 fall-back to POSIX resulting in the programmer needing to understand two different ``feature
-namespaces'' and their interactions. An example of this is naming, where a programmer may need
-to turn to the filesystem to manage names in a completely orthogonal way to how the \NVM frameworks handles
-data references. For example, PMDK, a \NVM programming library, relies on a filesystem for naming and initial access to
+namespaces'' and their interactions. An example is naming, where a programmer may need
+to turn to the filesystem to manage names in a completely orthogonal way to how the \NVM framework handles
+data references. For example, PMDK, an \NVM programming library, relies on a filesystem for naming and initial access to
 persistent memory objects, resulting in different kinds of references, feature sets from filesystems
 being applied (like security) while others are not (data access), and the complexity of
 understanding how the PMDK abstractions interact with the POSIX ones. Instead, our model prefers to
@@ -167,7 +169,7 @@ models for persistent data access.
 
 Even without \NVM, we have similar problems. Our goal of programming with memory semantics on in-memory data structures
 leads to many of the same arguments as above.
-Additionally, models that layer new models atop existing interfaces often fail to facilitate effective persistent data sharing and
+Additionally, systems that layer new models atop existing interfaces often fail to facilitate effective persistent data sharing and
 protection.  PMDK, for example, makes design choices that limit
 scalability, since its
 data objects are not self-contained and do not have a large enough ID space, resulting
@@ -181,8 +183,9 @@ long-term data references due to that same coordination complexity (as we will d
 
 \section{Remote Procedure Calls}
 
-One major aspect of systems programming, particularly in distributed systems, that isn't covered by the diagram in
-Figure~\ref{fig:cycle} is RPC. We typically use RPC as a mechanism for decomposition in distributed systems, allowing us
+One major aspect of systems programming, particularly in distributed systems, is RPC\sidenote{Note that, if you look at
+    Figure~\ref{fig:cycle} and squint your eyes, it resembles not just persistence but also communication and data
+    transfer across nodes.}. We typically use RPC as a mechanism for decomposition in distributed systems, allowing us
 to break design problems down into smaller, re-usable parts that hide implementation details and are more easily debugged.
 Decoupling components with RPCs allows them to scale
 independently---in principle, developers need only agree
@@ -223,9 +226,9 @@ which is that \emph{we need a more general mechanism for module
 \subsection*{Motivating Example}
 
 To illustrate the poor fit of RPC as a decoupling mechanism for some classes of applications,
-consider an example from the distributed inference problem for edge devices. Here,
-sensors in mobile devices with modest processing and storage resources (\eg mobile phones
-or autonomous vehicles) are the source of observations used both for training and inference.
+consider the problem of distributed inference for edge devices. Here,
+sensors in mobile devices with modest processing and storage resources (\eg mobile phones)
+are the source of observations used both for training and inference.
 Recent work has focused on decoupling and distributing machine learning training across edge
 and cloud resources to minimize client-perceived latency, provide privacy guarantees, and
 maximize server-side throughput~\cite{federatedml,singh2019detailed}.
@@ -274,7 +277,7 @@ Both (1) and (2) require additional logic on Alice
 to work---the programmer had to perform the infrastructure level task of data
 movement.  Fundamentally, these issues arise because the system's core abstraction is
 location-based---the programmer is forced to manually orchestrate machines or resort to
-costly copying.
+costly copying\sidenote{Additionally, there are issues of security and coordinating topology changes.}.
 Further,
 heterogeneity among end devices makes the ``hard-coded'' data movement strategy
 brittle:
@@ -339,14 +342,15 @@ even if they weren't concerns at all, we would still often need to serialize dat
 is to solve the fundamental context problem that motivates serialization now, and solve the smaller problems that got
 mixed into serialization at a higher level.
 
+\squo{In the early days, building computer systems was easy. Why, you ask?
+    Because users didn’t expect much. It is those darned users with their
+    expectations of “ease of use”, “high performance”, “reliability”, etc., that
+    really have led to all these headaches. Next time you meet one of those
+    computer users, thank them for all the problems they have caused.}{Operating Systems:\\Three Easy Pieces~\cite{ostep}}
+
+
+
 \begin{chconc}[So, What Does This All Mean (part 2)?]
-
-    \squo{In the early days, building computer systems was easy. Why, you ask?
-        Because users didn’t expect much. It is those darned users with their
-        expectations of “ease of use”, “high performance”, “reliability”, etc., that
-        really have led to all these headaches. Next time you meet one of those
-        computer users, thank them for all the problems they have caused.}{Operating Systems: Three Easy Pieces~\cite{ostep}}
-
 
     Software is growing in complexity, software is becoming more and more distributed with higher and higher demand for
     concurrency as it is asked to process more and more data.
