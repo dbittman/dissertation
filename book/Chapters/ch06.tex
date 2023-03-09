@@ -1,6 +1,9 @@
 
 \chapter{Invariant References}\label{ch:invariant}
 
+\squo{All problems in computer science can be solved by another level of indirection.}{David Wheeler}
+\marginpar[]{\emph{...except the problem of too much indirection.}}
+
 \begin{chabstract}
     This chapter builds up the notion of data references within the global address space discussed in the previous chapter by way of introducing the key abstraction that underpins
     Twizzler---the invariant reference. We will discuss the design and implementation of invariant references along with several case studies and performance analyses.
@@ -22,7 +25,7 @@ traditionally be blind to such relationships.
 
 The authoritative name for a piece of data as defined in the previous chapter is,
 \begin{equation*}
-    \left(
+    \,\,\,\,\,\,\,\,\,       \left(
     \eqnmarkbox[NavyBlue]{g}{I_O}
     , \eqnmarkbox[Orange]{o}{N}\right)
 \end{equation*}
@@ -33,6 +36,9 @@ To efficiently encode this tuple, we use indirection through a per-object \texti
     object table} (FOT), located at a known offset within each object. The FOT is an array of entries
 that each stores an object ID, or a name that resolves into an object ID, as we will see
 below, and flags. An invariant pointer is thus a tuple,
+
+\vspace{3mm}
+
 \begin{equation*}
     \left(
     \eqnmarkbox[NavyBlue]{f}{f}
@@ -40,12 +46,13 @@ below, and flags. An invariant pointer is thus a tuple,
 \end{equation*}
 \annotate[yshift=0.5em]{above}{f}{Index into the FOT}
 \annotate[yshift=-0.2em]{below}{n}{An offset into an object}
-and an FOT entry is also a tuple,
+
+\noindent and an FOT entry is also a tuple,
 
 \begin{equation*}
     \left(
     \eqnmarkbox[NavyBlue]{t}{I_T},
-    \eqnmarkbox[Orange]{fl}{\mathrm{fl}}
+    \eqnmarkbox[Orange]{fl}{\mathrm{flags}}
     \right)
 \end{equation*}
 \annotate[yshift=0.5em]{above}{t}{Target object ID}
@@ -77,8 +84,8 @@ If an object wishes to point to data within itself (an \emph{intra-object} point
 the invariant pointer. When dereferencing, \Twizzler uses $f$
 as an index into the FOT, retrieving an object ID\@.
 The combination of a FOT and an invariant pointer logically forms
-an authoritative name, as shown in Figure~\ref{fig:fottran}. Since the FOT is a per-object structure and is stored
-within that object, objects are \emph{self-contained} and all context needed to interpret data in an object is stored
+an authoritative name, as shown in Figure~\ref{fig:fottran} and Equation~\ref{eq:fot}. Since the FOT is a per-object structure and is stored
+within that object, objects are \emph{self-contained} and all context needed to interpret pointers in an object is stored
 within that object.
 
 Our design differs from existing
@@ -113,8 +120,8 @@ pointers 64~bits while supporting a truly global-scale address space. We will di
 %in Section~\ref{sec:res}, this has a dramatic benefit to performance.
 
 
-\paragraph{Late-Binding}
 
+\paragraph{Flags}
 The FOT entry's \texttt{flags} field has bits for read, write, and execute protections. The
 protections are \textit{requests}; \Twizzler implements separate access control on objects.
 This allows some pointers to refer to data with a read-only reference while others can be used for
@@ -133,6 +140,8 @@ that FOT entry.
     }
     \label{fig:fottran}
 \end{SCfigure}
+
+\paragraph{Late-Binding}
 
 Instead of \emph{requiring} programmers to refer to objects via IDs only, we allow
 names in FOT entries. These entries may contain a pointer to an
@@ -161,12 +170,12 @@ enables the required cooperation.
 
 \paragraph{Pointer Translation API}
 
-\Twizzler applications use pointer translation helper functions to handle the
-translations discussed above. The particular API depends on the language used and while some languages require
+\Twizzler programs use pointer translation helper functions to handle the
+translations discussed above. The particular API depends on the language used, and, while some languages require
 translation functions to be written manually, these can be emitted automatically with proper compiler support.
 When an invariant pointer must be
-translated, the program calls performs the operation shown in Equation~\ref{eq:fot} to convert the pointer into a
-virtual address, and a reverse operation ot convert a virtual address into an invariant pointer.
+translated, the program performs the operation shown in Equation~\ref{eq:fot} to convert the pointer into a
+virtual address, and a reverse operation to convert a virtual address into an invariant pointer.
 The results can be cached to reduce translation calls.
 These functions efficiently detect if a pointer needs no translation,
 allowing the compiler to emit calls to these functions for pointers whose
@@ -231,14 +240,14 @@ only is the target type of the invariant pointer known, but it is differentiated
 convert it to (which has type \texttt{\&i32}). We will discuss Rust in more detail in Chapter~\ref{ch:prog}, in
 particular how it can be used to avoid common foot-guns that are present in the C version.
 
-Although some existing persistent memory programming
-techniques~\cite{libpmem,Chen:micro17,wang:micro17} support similar
+Although several existing persistent memory programming
+frameworks~\cite{libpmem,Chen:micro17,wang:micro17} support similar
 APIs, they do not support per-object indirection, they lack system-wide support,
 some increase pointer size and do not always provide
 type-safe translation functions, and they do not enable transparent use of pointer
 types in the language. Implementing translations manually involves writing code
-like
-\texttt{(void *)((uintptr\_t)foo + vbase)}, resulting in brittle code that
+like\\
+\hspace*{10mm}\texttt{(void *)((uintptr\_t)foo + vbase)},\\ resulting in brittle code that
 cannot be easily expanded to include cross-object references.
 
 
@@ -259,7 +268,7 @@ data structure.  Each has different characteristics and goals, and together they
 complex relationships between objects.  We then ported SQLite to Twizzler using
 our KVS and red-black tree code and evaluated it using a YCSB~\cite{ycsb,ycsbc} driver, thus exploring Twizzler's
 model in a larger, existing program. The new software, along with our SQLite port and
-microbenchmarks, are evaluated for performance in Section~\ref{sec:perf}, but let's first consider their development and our experiences with writing software in our model.
+microbenchmarks, are evaluated for performance in Section~\ref{sec:res}, but let's first consider their development and our experiences with writing software in our model.
 
 
 \subsection{Case Study: Key-Value Store}
@@ -320,7 +329,7 @@ able to implement this while preserving the original code due to the
 transparent nature of \Twizzler's cross-object pointers. Now, when inserting, the application
 indicates the data object into which to copy the data, as shown in Figure~\ref{fig:twzkv}.
 
-By supporting multiple data objects, \nvkv can leverage the OS's access control,
+With multiple data objects, \nvkv can leverage the OS's access control,
 minimizing complexity. Unrestricted data can go in $D_0$ (Figure~\ref{fig:twzkv}),
 whereas restricted data can go in $D_1$. Since each object has distinct
 access control, a user can set the objects' access rights, then decide
@@ -343,11 +352,11 @@ paths in the index and store references to paths for pointers, increasing overhe
 complexity by 36\%---a lot for an implementation with relatively few pointers---just to reimplement
 \Twizzler's support. The extra complexity also included code to manually open, map, and
 grow files, much of which \Twizzler handles internally. Development time was extended by
-bugs that were not present when developing \nvkv, due to the manual pointer processing.  While \nvkv
+bugs that were not present when developing \nvkv arising from the manual pointer processing.  While \nvkv
 gains transparent access control, \unixkv does not due to the lack of
 on-demand object mapping and late-binding of security. Instead, \unixkv needs to know object permissions before
 mapping,
-a restriction that limits the ability to reuse OS access control, something that
+a restriction that limits the ability to reuse the operating system's access control, something that
 \nvkv could leverage through late-binding on security (Section~\ref{sec:sec})\sidenote{\unixkv could trap segmentation faults to do this, but that would be
     application-specific, difficult, and would reimplement \Twizzler functionality.}. Other frameworks like PMDK
 that do not integrate access control and late-binding into their models have similar
@@ -368,9 +377,9 @@ will be common during the adoption of \NVM, and much of the complexity therein
 comes from dealing with persisting virtual addresses~\cite{virendra:hotstorage17}.
 
 In developing \unixrbt, we found 83 locations where we had to perform pointer arithmetic for
-converting between object addresses and virtual addresses.  Consider an expression such as
-\texttt{root->left->right = foo}. Inserting calls to translate this directly results in
-\texttt{L(L(root)->left)->right = C(foo)}, where \texttt{L} converts to a virtual address and
+converting between object addresses and virtual addresses.  Consider an expression such as\\
+\hspace*{10mm}\texttt{root->left->right = foo}.\\Inserting calls to translate this directly results in\\
+\hspace*{10mm}\texttt{L(L(root)->left)->right = C(foo)},\\ where \texttt{L} converts to a virtual address and
 \texttt{C} converts back, which is heavily obfuscated and took more development time than writing
 \ramrbt in the first place due to debugging.
 
@@ -380,7 +389,7 @@ management; if other applications wanted to use the data structures created by \
 have to know the implementation details of the pointer system (or share the implementation, thus
 reimplementing much of \Twizzler's library).  Additionally, due to \Twizzler enabling improved
 system-wide support for cross-object pointers, these transformations can be made automatic through
-compiler and linker support.
+compiler support.
 
 Unlike \nvrbt, \unixrbt's tree is limited to a single persistent
 object; a limitation that prevents the tree from growing arbitrarily, does not
@@ -410,7 +419,7 @@ We chose this port
 because LMDB is implemented with \texttt{mmap}'d files as the primary access method and hands out
 direct pointers to data as one would expect from an effectively designed \NVM KVS\sidenote{These
     are not invariant pointers, however, unlike \Twizzler's.}.
-Since LMDB's SQLightning port already replaces the storage backend
+Since LMDB's SQLightning port replaces the storage backend
 with calls to
 LMDB, we ported SQLite to \Twizzler by taking our KVS and red-black tree code and implementing
 enough of the LMDB interface for SQLite to run using \Twizzler as a backend.
@@ -425,18 +434,18 @@ demonstrating the ease of porting software to \Twizzler.
 We have also ported some existing \unix utilities (such as \texttt{bash} and
 \texttt{busybox}), which largely require only recompiling to run on \Twizzler. Of
 course, to gain \emph{all} of the benefits of \Twizzler, programs will be need to be
-written with \NVM in mind (but this is true regardless of the target OS).
+written with \NVM or data disaggregation in mind (but this is true regardless of the target OS).
 
 Our implementation of the LMDB interface
 corroborated our experience from the KVS case study: much of the complexity in storage interfaces
 and implementations comes from the separation between storage and memory. This has been
-studied before (as we discussed in Section~\ref{sec:historical}), but the advent of \NVM changes the game
+studied before (as we discussed in Section~\ref{sec:historical}), but the hardware trends discussed in Chapter~\ref{ch:farout} change the game
 significantly by allowing programmers to think directly via in-memory data structures. The result is
 that interfaces like cursors in a KVS become redundant. We implemented to this interface
 for LMDB, but the functions were largely wrappers around storing a pointer
 to a B-tree node and traversing the tree directly without separate loads and copies. The result was
 an extremely simple implementation (500 lines of code) that still met the required interface. Future software
-for \NVM can use \Twizzler's programming model to more effectively write software
+can use \Twizzler's programming model to more effectively write software
 that eschews the need for complexity forced by the two-tier storage hierarchy.
 
 
@@ -456,9 +465,9 @@ without writing complex pointer management code that would be required by an
 implementation using \texttt{mmap}.
 We were able to provide access
 control without a single line of code in \nvkv dedicated to checking or enforcing
-access rights. Instead, we relied on \Twizzler's built-in access control, something not possible with other
+access rights. Instead, we relied on \Twizzler's built-in access control, a reuse not possible with other
 frameworks that do not support late-binding of access rights and do not consider
-security as part of their programming model. \Twizzler thus removes
+security as part of their  model. \Twizzler thus removes
 the need for applications to enforce and implement their own access control, which
 increases the security of the system by divesting programmers from
 the responsibility of getting the enforcement right.
@@ -485,17 +494,17 @@ a natural expression of data structures.
 One important consequence of replacing virtual address pointers with invariant pointers is storage
 overhead. While our design choice to indirect the pointer resolution through a per-object table
 means we can avoid increasing pointer size\sidenote{As we will see, this choice is meaningful for
-    performance overhead.}, we must still consider the size ot that table when
-considering the impact of invariant pointers. Of course, a direct comparison to virtual address
+    performance overhead.}, we must  consider the size of that table when
+considering the impact of invariant pointers. Of course, while a direct comparison to virtual address
 pointers is somewhat inappropriate, as virtual addresses are not invariant and thus do not have the
 same semantics and power, we can use them as a baseline for comparing the increased overhead
 \emph{factor} of Twizzler versus a ``fat pointer'' style persistent pointer.
 
-Such a style of pointer is present in PMDK~\cite{pmdk-pointers}, which includes an address space of
-objects with 64~bit IDs, indexed into with a 64~bit offset. Thus a pointer in PMDK is 128~bits
-total, and the overhead relative to virtual addresses is exactly $2$. However, PMDK's ID space is much
+Fat pointers are present in, for example, PMDK~\cite{pmdk-pointers}, which includes an address space of
+objects with 64~bit IDs, indexed with a 64~bit offset. Thus a pointer in PMDK is 128~bits
+total, and the overhead relative to virtual addresses is exactly $2\times$. However, PMDK's ID space is much
 smaller than Twizzler's (64~bits versus 128~bits). As we discussed in Chapter~\ref{ch:global}, the
-large ID space is vital for our needs and provides useful semantics that a smaller space misses.
+large ID space is vital and provides useful semantics that a smaller space misses.
 Adjusting PMDK's pointer model by increasing the ID size brings it to 192~bits per pointer, with a
 relative overhead\sidenote{Here $F_{f128}$ means ``the overhead factor of a fat-pointer design with
     an ID space of 128~bits''.} of $F_{f128} = 3$.
@@ -546,7 +555,7 @@ The generated graphs could be either dense (many edges per node) or sparse (few 
 the objects could be either numerous and hold few objects, or there could be few objects that held
 many nodes. Figure~\ref{fig:fotoverhead} shows that Twizzler's per-FOT overhead is better than the
 fat-pointer style in most cases, with the exception of having few nodes per object and a spare
-graph. This result correlates with the above equation. Some simple rearranging shows that to beat
+graph. This  correlates with the above equation. Some  rearranging shows that to beat
 the overhead factor of $F_{f128} = 3$ one needs two pointers per FOT entry. When an object has many
 outgoing references to few objects, this threshold is quickly surpassed.
 
@@ -581,7 +590,7 @@ We compiled all tests against the \texttt{musl} C library instead of
 
 All Linux tests used the NOVA filesystem~\cite{Xu:nova} (a filesystem
 optimized for \NVM) on the NVDIMMs, mounted in DAX mode. This enabled direct access to the
-persistent memory without a page-cache interposing on accesses.
+persistent memory without page-cache interposition.
 %The use of persistent memory allows
 %us to account for differences in behavior of the NVDIMMs compared to DRAM.
 
@@ -636,7 +645,7 @@ While these operations are less common than pointer loads, their overhead direct
 applications that perform many updates to data structures.
 The most common pointer store operation applications perform is internal (intra-object) pointer stores, in which the
 overhead is minimal. Pointer store operations for external (inter-object) references have slightly
-more overhead, since they need to perform an FOT scan to allow FOT entry reuse.
+more overhead, since they need to operate on the FOT.
 
 
 
@@ -691,7 +700,7 @@ abstraction cost.
     \centering
     \includegraphics{genfig/ycsb}
     \caption[YCSB throughput]{YCSB throughput, normalized (higher is better). \Twizzler outperforms all other
-        variants in all tests.}
+        variants.}
     \label{fig:ycsb}
 \end{SCfigure}
 
