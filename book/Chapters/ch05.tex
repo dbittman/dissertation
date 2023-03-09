@@ -49,7 +49,7 @@ an implementation choice, and not fundamental to the design.
 
 %(it arises because of our persistent
 %pointer design, discussed later).
-An object, from the programmer's perspective, is flexible in its
+An object, from a programmer's perspective, is flexible in its
 contents---for example, it could contain anywhere from a single B-tree node to the entire B-tree.
 Often, an object would contain the entire tree, since the entire tree is typically subject to
 the same access semantics by programs, and there are overheads associated with objects that can be
@@ -66,7 +66,7 @@ based around the level of the system we are currently working with. The basic co
 with fixed-size object IDs and offsets is designed to be an \emph{underlying component} of a richer, higher level API.
 Indeed, even our notion of invariant references that we will discuss in the next chapter is a ``low level'' mechanism.
 Nothing prevents higher-level APIs and models from being built atop our lower level models---in fact, we plan for that!
-The low level address space consruction is designed to be useable across a variety of languages and environments, not to
+The low level address space construction is designed to be useable across a variety of languages and environments, not to
 mention its intended use by hardware devices.
 
 \paragraph{Objects Express Locality}
@@ -81,7 +81,7 @@ Objects additionally enable the programmer to implement a direct, logical expres
 The ability to group data as either semantically related, access-rights-equivalent, or as ``likely to be used at the
 same time'' is fundamental to systems design. Programmers often group data for performance reasons like improving cache
 hit rate, or choose explicitly to \emph{separate} items to avoid false sharing. Providing a logical expression of
-locality through objects enables these kinds of design that programmers often do.
+locality through objects enables these kinds of designs that programmers often choose.
 \begin{SCfigure}
     \centering
     \includegraphics[width=\linewidth]{fig/objectchain1.pdf}
@@ -111,7 +111,7 @@ Since the minimum object's \emph{physical} size is 4~KiB, the overhead of having
 
 We already discussed above that object IDs are 128~bits in size, but we should take a moment to discuss this choice,
 along with how IDs are allocated. One aspect of our global address space we haven't discussed is coordination on IDs---that is,
-when creating a new object, we must assign it an ID. Where does that ID come from?
+when creating a new object, we must assign it an ID, but where does that ID come from?
 
 One solution is via a centralized mechanism---some server hands out IDs when asked. The trouble here is scalability:
 that centralized server will be quickly overloaded. Furthermore, the stated aim of our system is to allow devices and
@@ -144,7 +144,7 @@ is~\cite{motwani95}:
 
 % TODO: verify this math
 If a system were to create millions of objects per second over the course of hundreds of years, the
-probability of ID space collision is approximately 1 in $10^{7}$. However, such a system is all but
+probability of ID space collision is approximately $1$ in $10^{7}$. However, such a system is all but
 guaranteed to suffer hardware errors that flip bits\sidenote{Take DRAM bit error from cosmic rays,
     for example.} in that time frame, and so an ID space collision is dramatically more likely to be
 sourced from a hardware malfunction\sidenote{This is a common comparison when considering
@@ -154,12 +154,12 @@ could be expanded to 256~bits, which would dramatically reduce the chances of co
 The reliance on randomized ID allocation is the primary reason we chose to make our object ID space
 so much larger than some previous approaches~\cite{pmdk,pmdk-pointers}. Consider that if $N = 2^{64}$
 bins, the probability of collision with just one billion objects is around 2\%. Increasing $m$ to
-one object per person brings the collision probability up to nearly 75\%. Of course such an ID space
+one object per person on earth\sidenote{\emph{At time of writing}, anyway.} brings the collision probability up to nearly 75\%. Of course such an ID space
 is usable if the ID are allocated via coordination with a centralized allocator, but if
 we wish to allow object ID creation at scale, avoiding coordination is vital\sidenote{As we will
     discuss in the next chapter, some of these previous approches chose to put up with coordination and
     centralization because of the way they encoded their references. Twizzler uses a different method
-    that allows ID space to be much larger.}. These alternative approaches with smaller ID spaces lead to problems when
+    that allows the ID space to be much larger.}. These alternative approaches with smaller ID spaces lead to problems when
 sharing, since moving an object from one node to another requires either coordination or application-specific fixup
 operations to avoid collisions.
 
@@ -208,10 +208,10 @@ maps an object into a slot, it updates the address space's page tables appropria
 
 Note that the use of virtual memory hardware and temporary object mapping into an ephemeral space does not mean that we
 aren't using a global address space. In fact, in the next section we'll discuss \emph{another} non-global address space
-that we make use of. Instead, think of these address spaces as implementation quirks for specific hardware. On x86, the
+that we use. Instead, think of these address spaces as implementation quirks for specific hardware. On x86, the
 use of virtual addressing is all but required---if we had other hardware and addressing designs, we would have a
 different layer here for providing actual object access. Finally, applications can ignore most of the \libcore mapping
-work, since they still talk about data via the object ID and offset tuple.
+work, since they still refer to data via the object ID and offset tuple.
 
 \section{A Logical Address Space}
 
