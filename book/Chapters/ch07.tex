@@ -1,26 +1,28 @@
 
 \chapter{Twizzler: An Implementation}\label{ch:twizzler}
 
+\squo{Operating systems are like underwear---nobody really wants to look at them.}{Bill Joy}
+
 \begin{chabstract}
     While the last two chapters have focused on perhaps the most important parts of Twizzler---global addressing, memory
     objects, and invariant pointers---there is still importance in understanding some of the other operating system
     services. This chapter will discuss things like ephemeral state management, controlling objects, threads, and security.
 \end{chabstract}
 
-An operating system provides many services to userspace all in service of enabling the application to operate on the
-data it needs to by multiplexing the various pieces of hardware in the system. Twizzler is no different, however it
+An operating system provides functions to userspace all in service of enabling the application to operate on
+data by multiplexing the various pieces of hardware in the system. Twizzler is no different, however it
 leans towards a lighter hand---more like a microkernel---than, \eg, \unix.
 
 Twizzler is started via a bootloader that loads the kernel and an initial ramdisk (initrd) into memory. The initrd is a
 simple tar file containing an initial set of memory objects to load. One of these is the init program, which is started
 by the kernel, and is the only executable that the kernel itself loads. After initializing the system, the kernel starts
-the init program, which initialized the rest of userspace, including logging, paging, and devices, before starting a shell.
+the init program, which initializes the rest of userspace, including logging, paging, and devices, before starting a shell.
 
 \section{Object Services}
 
 The kernel provides services for object management, including creating and deleting objects. It maintains mapping
 information, such as which objects are mapped into which address spaces, and common paging tasks like map counts and
-usage statistics. If directly attached \NVM is present, the kernel manages direct mappings to \NVM via a built-in
+usage statistics. If directly attached \NVM is present, the kernel manages mappings to \NVM via a built-in
 mapping of object pages to \NVM pages. While not a filesystem, the kernel's use of \NVM does manage allocation and
 mapping object pages to physical pages.
 
@@ -60,21 +62,21 @@ creation.
 
 \subsection{Deletion}
 
-Objects may be deleted via the \texttt{delete} system call.
-Like \unix's \texttt{unlink}, objects are reference counted, where a reference refers to a mapping
+Objects are deleted via the \texttt{delete} system call.
+Like \unix's \texttt{unlink}, objects are reference counted, which includes mappings
 in an address space. Once the reference count reaches zero, the object may be deleted. During
 deletion, an object may be optionally marked as ``hidden'', causing new mapping requests for this
-object to fail. We will discuss how application software can directly interact with these reference counts in Chapter~\ref{ch:prog}.
+object to fail. We will discuss how applications can directly interact with these reference counts in Chapter~\ref{ch:prog}.
 
 \subsection{External Paging}
 
 If the kernel is unaware of a requested object or does not have a requested page in core, it will contact the userspace
-paging service. The pager is started by init early on in the boot process and is allocated a special object to which it
+paging service. The pager is started by init early on in the boot process and is allocated a special object for which it
 shares read/write access with the kernel. This object is called the pager queue, and is used to form a multi-producer,
-single-consumer queue submission/completion queue pair. The kernel can then communicate with the pager by enqueuing
+single-consumer  submission/completion queue pair. The kernel then communicates with the pager by enqueuing
 requests and awaiting responses\sidenote{The pager also gets a ``pager to kernel'' communication pathway via a second
-    queue pair.}. The pager can then handle paging requests and coordinate with the kernel on eviction. Drivers can be
-handled in userspace in Twizzler, so storage device drivers can be implemented as part of the pager via shared libraries
+    queue pair.}. The pager can then handle paging requests and coordinate with the kernel on eviction. Drivers are
+handled in userspace in Twizzler, so storage drivers can be implemented as part of the pager via shared libraries
 for modularity.
 
 The userspace pager is also how we can enable persistence and sharing without needing \NVM. Not only can the kernel
@@ -131,8 +133,10 @@ map the object. However, applications rarely invoke this function directly---ins
 \texttt{libtwz} provides a higher-level API to allow applications to operate above the level of
 manually mapping objects. The standard library also provides access to other utility functions for
 views (such as querying state, creating new views, and copying views). These functions, by default,
-operate on a thread's current view, but they may also optionally operate on any other view object,
-which allows \Twizzler to implement operations with semantics similar to \texttt{fork} and \texttt{execve}.
+operate on a thread's current view, but they optionally operate on any other view object\sidenote{Given appropriate
+    permissions, of course.},
+which allows \Twizzler to implement operations with semantics similar to \texttt{fork} and \texttt{execve}\sidenote{And
+    introspection and debugging!}.
 
 When threads add entries to a view object they need not inform the kernel---when
 a fault occurs, the kernel will read the entry as needed. However, when \emph{changing} or
@@ -204,7 +208,7 @@ to the object.
 This late-binding enables simpler programs that need not worry about
 elevating access rights through remapping data objects. Programs can make progress without
 knowing in advance the permissions of the objects they might access, thus enabling the reuse of the
-OS's access control mechanism in applications.
+OS's access control mechanism in applications, as we saw in the previous chapter.
 
 Threads run in a security context~\cite{lwc,bittau:nsdi08,elhajj:asplos16}, which
 contains a list of access rights for objects and allows the kernel to determine the access rights of
@@ -222,7 +226,7 @@ the primary way we assign security roles to threads.
 \subsection{Security Contexts and Page Tables}
 \label{sec:secimpl}
 Previously, we discussed how view objects allow applications to specify what objects they
-want mapped in, and with what protections. These are merely \emph{requests}, however; of course if
+want mapped in, and with what protections. These are merely \emph{requests}, however. Of course if
 the thread does not have the appropriate \emph{permissions} the kernel will program the address
 translation hardware appropriately. This presents a problem: since threads can attach to a number of
 different security contexts, the number of different page-table structures that the kernel needs to
@@ -233,15 +237,15 @@ manage grows quickly.
 extensions. The EPT allows a virtual address to be translated by two separate page tables, and is
 commonly used to virtualize the MMU in virtual machines. The first
 level, using normal MMU page tables, translates a virtual address to an object-logical
-address, typically with second-level address translation this is referred to as the
-``guest-physical'' address, and the second-level translates this to a physical address.
+address---typically with second-level address translation this is referred to as the
+``guest-physical'' address---and the second-level translates this to a physical address.
 We discussed this two-level scheme previously in Chapter~\ref{ch:global}, but here we can use the functionality to
 gain security benefits.
 
 Two-level address translation via the EPT enables \Twizzler to split protection \emph{requests}
 and access control permissions. At the top-level, \Twizzler applies the requested protections from
 the view maps without restriction, and programs the EPT to enforce access control derived from
-security context. Splitting protection and access control is what allows applications to map
+the currently active security context. Splitting protection and access control is what allows applications to map
 objects in for whatever access mode they would like without having to worry about first checking
 permissions.
 Furthermore, by separating out the permissions enforcement from ephemeral state and location
@@ -269,7 +273,7 @@ For example, \Twizzler's kernel is allowed to modify the EPT structures itself, 
 virtualized, and modern processors contain extensions that allow the guest to switch out EPTs itself
 and handle EPT faults without triggering a VM exit.
 
-This pairs nicely with using the IOMMU as well---since EPT structures on Intel can be reused in the
+This pairs nicely with using the IOMMU\sidenote{As much as the IOMMU is able to ``pair nicely'' with anything.} as well---since EPT structures on Intel can be reused in the
 IOMMU, we can apply security contexts to drivers as well, making driver code less of a special case.
 For example, \Twizzler provides a driver model for userspace drivers that allows driver code to
 construct security contexts that explicitly map in only the necessary objects that a device might
@@ -305,10 +309,10 @@ advanced hardware devices.
 \section{POSIX Compatibility}
 \label{sec:legacy}
 
-Twizzler provides a compatibility framework for POSIX applications. C applications link to a forked version of \texttt{musl}~\cite{musl}, a
-C library written for Linux. We have modified \texttt{musl} to emit function calls to a library we wrote called
-\texttt{twix} instead of directly issuing system calls. The calls into \texttt{twix} are then handled by emulating their
-Linux syscall behavior. For example, our implementation of \texttt{write(2)} allows us to create pseudo-terminal objects
+Twizzler provides a compatibility framework for POSIX applications. C applications link to a patched version of \texttt{musl}~\cite{musl}, a
+C library written for Linux. We have modified \texttt{musl} to emit function calls to a library we wrote, called
+\texttt{twix}, instead of directly issuing system calls. The calls into \texttt{twix} are then handled by emulating their
+Linux system call behavior. For example, our implementation of \texttt{write(2)} allows us to create pseudo-terminal objects
 that are shared between applications and a terminal emulator that is hooked up to the serial port. Thus applications
 can call \texttt{printf} to get their messages out to wider society. Rust applications do not need as much of a compatibility layer, both because we can modify
 Rust's standard library more easily, and because Rust is not as tied to POSIX as C is.
@@ -386,15 +390,15 @@ files for a small number of (already cached) bytes to avoid device transfer over
 small reads could see some benefit. In contrast, on Linux, the kernel needs to traverse internal
 file structures, the page-cache, and possibly file system structures.
 However, as we said, \texttt{twix} is intended for legacy
-support, not performance improvement despite the lower system call overhead.
+support, not performance, despite the lower system call overhead.
 %As \texttt{read}
 %lengths increase, we expect to see the system call overhead diminish relative to the cost of copying
 %bytes into the buffer.
 
 \begin{chconc}
     We now have an understanding of what addressing and pointers look like in Twizzler, and a basic idea of the
-    operating system services Twizzler provides. One can write programs, multi-thread them and synchronize across
-    threads and programs via object sync words, access, create, copy, and
+    operating system services Twizzler provides. One can write programs, multi-thread them, synchronize across
+    threads via object sync words, access, create, copy, and
     delete objects, and use \unix compatibility for things like \texttt{printf}. But this still doesn't address issues
     of memory safety, types, and failure-atomicity. Join us in the next chapter where we will start diving into these
     scary topics.
