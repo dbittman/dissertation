@@ -57,17 +57,17 @@ A direct application of XOR linked lists is chained hashing, a common
 technique for dealing with hash table collisions~\cite{clrs}. An array of linked list heads
 is maintained as the hash table, and when an item is inserted, it is appended to
 the list at the bucket that the item hashes to. To optimize for bit flips,
-we can store an XOR list instead of a normal linked list, but
+we can store an XOR list instead of a normal list, but
 since bidirectional traversal is not needed in a hash table
 bucket, we need not complicate the implementation with a full XOR linked
-list. Instead, we apply the property of XOR linked lists that we find
+list. Instead, we apply the property of XOR lists that we find
 useful---XORing pointers.
 
 Each pointer in each list node is XORed with the address of the node that
 contains that pointer. For example, a list node $n$ whose next node is $p$ will
 store $n \oplus p$ instead of $p$. In effect, this stores the distance between
-the nodes rather than the absolute address of the next node and exploits
-locality in memory allocators. The end of the list is marked with a \texttt{NULL}
+nodes rather than the absolute address of the next node and exploits
+locality in allocators. The end of the list is marked with a \texttt{NULL}
 pointer. In addition to a distance pointer, each node contains a key and a
 pointer to a value. The list head stored in the hash table is a full node,
 allowing access to the first entry in the list without needing to follow a
@@ -108,7 +108,7 @@ stores \texttt{NULL}.
 
 Determining the child of a node requires both the node and its parent:\\
 \texttt{
-	get\_left\_child(Node *node, Node *parent) \{
+	get\_left\_child(Node *node, Node *parent) \{\\
 	\indent return (parent $\oplus$ node->xleft); \\
 	\}
 }\\
@@ -180,7 +180,7 @@ of both functions.
 If these two functions push the (often unchanged)
 callee-saved registers to the same place both times, fewer bit
 flips will occur than if the functions pushed them in different orders.
-While this is just a simple example,
+While a simple example,
 such loops that call out to alternating functions with different characteristics can occur, for
 example, when rehashing a table, rebuilding a tree, or reading task items from a linked
 list.
@@ -202,7 +202,7 @@ $e$, $f$, $g$, $h$ are callee-saved, and \ffoo uses $e$ while \fbar uses $g$, th
 traditionally each function would simply push the frame pointer followed by the
 register they wish to save:\\
 
-\begin{minipage}{0.5\columnwidth}
+\begin{minipage}{0.4\columnwidth}
 	\texttt{A:\\
 		\indent push fp\\
 		\indent mov fp $\leftarrow$ sp\\
@@ -213,7 +213,7 @@ register they wish to save:\\
 	}
 \end{minipage}%
 ~
-\begin{minipage}{0.5\columnwidth}
+\begin{minipage}{0.4\columnwidth}
 	\texttt{B:\\
 		\indent push fp\\
 		\indent mov fp $\leftarrow$ sp\\
@@ -229,7 +229,7 @@ bit flips could occur if these functions are called often.
 Instead, if we define a layout that functions adhere to for register saving, the
 code would look like:\\
 
-\begin{minipage}{0.5\columnwidth}
+\begin{minipage}{0.4\columnwidth}
 	\texttt{A:\\
 		\indent push fp\\
 		\indent mov fp $\leftarrow$ sp\\
@@ -242,7 +242,7 @@ code would look like:\\
 	}
 \end{minipage}%
 ~
-\begin{minipage}{0.5\columnwidth}
+\begin{minipage}{0.4\columnwidth}
 	\texttt{B:\\
 		\indent push fp\\
 		\indent mov fp $\leftarrow$ sp\\

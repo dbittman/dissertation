@@ -72,8 +72,8 @@ Section~\ref{sec:exp_cache}.
 	\end{tabular}
 \end{SCtable}
 
-Most of the programs we ran accept as their first argument an
-\texttt{iteration\_count}, which specifies how many iterations the program should run. For
+Most of the test programs take an
+\texttt{iteration\_count} as their first argument, which specifies how many iterations the program should run. For
 example, the red-black tree would do \texttt{iteration\_count}
 number of insertions. We ran the simulator on a range of
 \texttt{iteration\_count}s,
@@ -189,7 +189,7 @@ additional reads are always in-cache.
 
 \subsection{XOR Hash Tables}
 
-We implemented two variants of our hash table: ``single-linked'', which
+We implemented two variants of hash tables: ``single-linked'', which
 implemented chaining using a standard linked list, and
 ``XOR Node'', which
 XORs each pointer in the chain with the address of the node containing the pointer.
@@ -324,12 +324,12 @@ provide bit flip counting methods, we are left with using in-program
 instrumentation if we want to avoid the \gem overhead. However, these results
 may be less accurate.
 
-To study the accuracy of in-code instrumentation, we
+To study accuracy of in-code instrumentation, we
 manually counted bit flips in the XOR and doubly-linked lists.
 We did this by replacing all direct data structure writes (\eg, \texttt{node->prev =
 	pnode}) with a macro that both did that write and also counted the number of bytes (by looking
 at the types), and computing the Hamming distance between the original and new values. Totals of
-each were kept track of and reported at the end of program execution. While not difficult to
+each were kept track of and reported at the end of execution. While not difficult to
 implement, manual instrumentation adds the possibility of error and increases implementation
 complexity.
 
@@ -371,7 +371,7 @@ two of the registers, but pushed them to the same locations as function $x$.
 Our program had three variations: \textbf{x-x}, which called function $x$ twice,
 \textbf{x-s}, which alternated between functions $x$ and $s$, and \textbf{x-y},
 which alternated between functions $x$ and $y$.  The x-y variant represents
-the worst-case scenario of today's methods for register spilling, while x-s
+the worst-case scenario for register spilling, while x-s
 demonstrates our suggestion for reducing bit flips. To force the writes to
 memory, we used \texttt{clwb} after the writes to simulate write-through
 caching or resumable programs.

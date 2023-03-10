@@ -44,7 +44,7 @@ nanosecond-per-node during traversal.
 
 Figure~\ref{fig:xht_perf} shows the performance of the two hash table variants
 we developed. We inserted 100,000 keys, followed by lookup and delete.
-As expected, both variants have nearly identical latencies, with a slowdown of
+As expected, both variants have similar latencies, with a slowdown of
 only $1.06\times$ for using XOR lists during lookup.
 
 
@@ -82,9 +82,9 @@ only $1.06\times$ for using XOR lists during lookup.
 %TODO(BLOCKING): look at the comment about num of inserts and lookups
 We measured \xrbt, \xrbtbig, and \rbt during 100,000 inserts and lookups, the results of
 which are shown in Figure~\ref{fig:xrbt_perf} and
-Figure~\ref{fig:xrbt_perf_lookup}. During insert, \xrbt is actually slightly
+Figure~\ref{fig:xrbt_perf_lookup}. During insert, \xrbt is slightly
 faster than \rbt, with \xrbtbig being slower, indicating that although there is
-a non-zero cost for the additional XOR operations, it is outweighed by the
+a non-zero cost for the XOR operations, it is outweighed by the
 performance improvement from smaller node size and better cache utilization. The
 lookup performance shown in Figure~\ref{fig:xrbt_perf_lookup} demonstrates a
 similar pattern, although for sequential lookup the overheads are similar enough

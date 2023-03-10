@@ -1,7 +1,7 @@
 
 \section{Introduction}
 
-As byte-addressable non-volatile memories (\NVMs) become
+As byte-addressable non-volatile memories (\NVMs) become more
 common~\cite{lee_architecting_2009,fox:2001feram,intel3dxpoint}, it is
 increasingly important that systems are optimized to leverage their
 strengths and avoid stressing their weaknesses.  Historically, such
@@ -14,7 +14,7 @@ matter most for \NVMs such as phase-change memory (PCM), \emph{not} the number o
 %phase-change memory (PCM), it is the number of \emph{bits flipped} that matters
 %most, not the number of words written.
 
-\NVMs such as PCM suffer from two problems caused by flipping bits: energy usage
+\NVMs such as PCM suffer from two problems due to flipping bits: energy usage
 and cell wear-out.
 As these memory technologies are adopted into longer-term storage solutions and
 battery powered mobile and IoT devices, their costs become dominated by physical
@@ -27,7 +27,7 @@ change~\cite{dhiman_pdram:_2009,lee_architecting_2009,xiangyu_dong_nvsim:_2012,q
 Thus, many controllers optimize by only flipping bits when the value being
 written to a cell differs from the old value~\cite{yang:iscas07}.  While this
 approach saves some energy, it cannot eliminate flips required by software to
-update modified data structures. An equally important concern is that PCM has
+update modified data. An equally important concern is that PCM has
 limited endurance: cells can only be written a limited number of times before
 they ``wear out''. Unlike flash, however, PCM cells are written individually, so
 it is possible (and even likely) that some cells will be written more than
@@ -55,13 +55,13 @@ sufficiently explored, can thus both save energy and extend the life of \NVM.
 %Prior research~\cite{bittman:nvmsa18} has shown that small changes in data
 Previously, we showed that small changes in data
 structures can have large impacts in the bit flips required to
-complete a given set of data structure modifications~\cite{bittman:nvmsa18}.
+complete a set of data structure modifications~\cite{bittman:nvmsa18}.
 While it is possible to
 reduce bits flipped with changes to hardware, we can gain more
 by optimizing compiler constructs and choosing data structures to take advantage
 of semantic information that is not available at other layers of the stack;
-it is critical we design our data structures with this in mind. Successful \NVM-optimized
-systems will need to target new optimizations for \NVM, including bit flip reduction.
+it is critical we design data structures with this in mind. Successful \NVM-optimized
+systems need to target new optimizations for \NVM, including bit flip reduction.
 
 We implemented three such
 data structures and evaluated the impact on the number of writes and bit flips,
