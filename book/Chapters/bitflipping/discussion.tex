@@ -70,9 +70,9 @@ ensure that the ranges of inputs we test reach the expected scale for
 our data structures, or we may be blind to its true behavior.
 The cache size affects this, of course, but it does so in a predictable way in
 the case of \xrbt, with only the warm-up period being extended by an amount
-proportional to cache size. Of course, the behaviour may be heavily dependent on write patterns.
+proportional to cache size. Of course, the behavior may be heavily dependent on write patterns.
 Thus, we recommend further experiments and that system designers take caches into account when
-evaluating bit flip behaviour of their systems.
+evaluating bit flip behavior of their systems.
 
 The cache additionally affects the read amplification seen in XOR linked lists,
 wherein the XOR linked list implementation issues more reads than a

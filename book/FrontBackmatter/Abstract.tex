@@ -43,14 +43,14 @@ programming techniques into a model that \emph{facilitates} data sharing instead
 systems programming models and techniques tend to involve significant complexity and overhead in dealing with data persistence and
 sharing, such as expensive coarse-grained persistence operations, rigid RPC data models, and serialization. In contrast,
 our data-centric approach gets the kernel out of the way of the data access path, makes data mobile through invariant
-references whose meaning does not change depending on address space or machine\sidenote{In contrast to virtual memory,
+references whose meaning does not change depending on address space or machine\sidenote[][-0.5in]{\footnotesize In contrast to virtual memory,
     whose references only have meaning inside a single address space.}, and thus removes the need for serialization.
 
 We will cover the motivation and hardware trends
 that lead to our design, define a design space based on those trends, and finally discuss Twizzler, a point in that
 design space that exemplifies the ideals we will discuss. We will evaluate Twizzler with case-studies that demonstrate
-system behavior, and efficacy and useability of our programming models, done by building several new pieces of software
-for Twizzler. These, along with ported larger applications, are used to demonstate the performance of Twizzler and its
+system behavior, and efficacy and useability of our programming models, by building several new pieces of software
+for Twizzler. These, along with ported larger applications, will be used to demonstate the performance of Twizzler and its
 programming model, often showing performance increase just due to simplification of software layers.
 
 \vfill
