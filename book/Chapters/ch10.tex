@@ -18,16 +18,20 @@ ever increasing demands for concurrency and performance from software. The frict
 our operating systems is low---provided we can produce a compelling reason for developers to invest in new ways of programming.
 Do we take the easy route, like so many times before, and try to shoehorn new technologies into existing interfaces, or
 do we take a step towards a model that expresses a data-centric view and better fits with hardware trends and the goals
-of software? For us, the answer is clear\sidenote{It's the second thing.}.
+of software?
+
+\vspace{5mm}
+\noindent For us, the answer is clear\sidenote{It's the second thing.}.
+\vspace{5mm}
 
 So, what happens next? There are two aspects of the future I want to discuss with respect to Twizzler---the future of
 the model we discussed and its resilience, and future research directions for Twizzler.
 
 \subsection{Future Models}
 
-It really does appear, in hindsight, as if operating system interfaces plunged fully and purposefully into the endless maw of
+Looking back, it really does appear, in hindsight, as if operating system interfaces plunged fully and purposefully into the endless maw of
 complexity. However, the decisions over the years were not made with the foresight required to predict what criticisms
-we today would leverage at those choices. The model I have presented here is similarly a product of its time, made with
+we today would aim at those choices. The model I have presented here is similarly a product of its time, made with
 some attempt at foresight but, ultimately, must be superceded when it, too, becomes too unwieldy to effectively use
 among new hardware and software characteristics. That said, I have made some attempts to design a general model that
 may be useful beyond \emph{specific} hardware and instead is modeled after patterns:
@@ -60,7 +64,7 @@ operating system does not include completeness, and for a research operating sys
 research directions we can explore. Here are a few.
 
 \paragraph{Compiler Support}
-\Twizzler's clean-slate \NVM abstraction reopens the possibility of coevolving OSes, compilers and
+\Twizzler's clean-slate \NVM abstraction reopens the possibility of co-evolving OSes, compilers and
 languages, and hardware.
 Standardized OS support for cross-object pointers provides a stationary target for both
 compilers and hardware to design towards, whereas application-specific solutions do not.
@@ -84,7 +88,7 @@ memory hierarchy in the face of numerous devices---would simplify the design of 
 because we would not need to invoke the entirety of the virtualization hardware. We are
 interested in exploring modifications to RISC-V to better support \Twizzler.
 
-\paragraph{Higher Level Programming Models}
+\paragraph{Higher Level Programming Frameworks}
 
 The programming model we discussed in Chapter~\ref{ch:prog} provides a number of basic operations on objects, but one
 could imagine a higher level model. Implementing Rust APIs for more complex transactional semantics on shared objects
@@ -138,9 +142,9 @@ arbitrarily-mutable objects.
 
 \fi
 
-\paragraph{Alternative Block Storage Technologies.}
+\paragraph{Alternative Storage Technologies}
 
-Our work meshes well with key-value SSDs, which extend the NVMe
+Twizzler meshes well with key-value SSDs, which extend the NVMe
 specification to include \texttt{put} and \texttt{get} operations. This would allow us to store and
 retrieve parts of objects based on their names rather than block addresses, thus greatly
 simplifying the storage system of the OS because it removes the need for a filesystem. \Twizzler
@@ -150,6 +154,7 @@ of this system.
 
 
 
+\clearpage
 \section{Looking Behind}
 
 \squo{``And what brought you back in the nick of time?''
@@ -163,8 +168,8 @@ Let's return to the principal hypothesis I put forward in Chapter~\ref{ch:intro}
     for designing operating system abstractions is not only viable, but demanded both by software and hardware trends.
 \end{quotation}
 
-In Chapter~\ref{ch:farout} and~\ref{ch:softwaredemands} we discussed the trends in hardware and software that led to
-the above statement, putting together the primary arguments that, (1) hardware is pushing us towards having in-memory
+In Chapters~\ref{ch:farout} and~\ref{ch:softwaredemands} we discussed the trends in hardware and software that led to
+the above statement, putting together the arguments that, (1) hardware is pushing us towards having in-memory
 data structures escape their traditional confinement, (2) software overheads induced by the context problem and
 operating system involvement are too high for modern hardware, (3) a data-centric model addresses the problems we have
 discussed via a method of progamming and storing data that requires no serialization and enables direct access and
@@ -173,9 +178,9 @@ sharing. We also discussed why retrofitting is insufficient, covering Claim 1 fr
 \squo{“The most important reason for going from one place to another is to see what's in between.”}{\emph{The Phantom
         Tollbooth}, Norton Juster}
 In Chapter~\ref{ch:datacentric} we discussed some details of the data-centric viewpoint, followed by elucidating
-Twizzler's place in the design space. Chapters~\ref{ch:global} and Chapter~\ref{ch:invariant} covered the global address
-space and references within that space, going into detail with case studies, performance analysis, and modeling to
-establish the viability of the model in terms of usability, performance overhead, and space overhead, thus covering the
+Twizzler's place in the design space. Chapters~\ref{ch:global} and~\ref{ch:invariant} covered the global address
+space and invariant references, going into detail with case studies, performance analysis, and modeling to
+establish the viability of the model in terms of usability, and performance and space overhead, thus covering the
 remaining Chapter~\ref{ch:intro} Claims.
 
 Chapters~\ref{ch:twizzler} and~\ref{ch:prog} wrap up by discussing operating system services and implementation, and
@@ -214,18 +219,22 @@ by removing the kernel from persistent data access paths,
 thereby improving the flexibility and performance.
 Our simpler programming model improved performance despite the small
 pointer translation overhead.
-Our programming model is easy to work with
+Twizzler is easy to work with
 compared to existing systems, and we were able to both quickly prototype real
 applications with advanced access control features and port existing software, such as SQLite.
 
 But those aren't the real lessons. Instead, consider how much of the operating system was under review after asking a
 simple question, ``what if the lifetime of in-memory data extends beyond the ephemera?'' This question was at the heart
 of this research, and led to all the work herein. It's not tied to a specific idea about persistent
-memory\sidenote{Though I won't deny that NVM kicked it off.} or networking, but about programming, applications, and
-data. Reconsidering core ideas in programming and operating systems can lead to dramatic shifts in our understanding and
+memory\sidenote{Though I won't deny that NVM kicked it off.} or networking; instead, it's about programming, applications, and
+\emph{data}. Reconsidering core ideas in programming and operating systems can lead to dramatic shifts in our understanding and
 designs. If we do not take the plunge by calling into question core beliefs and make moves towards building new things,
 we will be forever mired in the cage of our outdated systems. But there is hope---not from Twizzler alone, but from all
-the operating systems research that has exploded onto the scene. It's an exciting time, and I cannot wait for the next
-new operating system that asks ``what if things could be better''.
+the operating systems research that has exploded onto the scene.
 
-\squo{``It's a magical world, Hobbes, ol' buddy... Let's go exploring!''}{Calvin, \emph{Calvin and Hobbes}, Bill Watterson}
+\vspace{5mm}
+\squo{``It's a magical world, Hobbes, ol' buddy... Let's go exploring!''}{Calvin, \emph{Calvin and Hobbes},\\Bill Watterson}
+
+\noindent It's an exciting time, and I cannot wait for the next
+new operating system that asks, \emph{what if things could be better}.
+
