@@ -150,7 +150,7 @@ persisting data at this level, it also supports a basic transactional interface.
 
 \paragraph{C Transactions Interface}
 \Twizzler provides a transactional-persistent logging mechanism.
-Programmers can write \texttt{TXSTART}/\texttt{TXEND} blocks to denote transactions and \texttt{TXRECORD}
+Programmers write \texttt{TXSTART}/\texttt{TXEND}\sidenote{If you ``love'' C macros, give these a look sometime.} blocks to denote transactions and \texttt{TXRECORD}
 statements to record pre-changed values, similar to the mechanism provided by
 PMDK~\cite{libpmem}. If applications need more complex
 transactions using different logging mechanisms, they can use libraries. \Twizzler's internal data
@@ -219,7 +219,7 @@ are added to systems (\eg different kinds of \NVM with different properties, hig
 \etc), applications may wish to have more fine-grained control over where objects are placed, and
 \Twizzler's APIs allow such control. Objects can also be moved between types of memory after
 creation, though this may be a time consuming operation as it involves copying potentially large
-amounts of data.
+amounts of data\sidenote{I would love to see \NVM to/from DRAM direct physical copy hardware!}.
 
 By default, objects are persistent and live in kernel-managed \NVM or pager-managed storage unless they are marked as
 volatile. If an object is volatile, it has a limited lifetime that is related to the power state of
