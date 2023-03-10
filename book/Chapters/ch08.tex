@@ -87,19 +87,18 @@ cannot tolerate wear out and energy use as easily as other applications, and the
 already dense and power efficient \NVM technologies.
 Flipping a bit in PCM cells consumes $15.7\mathit{-}22.5\times$ more power than reading a
 bit~\cite{dhiman_pdram:_2009,lee_architecting_2009,xiangyu_dong_nvsim:_2012,qureshi_scalable_2009}, and causes wear
-(whereas reading does not cause nearly as much wear).
+(whereas reading causes comparatively little wear).
 Thus, controllers can optimize by examining bits to determine which must actually change on a write~\cite{yang:iscas07}.
-Of course, such an optimization is heavily dependent on software, which issues the writes.
+Of course, such an optimization is dependent on software, which issues the writes.
 Reducing bit flips, an optimization goal that has yet to be
-sufficiently explored, can thus both save energy and extend the life of \NVM, but we optimize better if we manage to
-design software to reduce bit flips.
+sufficiently explored, can both save energy and extend the life of \NVM, but we can optimize better by
+designing software to reduce bit flips.
 
-We examined a number of different common data structures and examined strategies for how we can reduce bitflips caused
+We examined a number of common data structures and strategies for how we can reduce bitflips caused
 by data structure updates. This involved taking previously-known tricks like XOR linked lists~\cite{xorll} and
 generalizing them to trees and hash tables, along with choices for bit packing and data layout, and modifying Gem5, a
 system simulator, to count bit flips. We found that we could easily reduce a significant number of bits flipped in the
-data structures we studied with little performance impact. Since the details are not germane to the Twizzler programming
-model, details of our work on bitflipping are included in Appendix~\ref{app:bitflip}.
+data structures we studied with little performance impact. Further details can be found in Appendix~\ref{app:bitflip}.
 
 
 \section{Crash Consistency}
@@ -151,8 +150,8 @@ persisting data at this level, it also supports a basic transactional interface.
 
 \paragraph{C Transactions Interface}
 \Twizzler provides a transactional-persistent logging mechanism.
-Programmers can write \texttt{TXSTART}--\texttt{TXEND} blocks to denote transactions and \texttt{TXRECORD}
-statements to record pre-changed values. This is similar to the mechanism provided by
+Programmers can write \texttt{TXSTART}/\texttt{TXEND} blocks to denote transactions and \texttt{TXRECORD}
+statements to record pre-changed values, similar to the mechanism provided by
 PMDK~\cite{libpmem}. If applications need more complex
 transactions using different logging mechanisms, they can use libraries. \Twizzler's internal data
 structures and \libcore's manipulation of object metadata is handled via a combination of these
@@ -201,7 +200,7 @@ hardware evolution.
 \section{Memory Safety and Lifetimes}
 
 One final aspect of objects is safety, that is, ensuring proper typing of memory and ensuring that object memory does
-not leave a dangling reference behind. Twizzler accomplishes the general ideas of memory safety via a combination of
+not leave a dangling reference behind. Twizzler accomplishes this via a combination of
 some runtime checks, some kernel support for specifying lifetime relationships between objects, and some language
 support.
 %Notably, using the Rust bindings provides significantly more memory and type safety than the C bindings do.
@@ -222,7 +221,7 @@ are added to systems (\eg different kinds of \NVM with different properties, hig
 creation, though this may be a time consuming operation as it involves copying potentially large
 amounts of data.
 
-By default, objects are persistent and live in kernel-managed \NVM unless they are marked as
+By default, objects are persistent and live in kernel-managed \NVM or pager-managed storage unless they are marked as
 volatile. If an object is volatile, it has a limited lifetime that is related to the power state of
 the machine---as soon as power is lost or the system is rebooted all volatile objects disappear.
 Note that \Twizzler removes the distinction between volatile and persistent objects for how
@@ -308,13 +307,13 @@ each other. Note that object ties are not related to invariant pointers (discuss
 in Chapter~\ref{ch:invariant}), and instead primarily provide a way to formalize automatic cleanup.
 
 
-Object ties provide a convenient mechanism for applications to build large data structures across
+Object ties provide a convenient mechanism for applications to build data structures across
 multiple objects without giving up easy cleanup if something goes wrong or if the ``root'' object is
 deleted. \Twizzler also uses ties internally: when an object is created as copy-from an existing
 object, it uses copy-on-write semantics, and thus internally marks the source object as tied to the
 new object. We also tie ephemeral program state objects to threads (which are also represented by
 objects) such that they are automatically cleaned up when a program exits. It is our expectation
-that application programmers will only rarely directly use ties. Instead, we expect that ties will
+that programmers will only rarely directly use ties. Instead, we expect that ties will
 provide necessary features that higher-level programming language support for persistent memory can
 use.
 
@@ -347,7 +346,7 @@ As we discussed above, an object may optionally have a region within which we re
 organize memory. However, when objects may be persisted or shared, there are some additional hazards to consider.
 
 \begin{enumerate}
-    \item \textbf{Crash Consistent}: The allocator must allow for power interruptions or application failures, and so
+    \item \textbf{Crash Consistent}: The allocator must allow for power or application failures, and so
           all operations must be failure-atomic.
     \item \textbf{Leaked Memory}: Say we allocate some memory from an object. Let's consider the interface described
           by \texttt{malloc} and \texttt{free}. We can imagine a situation where an application allocates some memory, but
@@ -386,17 +385,17 @@ The allocate function is built around an allocation and construction pattern tha
 \begin{enumerate}
     \item Allocate memory from the allocator.
     \item Construct the memory into a valid inhabitant of the intended type.
-    \item Record the reference to the node into some data structure.
+    \item Record the reference to the new data into some data structure.
 \end{enumerate}
 
-And that the freeing pattern occurs in two steps:
+The freeing pattern occurs in two steps:
 
 \begin{enumerate}
     \item Remove the final (or only) pointer to the to-free memory by overwriting it (or clearing it to NULL).
     \item Free the memory back to the allocator.
 \end{enumerate}
 
-These steps are vital for persistence-safety, and it is vital that they occur in that order. Permuting the steps can
+These steps are vital for persistence-safety, and it is vital that they occur in that order and atomically. Permuting the steps can
 allow for any of the problems we discussed above, and these steps are all needed to properly allocate an instance of
 a type and record a reference to it.
 
@@ -411,8 +410,8 @@ The above allocation algorithm is safe because it ensures that, if the log is re
 be reset to contain the region, and the owner pointer is also reset to prevent the (now unallocated) region from being
 referenced. Since the region was not allocated, we can assume that none of that memory is referenced externally, and the
 contents do not matter\sidenote{For example, we can use that region for allocator-internal data structures!}. Thus we
-can assume that region was filled with uninitialized memory, and we do not need to restore it\sidenote{Any data
-    structure internal data that needs to be restored inside the region will be properly reset by replaying the log.}. This
+can assume that region was filled with uninitialized memory, and needs not be restored\sidenote{Any
+    internal allocator data that needs to be restored inside the region will be properly reset by replaying the log.}. This
 is not a mere optimization for restoring after a crash, nor is it an optimization for bulk flushes during allocations,
 it is vital for efficient implementation. The total amount of memory that needs to be flushed is $O(s)$, where $s$ is
 the size being allocated, because we have to flush the entire memory region that holds the type for which we are
@@ -698,10 +697,10 @@ internal or external causes.
 
 \begin{chconc}
     Ensuring that programmers have access to a reasonable programming model that sits atop the operating system
-    abstractions built for it is of utmost importance. Even if the lower levels of the systems provide access to a fast,
-    invariant reference in a global address space that simplifies data models and transformations, programmers still
-    need systems that make some of the harder parts easier. Twizzler provides a set of higher level APIs that enable
-    day-to-day tasks like allocations and ensuring crash consistency are consistently handled by the system.
+    abstractions built for it is of utmost importance. Even if the lower levels of the system provides access to a fast,
+    invariant reference implementation in a global address space that simplifies data models and transformations, programmers still
+    need systems that make some of the harder parts easier. Twizzler provides a set of higher level APIs that facilitate
+    day-to-day tasks like allocations and ensuring crash consistency.
 \end{chconc}
 
 
