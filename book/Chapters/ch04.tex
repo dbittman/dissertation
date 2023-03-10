@@ -658,7 +658,9 @@ Exokernel~\cite{engler:sosp95}, and Multikernel~\cite{baumann:sosp09}:
           and performance. We take this approach into consideration in our design.
           However, our above observations suggest that the multikernel approach does not go far
           enough---\emph{every} programmable device in this system needs to be treated as a separate
-          system instance. Finally, multikernels do not address making hardware see a uniform
+          system instance, more like LegoOS~\cite{legos}, which we take inspiration from\sidenote{Though we focus more
+              towards constructing data that can be shared and positioned within a global address space.}.
+          Finally, multikernels do not address making hardware see a uniform
           object space, nor do they address the problem of invariant pointers in a global address space.
 \end{itemize}
 
