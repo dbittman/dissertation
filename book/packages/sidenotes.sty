@@ -62,7 +62,7 @@
 {
   \IfNoValueOrEmptyTF{#1}
   {\marginpar{#2}}
-  {\marginnote{#2}[#1]}
+  {\marginnote{{#2}}[#1]}
 }
 \NewDocumentCommand \sidenote { o o +m }
 {
@@ -85,7 +85,7 @@
     \@sidenotes@placemarginal{#2}{\textsuperscript{\thesidenote}{}~#3}
     \refstepcounter{sidenote}
   }
-  {\@sidenotes@placemarginal{#2}{\textsuperscript{#1}~#3}}
+  {\@sidenotes@placemarginal{{#2}}{\textsuperscript{#1}~#3}}
 }
 \DeclareCaptionStyle{sidecaption}{font=footnotesize}
 \NewDocumentCommand \sidecaption {s o o m}

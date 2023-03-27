@@ -340,10 +340,10 @@
 
 
 
-\usepackage[letterpaper, inner=1.5in, outer=3in, top=1.25in, bottom=1.25in]{geometry}
+\usepackage[letterpaper, inner=1.5in, outer=3in, top=1.25in, bottom=1.25in, footskip=.334in]{geometry}
 
-\setlength{\marginparwidth}{11em}%
-\setlength{\marginparsep}{2.5em}%
+\setlength{\marginparwidth}{10.5em}%
+\setlength{\marginparsep}{1.5em}%
 
 
 \edef\sidecaptionsep{\the\marginparsep}
@@ -381,7 +381,7 @@
 \renewcommand{\eqnhighlightheight}{}
 
 \usepackage{setspace}
-\setstretch{1.125}
+\setstretch{1.667}
 
 
 %% TODO try different options for acronyms
@@ -416,3 +416,7 @@
 \usepackage{./packages/listings-rust}
 \newcommand{\heart}{\ensuremath\heartsuit}
 \usepackage{pdfpages}
+
+\renewcommand\marginfont{%
+  \footnotesize\setstretch{1.125}
+}

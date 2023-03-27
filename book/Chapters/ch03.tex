@@ -68,7 +68,7 @@ fundamentally bifurcate our programming model into two separate \emph{contexts}:
     \item \textbf{Global Context} contains data that is shared across all the domains. Typically this covers data stored
           on disk or other stable storage. Data in a global context is usually stored in some serialized format and can
           be accessed by multiple domains simultaneously. The lifetime of data herein is, in the limit,
-          infinite\sidenote{Even in the global context, we traditionally separate local storage and network storage.
+          infinite\sidenote[][-1in]{Even in the global context, we traditionally separate local storage and network storage.
               That separation can be eroded depending on the programming model, however, as we will discuss later.}.
 \end{enumerate}
 

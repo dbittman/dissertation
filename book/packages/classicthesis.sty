@@ -275,7 +275,7 @@
     %   \slshape\footnotesize% this was due to \slhape in above book
     \footnotesize\leavevmode\color{Black}%
     \parindent=0pt \lineskip=0pt \lineskiplimit=0pt %
-    \tolerance=2000 \hyphenpenalty=300 \exhyphenpenalty=300%
+    \tolerance=2000 \hyphenpenalty=300 \exhyphenpenalty=300 \setstretch{1.125}%
     \doublehyphendemerits=100000%
     \finalhyphendemerits=\doublehyphendemerits}
 %\DeclareRobustCommand{\graffito}[1]{\marginpar%
@@ -373,7 +373,7 @@
     \titleformat{\part}[display]
     {\normalfont\ct@altfont\centering\large}%
     {\thispagestyle{plain}\Large\partname~\MakeTextUppercase{\thepart}\linebreak\rule{8em}{1pt}}{3em}%
-    {\color{CTtitle}\LARGE\spacedallcaps}[\bigskip\normalfont\normalsize\color{Black}\begin{quote}\ctparttext@print\end{quote}]
+    {\color{CTtitle}\LARGE\spacedallcaps}[\bigskip\normalfont\normalsize\color{Black}\begin{spacing}{1.125}\begin{quote}\ctparttext@print\end{quote}\end{spacing}]
 }{\relax}
 % chapters
 \ifthenelse{\boolean{ct@linedheaders}}%
