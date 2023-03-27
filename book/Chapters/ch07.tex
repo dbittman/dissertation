@@ -232,6 +232,8 @@ translation hardware appropriately. This presents a problem: since threads can a
 different security contexts, the number of different page-table structures that the kernel needs to
 manage grows quickly.
 
+%HACK 
+\clearpage
 \Twizzler uses Intel's Extended Page Table (EPT) technology\sidenote{Other architectures (and AMD) have similar systems, but
     \Twizzler does not support them yet.}, which is part of the virtualization
 extensions. The EPT allows a virtual address to be translated by two separate page tables, and is
